@@ -486,6 +486,16 @@ class SpellDumpPython(NifSpell):
             if not result:
                 self.lines.pop(with_line_number)
             return result
+        elif(isinstance(_value, pyffi.object_models.xml.BitStructBase)):
+            name_alias = "n_%s" % _value.__class__.__name__.lower()
+            self.print_("with ref(%s) as %s:" % (name, name_alias))
+            self.level += 1
+            for attr in _value._attribute_list:
+                attr_name = "%s.%s" % (name_alias, attr.name)
+                _attr_value = getattr(_value, "_%s_value_" % attr.name)
+                self.print_("%s = %s" % (attr_name, _attr_value))
+            self.level -= 1
+            return True
         else:
             raise RuntimeError("unknown type %s" % _value.__class__)
 
