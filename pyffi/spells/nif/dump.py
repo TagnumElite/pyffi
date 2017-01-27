@@ -551,10 +551,28 @@ class SpellDumpPython(NifSpell):
     def dataexit(self):
         self.print_("return n_data")
         self.level -= 1
+
+        self.print_()
+        posfix = "_dump.py"
+        base = os.path.basename(self.stream.name)
+        fileName = os.path.splitext(base)[0]
+        self.writeToFile(fileName + posfix + ".nif")
+
         # done printing, now write file
-        filename, ext = os.path.splitext(self.stream.name)
-        filename = filename + "_dump.py"
-        self.toaster.msg("writing %s" % filename)
-        with codecs.open(filename, "wb", encoding="ascii") as stream:
+        fullFilePath, ext = os.path.splitext(self.stream.name)
+        filePath = fullFilePath + posfix
+        self.toaster.msg("writing %s" % filePath)
+        with codecs.open(filePath, "wb", encoding="ascii") as stream:
             for line in self.lines:
                 print(line, file=stream)
+
+    def writeToFile(self, filename):
+        """Adds code to write the main n_create_data to file"""
+
+        self.print_("if __name__ == '__main__':")
+        self.level += 1
+        self.print_("with open(\"%s\", \"wb\") as stream:" % filename)
+        self.level += 1
+        self.print_("n_data = n_create_data()")
+        self.print_("n_data.write(stream)")
+        self.level -= 2
