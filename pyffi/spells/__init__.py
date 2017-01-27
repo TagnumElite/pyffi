@@ -1345,14 +1345,15 @@ class Toaster(object):
             self.files_done[stream.name] = spell.reports
 
         except Exception as expt:
+            self.logger.error("Failed with the following error" + str(expt))
             self.files_failed.add(stream.name)
-            self.logger.error("FAILED ON {0} - with the follow exception".format(stream.name))
-            self.logger.error("EXPT MSG : " + str(expt))
-            self.logger.error("If you were running a spell that came with PyFFI")
-            self.logger.error("Please report this issue - https://github.com/niftools/pyffi/issues")
+            self.logger.error("TEST FAILED ON %s" % stream.name)
+            self.logger.error("If you were running a spell that came with PyFFI, then")
+            self.logger.error("please report this as a bug (include the file) on")
+            self.logger.error("https://github.com/niftools/pyffi/issues")
             # if raising test errors, reraise the exception
             if self.options["raisetesterror"]:
-                raise
+                raise expt
         finally:
             self.msgblockend()
 
