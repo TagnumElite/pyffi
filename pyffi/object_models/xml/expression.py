@@ -98,7 +98,10 @@ class Expression(object):
             else:
                 left = data
                 for part in self._left.split("."):
-                    left = getattr(left, part)
+                    if 'arg' == part:
+                        left = getattr(data, part).to_int(None)
+                    else:
+                        left = getattr(left, part)
         elif isinstance(self._left, type):
             left = isinstance(data, self._left)
         elif self._left is None:
@@ -116,7 +119,12 @@ class Expression(object):
             if (not self._right) or self._right == '""':
                 right = ""
             else:
-                right = getattr(data, self._right)
+                right = data
+                for part in self._left.split("."):
+                    if 'arg' == part:
+                        right = getattr(data, part).to_int(None)
+                    else:
+                        right = getattr(data, self._right)
         elif isinstance(self._right, type):
             right = isinstance(data, self._right)
         elif self._right is None:
