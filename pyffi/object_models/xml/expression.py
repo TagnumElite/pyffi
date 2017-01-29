@@ -74,11 +74,10 @@ class Expression(object):
     >>> bool(Expression('1 != 1').eval())
     False
     """
+    operators = set(( '==', '!=', '>=', '<=', '&&', '||', '&', '|', '-', '!',
+                  '<', '>', '/', '*', '+' ))
 
-    operators = set(('==', '!=', '>=', '<=', '&&', '||', '&', '|', '-', '!',
-                     '<', '>', '/', '*', '+'))
-
-    def __init__(self, expr_str, name_filter=None):
+    def __init__(self, expr_str, name_filter = None):
         try:
             left, self._op, right = self._partition(expr_str)
             self._left = self._parse(left, name_filter)
