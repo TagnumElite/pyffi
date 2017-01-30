@@ -73,11 +73,52 @@ class Expression(object):
     True
     >>> bool(Expression('1 != 1').eval())
     False
-    """
-    operators = set(( '==', '!=', '>=', '<=', '&&', '||', '&', '|', '-', '!',
-                  '<', '>', '/', '*', '+' ))
+    >>> bool(Expression('!(1 == 1)').eval())
+    False
+    >>> bool(Expression('!((1 <= 2) && (2 <= 3))').eval())
+    False
+    >>> bool(Expression('(1 <= 2) && (2 <= 3) && (3 <= 4)').eval())
+    True
+    >>> class B(object):
+    ...     i = 0
+    ...     j = 1
+    >>> b = B()
+    >>> b.hello_world = True
+    >>> bool(Expression('i').eval(b))
+    False
+    >>> bool(Expression('(i & hello_world) | j').eval(b))
+    True
+    >>> class C(object):
+    ...     u = False
+    ...     v = True
+    ...     a = A()
+    ...     b = B()
+    >>> c = C()
+    >>> bool(Expression('a.x').eval(c))
+    False
+    >>> bool(Expression('u & a.x').eval(c))
+    False
+    >>> class ComplexInt():
+    ...     x = 1
+    ...     y = 0
+    ...     def to_int(cls, data):
+    ...         return 1
+    ...
+    >>> class D(object):
+    ...     arg = ComplexInt()
 
-    def __init__(self, expr_str, name_filter = None):
+    >>> d = D()
+    >>> bool(Expression('arg').eval(d))
+    True
+    >>> bool(Expression('arg.y').eval(d))
+    False
+    >>> bool(Expression('arg & arg.x').eval(d))
+    True
+    """
+    operators = set(('==', '!=', '>=', '<=', '&&', '||', '&', '|', '-', '!',
+                     '<', '>', '/', '*', '+'))
+
+    def __init__(self, expr_str, name_filter=None):
         try:
             left, self._op, right = self._partition(expr_str)
             self._left = self._parse(left, name_filter)
@@ -94,13 +135,16 @@ class Expression(object):
         elif isinstance(self._left, str):
             if self._left == '""':
                 left = ""
-            else:
+            elif "." in self._left:
                 left = data
                 for part in self._left.split("."):
-                    if 'arg' == part:
-                        left = getattr(data, part).to_int(None)
-                    else:
-                        left = getattr(left, part)
+                    left = getattr(left, part)
+
+            # value is an arg attribute type, lookup parent for value to evaluate
+            elif self._left == 'arg':
+                left = (getattr(data, self._left)).to_int(None)
+            else:
+                left = getattr(data, self._left)
         elif isinstance(self._left, type):
             left = isinstance(data, self._left)
         elif self._left is None:
@@ -117,13 +161,16 @@ class Expression(object):
         elif isinstance(self._right, str):
             if (not self._right) or self._right == '""':
                 right = ""
-            else:
+            elif "." in self._right:
                 right = data
-                for part in self._left.split("."):
-                    if 'arg' == part:
-                        right = getattr(data, part).to_int(None)
-                    else:
-                        right = getattr(data, self._right)
+                for part in self._right.split("."):
+                    right = getattr(right, part)
+
+            # value is an arg attribute type, lookup parent for value to evaluate
+            elif self._right == 'arg':
+                right = (getattr(data, self._right)).to_int(None)
+            else:
+                right = getattr(data, self._right)
         elif isinstance(self._right, type):
             right = isinstance(data, self._right)
         elif self._right is None:
@@ -151,7 +198,7 @@ class Expression(object):
         elif self._op == '-':
             return left - right
         elif self._op == '!':
-            return not (right)
+            return int(not (right))
         elif self._op == '>':
             return left > right
         elif self._op == '<':
@@ -165,6 +212,8 @@ class Expression(object):
         else:
             raise NotImplementedError("expression syntax error: operator '" + self._op + "' not implemented")
 
+
+
     def __str__(self):
         """Reconstruct the expression to a string."""
 
@@ -175,8 +224,8 @@ class Expression(object):
 
     @classmethod
     def _parse(cls, expr_str, name_filter=None):
-        """Returns an Expression, string, or int, depending on the
-        contents of <expr_str>."""
+        """Returns an Expression, string, or int, depending on the contents of <expr_str>."""
+
         if not expr_str:
             # empty string
             return None
@@ -284,7 +333,7 @@ class Expression(object):
 
         # now we have done the left hand side, and the operator
         # all that is left is to process the right hand side
-        right_startpos, right_endpos = cls._scan_brackets(expr_str, op_endpos + 1)
+        right_startpos, right_endpos = cls._scanBrackets(expr_str, op_endpos + 1)
         if right_startpos >= 0:
             # yes, we found a bracketted expression
             # so remove brackets and whitespace,
@@ -312,7 +361,7 @@ class Expression(object):
         return left_str, op_str, right_str
 
     @staticmethod
-    def _scan_brackets(expr_str, fromIndex=0):
+    def _scanBrackets(expr_str, fromIndex=0):
         """Looks for matching brackets.
 
         >>> Expression._scan_brackets('abcde')
@@ -344,6 +393,9 @@ class Expression(object):
             if start_pos != -1 or end_pos != -1:
                 raise ValueError("expression syntax error (non-matching brackets?)")
         return start_pos, end_pos
+    
+    #: For Backwards Compatibility
+    _scan_brackets = _scanBrackets
 
     def map_(self, func):
         if isinstance(self._left, Expression):
