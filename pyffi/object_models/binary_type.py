@@ -156,17 +156,118 @@ class IntType(BinarySimpleType, EditableSpinBox):
     '0x44332211'
     """
 
-    _min = -0x80000000 #: Minimum value.
-    _max = 0x7fffffff  #: Maximum value.
-    _struct = 'i'      #: Character used to represent type in struct.
-    _size = 4          #: Number of bytes.
+    _min = -0x80000000   #: Minimum value.
+    _max = 0x7fffffff    #: Maximum value.
+    _struct = 'i'        #: Character used to represent type in struct.
+    _size = 4            #: Number of bytes.
+    _fmt = "<Int ({0})>" #: Rerpresentation string format
 
     # SimpleType
 
     def __init__(self):
         """Initialize the integer."""
         self._value = 0
-
+    
+    def __repr__(self):
+        return self._fmt.format(self._value)
+    
+    def __int__(self):
+        return self._value
+    
+    def __add__(self, other):
+        return int(self) + int(other)
+    
+    def __sub__(self, other):
+        return int(self) - int(other)
+    
+    def __mul__(self, other):
+        return int(self) * int(other)
+    
+    def __floordiv__(self, other):
+        return int(self) // int(other)
+    
+    def __mod__(self, other):
+        return int(self) % int(other)
+    
+    def __divmod__(self, other):
+        return divmod(int(self), int(other))
+    
+    def __pow__(self, other, modulo=None):
+        return pow(int(self), int(other), modulo)
+    
+    def __lshift__(self, other):
+        return int(self) << int(other)
+    
+    def __rshift__(self, other):
+        return int(self) >> int(other)
+        
+    def __and__(self, other):
+        return int(self) & int(other)
+    
+    def __xor__(self, other):
+        return int(self) ^ int(other)
+    
+    def __or__(self, other):
+        return int(self) | int(other)
+    
+    def __div__(self, other):
+        return int(self) / int(other)
+    
+    def __truediv__(self, other):
+        return int(self) / int(other)
+    
+    def __iadd__(self, other):
+        self.value = int(self) + int(other)
+        return self
+    
+    def __isub__(self, other):
+        self.value = int(self) - int(other)
+        return self
+    
+    def __imul__(self, other):
+        self.value = int(self) * int(other)
+        return self
+    
+    def __ifloordiv__(self, other):
+        self.value = int(self) // int(other)
+        return self
+    
+    def __imod__(self, other):
+        self.value = int(self) % int(other)
+        return self
+    
+    def __ipow__(self, other, modulo=None):
+        self.value = pow(int(self), int(other), modulo)
+        return self
+    
+    def __ilshift__(self, other):
+        self.value = int(self) << int(other)
+        return self
+    
+    def __irshift__(self, other):
+        self.value = int(self) >> int(other)
+        return self
+        
+    def __iand__(self, other):
+        self.value = int(self) & int(other)
+        return self
+    
+    def __ixor__(self, other):
+        self.value = int(self) ^ int(other)
+        return self
+    
+    def __ior__(self, other):
+        self.value = int(self) | int(other)
+        return self
+    
+    def __idiv__(self, other):
+        self.value = int(self) / int(other)
+        return self
+    
+    def __itruediv__(self, other):
+        self.value = int(self) / int(other)
+        return self
+    
     def set_value(self, value):
         """Set value to C{value}. Calls C{int(value)} to convert to integer.
 
@@ -238,6 +339,7 @@ class UIntType(IntType):
     _max = 0xffffffff
     _struct = 'I'
     _size = 4
+    _fmt = "<UInt ({0})>"
 
 class ByteType(IntType):
     """Implementation of a 8-bit signed integer type."""
@@ -245,6 +347,7 @@ class ByteType(IntType):
     _max = 0x7f
     _struct = 'b'
     _size = 1
+    _fmt = "<Byte ({0})>"
 
 class UByteType(IntType):
     """Implementation of a 8-bit unsigned integer type."""
@@ -252,6 +355,7 @@ class UByteType(IntType):
     _max = 0xff
     _struct = 'B'
     _size = 1
+    _fmt = "<UByte ({0})>"
 
 class ShortType(IntType):
     """Implementation of a 16-bit signed integer type."""
@@ -259,6 +363,7 @@ class ShortType(IntType):
     _max = 0x7fff
     _struct = 'h'
     _size = 2
+    _fmt = "<Short ({0})>"
 
 class UShortType(UIntType):
     """Implementation of a 16-bit unsigned integer type."""
@@ -266,9 +371,12 @@ class UShortType(UIntType):
     _max = 0xffff
     _struct = 'H'
     _size = 2
+    _fmt = "<UShort ({0})>"
 
 class BoolType(UByteType, EditableBoolComboBox):
     """Simple bool implementation."""
+    
+    _fmt = "<Bool ({0})>"
 
     def get_value(self):
         """Return stored value.
