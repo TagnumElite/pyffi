@@ -116,7 +116,7 @@ class Expression(object):
     True
     """
     operators = set(('==', '!=', '>=', '<=', '&&', '||', '&', '|', '-', '!',
-                     '<', '>', '/', '*', '+'))
+                     '<', '>', '/', '*', '+', '&gt;=', '&lt;=', '&gt;', '&lt;'))
 
     def __init__(self, expr_str, name_filter=None):
         try:
@@ -183,9 +183,9 @@ class Expression(object):
             return left == right
         elif self._op == '!=':
             return left != right
-        elif self._op == '>=':
+        elif self._op == '>=' or self._op == '&gt;=':
             return left >= right
-        elif self._op == '<=':
+        elif self._op == '<=' or self._op == '&lt;=':
             return left <= right
         elif self._op == '&&':
             return left and right
@@ -199,9 +199,9 @@ class Expression(object):
             return left - right
         elif self._op == '!':
             return int(not (right))
-        elif self._op == '>':
+        elif self._op == '>' or self._op == '&gt;':
             return left > right
-        elif self._op == '<':
+        elif self._op == '<' or self._op == '&lt;':
             return left < right
         elif self._op == '/':
             return left / right
