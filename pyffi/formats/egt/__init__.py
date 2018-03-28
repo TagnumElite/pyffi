@@ -59,7 +59,7 @@ Create an EGT file from scratch and write to file
 
 # ***** BEGIN LICENSE BLOCK *****
 #
-# Copyright (c) 2007-2012, Python File Format Interface
+# Copyright (c) 2007-2018, Python File Format Interface
 # All rights reserved.
 #
 # Redisegtbution and use in source and binary forms, with or without
