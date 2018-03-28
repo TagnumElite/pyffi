@@ -53,7 +53,7 @@ master_doc = 'index'
 
 # General substitutions.
 project = 'PyFFI'
-copyright = '2012-2017, NifTools'
+copyright = '2007-2018, NifTools'
 author = 'Amorilia'
 
 # The default replacements for |version| and |release|, also used in various
