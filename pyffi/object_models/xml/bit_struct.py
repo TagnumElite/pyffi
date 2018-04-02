@@ -47,6 +47,40 @@ import struct
 
 from pyffi.object_models.editable import EditableSpinBox  # for Bits
 from pyffi.utils.graph import DetailNode, EdgeFilter
+from pyffi.object_models.xml.expression import Expression
+
+
+class BitStructAttribute(object):
+    """Helper class to collect attribute data of bitstruct bits tags."""
+
+    def __init__(self, cls, attrs):
+        """Initialize attribute from the xml attrs dictionary of an
+        add tag.
+
+        :param cls: The class where all types reside.
+        :param attrs: The xml add tag attribute dictionary."""
+        # mandatory parameters
+        self.name = cls.name_attribute(attrs["name"])
+        self.numbits = int(cls.name_attribute(attrs["numbits"]))
+        # optional parameters
+        self.default = attrs.get("default")
+        self.cond = attrs.get("cond")
+        self.ver1 = attrs.get("ver1")
+        self.ver2 = attrs.get("ver2")
+        self.userver = attrs.get("userver")
+        self.doc = "" # handled in xml parser's characters function
+
+        # post-processing
+        if self.default:
+            self.default = int(self.default)
+        if self.cond:
+            self.cond = Expression(self.cond, cls.name_attribute)
+        if self.userver:
+            self.userver = int(self.userver)
+        if self.ver1:
+            self.ver1 = cls.version_number(self.ver1)
+        if self.ver2:
+            self.ver2 = cls.version_number(self.ver2)
 
 
 class _MetaBitStructBase(type):
@@ -94,6 +128,7 @@ class _MetaBitStructBase(type):
 
     def __repr__(cls):
         return "<bit_struct '%s'>"%(cls.__name__)
+
 
 class Bits(DetailNode, EditableSpinBox):
     """Basic implementation of a n-bit unsigned integer type (without read and write)."""
