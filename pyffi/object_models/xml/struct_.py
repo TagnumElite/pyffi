@@ -46,6 +46,133 @@ from functools import partial
 
 from pyffi.utils.graph import DetailNode, GlobalNode, EdgeFilter
 import pyffi.object_models.common
+from pyffi.object_models.xml.expression import Expression
+
+
+class StructAttribute(object):
+    """Helper class to collect attribute data of struct add tags."""
+
+    name = None
+    """The name of this member variable."""
+
+    type_ = None
+    """The type of this member variable (type is ``str`` for forward
+    declarations, and resolved to :class:`BasicBase` or
+    :class:`StructBase` later).
+    """
+
+    default = None
+    """The default value of this member variable."""
+
+    template = None
+    """The template type of this member variable (initially ``str``,
+    resolved to :class:`BasicBase` or :class:`StructBase` at the end
+    of the xml parsing), and if there is no template type, then this
+    variable will equal ``type(None)``.
+    """
+
+    arg = None
+    """The argument of this member variable."""
+
+    arr1 = None
+    """The first array size of this member variable, as
+    :class:`Expression` or ``type(None)``.
+    """
+
+    arr2 = None
+    """The second array size of this member variable, as
+    :class:`Expression` or ``type(None)``.
+    """
+
+    cond = None
+    """The condition of this member variable, as
+    :class:`Expression` or ``type(None)``.
+    """
+
+    ver1 = None
+    """The first version this member exists, as ``int``, and ``None`` if
+    there is no lower limit.
+    """
+
+    ver2 = None
+    """The last version this member exists, as ``int``, and ``None`` if
+    there is no upper limit.
+    """
+
+    userver = None
+    """The user version this member exists, as ``int``, and ``None`` if
+    it exists for all user versions.
+    """
+
+    is_abstract = False
+    """Whether the attribute is abstract or not (read and written)."""
+
+    def __init__(self, cls, attrs):
+        """Initialize attribute from the xml attrs dictionary of an
+        add tag.
+
+        :param cls: The class where all types reside.
+        :param attrs: The xml add tag attribute dictionary."""
+        # mandatory parameters
+        self.displayname = attrs["name"]
+        self.name = cls.name_attribute(self.displayname)
+        try:
+            attrs_type_str = attrs["type"]
+        except KeyError:
+            raise AttributeError("'%s' is missing a type attribute"
+                                 % self.displayname)
+        if attrs_type_str != "TEMPLATE":
+            try:
+                self.type_ = getattr(cls, attrs_type_str)
+            except AttributeError:
+                # forward declaration, resolved at endDocument
+                self.type_ = attrs_type_str
+        else:
+            self.type_ = type(None)  # type determined at runtime
+        # optional parameters
+        self.default = attrs.get("default")
+        self.template = attrs.get("template")  # resolved in endDocument
+        self.arg = attrs.get("arg")
+        self.arr1 = attrs.get("arr1")
+        self.arr2 = attrs.get("arr2")
+        self.cond = attrs.get("cond")
+        self.vercond = attrs.get("vercond")
+        self.ver1 = attrs.get("ver1")
+        self.ver2 = attrs.get("ver2")
+        self.userver = attrs.get("userver")
+        self.doc = ""  # handled in xml parser's characters function
+        self.is_abstract = (attrs.get("abstract") == "1")
+
+        # post-processing
+        if self.default:
+            try:
+                tmp = self.type_()
+                tmp.set_value(self.default)
+                self.default = tmp.get_value()
+                del tmp
+            except Exception:
+                # conversion failed; not a big problem
+                self.default = None
+        if self.arr1:
+            self.arr1 = Expression(self.arr1, cls.name_attribute)
+        if self.arr2:
+            self.arr2 = Expression(self.arr2, cls.name_attribute)
+        if self.cond:
+            self.cond = Expression(self.cond, cls.name_attribute)
+        if self.vercond:
+            self.vercond = Expression(self.vercond, cls.name_attribute)
+        if self.arg:
+            try:
+                self.arg = int(self.arg)
+            except ValueError:
+                self.arg = cls.name_attribute(self.arg)
+        if self.userver:
+            self.userver = int(self.userver)
+        if self.ver1:
+            self.ver1 = cls.version_number(self.ver1)
+        if self.ver2:
+            self.ver2 = cls.version_number(self.ver2)
+
 
 class _MetaStructBase(type):
     """This metaclass checks for the presence of _attrs and _is_template
@@ -125,6 +252,7 @@ class _MetaStructBase(type):
                     # enabled because there is a template key type that has
                     # strings
                     cls._has_strings = True
+            # END LOOP
 
         # precalculate the attribute list
         # profiling shows that this speeds up most of the StructBase methods
@@ -136,6 +264,7 @@ class _MetaStructBase(type):
 
     def __repr__(cls):
         return "<struct '%s'>"%(cls.__name__)
+
 
 class StructBase(GlobalNode, metaclass=_MetaStructBase):
     """Base class from which all file struct types are derived.

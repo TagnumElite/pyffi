@@ -47,11 +47,12 @@ import sys
 import xml.sax
 
 import pyffi.object_models
-from pyffi.object_models.xml.struct_    import StructBase
 from pyffi.object_models.xml.basic      import BasicBase
 from pyffi.object_models.xml.bit_struct import BitStructBase
+from pyffi.object_models.xml.bit_struct import BitStructAttribute
 from pyffi.object_models.xml.enum       import EnumBase
-from pyffi.object_models.xml.expression import Expression
+from pyffi.object_models.xml.struct_    import StructBase
+from pyffi.object_models.xml.struct_    import StructAttribute
 
 
 class MetaFileFormat(pyffi.object_models.MetaFileFormat):
@@ -131,164 +132,6 @@ class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
     xml_bit_struct = []
     xml_struct = []
 
-class StructAttribute(object):
-    """Helper class to collect attribute data of struct add tags."""
-
-    name = None
-    """The name of this member variable."""
-
-    type_ = None
-    """The type of this member variable (type is ``str`` for forward
-    declarations, and resolved to :class:`BasicBase` or
-    :class:`StructBase` later).
-    """
-
-    default = None
-    """The default value of this member variable."""
-
-    template = None
-    """The template type of this member variable (initially ``str``,
-    resolved to :class:`BasicBase` or :class:`StructBase` at the end
-    of the xml parsing), and if there is no template type, then this
-    variable will equal ``type(None)``.
-    """
-
-    arg = None
-    """The argument of this member variable."""
-
-    arr1 = None
-    """The first array size of this member variable, as
-    :class:`Expression` or ``type(None)``.
-    """
-
-    arr2 = None
-    """The second array size of this member variable, as
-    :class:`Expression` or ``type(None)``.
-    """
-
-    cond = None
-    """The condition of this member variable, as
-    :class:`Expression` or ``type(None)``.
-    """
-
-    ver1 = None
-    """The first version this member exists, as ``int``, and ``None`` if
-    there is no lower limit.
-    """
-
-    ver2 = None
-    """The last version this member exists, as ``int``, and ``None`` if
-    there is no upper limit.
-    """
-
-    userver = None
-    """The user version this member exists, as ``int``, and ``None`` if
-    it exists for all user versions.
-    """
-
-    is_abstract = False
-    """Whether the attribute is abstract or not (read and written)."""
-
-    def __init__(self, cls, attrs):
-        """Initialize attribute from the xml attrs dictionary of an
-        add tag.
-
-        :param cls: The class where all types reside.
-        :param attrs: The xml add tag attribute dictionary."""
-        # mandatory parameters
-        self.displayname = attrs["name"]
-        self.name = cls.name_attribute(self.displayname)
-        try:
-            attrs_type_str = attrs["type"]
-        except KeyError:
-            raise AttributeError("'%s' is missing a type attribute"
-                                 % self.displayname)
-        if attrs_type_str != "TEMPLATE":
-            try:
-                self.type_ = getattr(cls, attrs_type_str)
-            except AttributeError:
-                # forward declaration, resolved at endDocument
-                self.type_ = attrs_type_str
-        else:
-            self.type_ = type(None) # type determined at runtime
-        # optional parameters
-        self.default = attrs.get("default")
-        self.template = attrs.get("template") # resolved in endDocument
-        self.arg = attrs.get("arg")
-        self.arr1 = attrs.get("arr1")
-        self.arr2 = attrs.get("arr2")
-        self.cond = attrs.get("cond")
-        self.vercond = attrs.get("vercond")
-        self.ver1 = attrs.get("ver1")
-        self.ver2 = attrs.get("ver2")
-        self.userver = attrs.get("userver")
-        self.doc = "" # handled in xml parser's characters function
-        self.is_abstract = (attrs.get("abstract") == "1")
-
-        # post-processing
-        if self.default:
-            try:
-                tmp = self.type_()
-                tmp.set_value(self.default)
-                self.default = tmp.get_value()
-                del tmp
-            except Exception:
-                # conversion failed; not a big problem
-                self.default = None
-        if self.arr1:
-            self.arr1 = Expression(self.arr1, cls.name_attribute)
-        if self.arr2:
-            self.arr2 = Expression(self.arr2, cls.name_attribute)
-        if self.cond:
-            self.cond = Expression(self.cond, cls.name_attribute)
-        if self.vercond:
-            self.vercond = Expression(self.vercond, cls.name_attribute)
-        if self.arg:
-            try:
-                self.arg = int(self.arg)
-            except ValueError:
-                self.arg = cls.name_attribute(self.arg)
-        if self.userver:
-            self.userver = int(self.userver)
-        if self.ver1:
-            self.ver1 = cls.version_number(self.ver1)
-        if self.ver2:
-            self.ver2 = cls.version_number(self.ver2)
-
-
-class BitStructAttribute(object):
-    """Helper class to collect attribute data of bitstruct bits tags."""
-
-    def __init__(self, cls, attrs):
-        """Initialize attribute from the xml attrs dictionary of an
-        add tag.
-
-        :param cls: The class where all types reside.
-        :param attrs: The xml add tag attribute dictionary."""
-        # mandatory parameters
-        self.name = cls.name_attribute(attrs["name"])
-        self.numbits = int(cls.name_attribute(attrs["numbits"]))
-        # optional parameters
-        self.default = attrs.get("default")
-        self.cond = attrs.get("cond")
-        self.ver1 = attrs.get("ver1")
-        self.ver2 = attrs.get("ver2")
-        self.userver = attrs.get("userver")
-        self.doc = "" # handled in xml parser's characters function
-
-        # post-processing
-        if self.default:
-            self.default = int(self.default)
-        if self.cond:
-            self.cond = Expression(self.cond, cls.name_attribute)
-        if self.userver:
-            self.userver = int(self.userver)
-        if self.ver1:
-            self.ver1 = cls.version_number(self.ver1)
-        if self.ver2:
-            self.ver2 = cls.version_number(self.ver2)
-
-
 class XmlError(Exception):
     """The XML handler will throw this exception if something goes wrong while
     parsing."""
@@ -310,23 +153,23 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
     tag_bits = 10
 
     tags = {
-    "fileformat": tag_file,
-    "version": tag_version,
-    "basic": tag_basic,
-    "alias": tag_alias,
-    "enum": tag_enum,
-    "option": tag_option,
-    "bitstruct": tag_bit_struct,
-    "struct": tag_struct,
-    "bits": tag_bits,
-    "add": tag_attribute}
+        "fileformat": tag_file,
+        "version": tag_version,
+        "basic": tag_basic,
+        "alias": tag_alias,
+        "enum": tag_enum,
+        "option": tag_option,
+        "bitstruct": tag_bit_struct,
+        "struct": tag_struct,
+        "bits": tag_bits,
+        "add": tag_attribute}
 
     # for compatibility with niftools
     tags_niftools = {
-    "niftoolsxml": tag_file,
-    "compound": tag_struct,
-    "niobject": tag_struct,
-    "bitflags": tag_bit_struct}
+        "niftoolsxml": tag_file,
+        "compound": tag_struct,
+        "niobject": tag_struct,
+        "bitflags": tag_bit_struct}
 
     def __init__(self, cls, name, bases, dct):
         """Set up the xml parser.
@@ -567,9 +410,8 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                 # (self.cls.games is updated when reading the characters)
 
             else:
-                raise XmlError("""
-expected basic, alias, enum, bitstruct, struct, or version,
-but got %s instead""" % name)
+                raise XmlError("""expected basic, alias, enum, bitstruct, struct,
+                or version, but got %s instead""" % name)
 
         elif self.current_tag == self.tag_version:
             raise XmlError("version tag must not contain any sub tags")
