@@ -5,6 +5,7 @@ build/
 .idea/
 venv/
 .cache/
+.pytest_cache/
 docs/_build/
 /*.egg-info/
 /dist/
