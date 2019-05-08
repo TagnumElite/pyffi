@@ -6,4 +6,4 @@
 	url = https://github.com/niftools/kfmxml.git
 [submodule "pyffi/formats/nif/nifxml"]
 	path = pyffi/formats/nif/nifxml
-	url = https://github.com/niftools/nifxml.git
+	url = https://github.com/jonwd7/nifxml.git
