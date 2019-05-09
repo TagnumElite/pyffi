@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Install Requirements" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="Install Requirements" type="PythonConfigurationType" factoryName="Python" activateToolWindowBeforeRun="false">
     <module name="pyffi" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -18,8 +18,6 @@
     <option name="MODULE_MODE" value="true" />
     <option name="REDIRECT_INPUT" value="false" />
     <option name="INPUT_FILE" value="" />
-    <method v="2">
-      <option name="LaunchBrowser.Before.Run" />
-    </method>
+    <method v="2" />
   </configuration>
 </component>

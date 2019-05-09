@@ -9,11 +9,11 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="_new_keywords" value="&quot;&quot;" />
-    <option name="_new_additionalArguments" value="&quot;-v &quot;" />
+    <option name="_new_additionalArguments" value="&quot;-v --cov\u003dpyffi&quot;" />
     <option name="_new_target" value="&quot;$PROJECT_DIR$/tests&quot;" />
     <option name="_new_targetType" value="&quot;PATH&quot;" />
     <method v="2">
-      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Install" run_configuration_type="PythonConfigurationType" />
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Install Requirements" run_configuration_type="PythonConfigurationType" />
     </method>
   </configuration>
 </component>
