@@ -1844,7 +1844,13 @@ chunk size mismatch when reading %s at 0x%08X
             elif self.indices_data:
                 it = iter(self.indices_data.indices)
                 while True:
-                   yield next(it), next(it), next(it)
+                    indices_1 = next(it, None)
+                    indices_2 = next(it, None)
+                    indices_3 = next(it, None)
+                    if None in (indices_1, indices_2, indices_3):
+                        break
+
+                    yield indices_1, indices_2, indices_3
 
         def get_material_indices(self):
             """Generator for all materials (per triangle)."""
@@ -1874,7 +1880,13 @@ chunk size mismatch when reading %s at 0x%08X
                 # Crysis: UV triangles coincide with triangles
                 it = iter(self.indices_data.indices)
                 while True:
-                    yield next(it), next(it), next(it)
+                    indices_1 = next(it, None)
+                    indices_2 = next(it, None)
+                    indices_3 = next(it, None)
+                    if None in (indices_1, indices_2, indices_3):
+                        break
+
+                    yield indices_1, indices_2, indices_3
 
         ### DEPRECATED: USE set_geometry INSTEAD ###
         def set_vertices_normals(self, vertices, normals):
