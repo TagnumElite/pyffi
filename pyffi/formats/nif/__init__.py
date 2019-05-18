@@ -1,4 +1,7 @@
 """
+:mod:`pyffi.formats.nif` --- COLLADA (.dae)
+============================================
+
 :mod:`pyffi.formats.nif` --- NetImmerse/Gamebryo (.nif and .kf)
 ===============================================================
 
@@ -348,33 +351,31 @@ end
 #
 # ***** END LICENSE BLOCK *****
 
-from itertools import repeat, chain
-import logging
-import math # math.pi
 import os
 import re
 import struct
-import sys
 import warnings
 import weakref
+from itertools import repeat, chain
+
+import math  # math.pi
 
 import pyffi.formats.bsa
 import pyffi.formats.dds
-import pyffi.object_models.common
 import pyffi.object_models
-from pyffi.object_models.xml import FileFormat
+import pyffi.object_models.common
 import pyffi.utils.inertia
-from pyffi.utils.mathutils import * # XXX todo get rid of from XXX import *
 import pyffi.utils.mopp
+import pyffi.utils.quickhull
 import pyffi.utils.tristrip
 import pyffi.utils.vertex_cache
-import pyffi.utils.quickhull
 # XXX convert the following to absolute imports
 from pyffi.object_models.editable import EditableBoolComboBox
-from pyffi.utils.graph import EdgeFilter
+from pyffi.object_models.niftools_xml import FileFormat
 from pyffi.object_models.xml.basic import BasicBase
 from pyffi.object_models.xml.struct_ import StructBase
-
+from pyffi.utils.graph import EdgeFilter
+from pyffi.utils.mathutils import *  # XXX todo get rid of from XXX import *
 
 
 class NifFormat(FileFormat):
@@ -403,7 +404,7 @@ class NifFormat(FileFormat):
     ulittle32 = pyffi.object_models.common.ULittle32
     int = pyffi.object_models.common.Int
     uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.UByte # not a typo
+    byte = pyffi.object_models.common.UByte  # not a typo
     char = pyffi.object_models.common.Char
     short = pyffi.object_models.common.Short
     ushort = pyffi.object_models.common.UShort
@@ -417,6 +418,7 @@ class NifFormat(FileFormat):
 
     class StringOffset(pyffi.object_models.common.Int):
         """This is just an integer with -1 as default value."""
+
         def __init__(self, **kwargs):
             pyffi.object_models.common.Int.__init__(self, **kwargs)
             self.set_value(-1)
@@ -433,6 +435,7 @@ class NifFormat(FileFormat):
         >>> i.get_value()
         True
         """
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
             self.set_value(False)
@@ -489,6 +492,7 @@ class NifFormat(FileFormat):
         _is_template = True
         _has_links = True
         _has_refs = True
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
             self._template = kwargs.get("template")
@@ -518,7 +522,7 @@ class NifFormat(FileFormat):
                 return None
 
         def read(self, stream, data):
-            self.set_value(None) # fix_links will set this field
+            self.set_value(None)  # fix_links will set this field
             block_index, = struct.unpack(data._byte_order + 'i',
                                          stream.read(4))
             data._link_stack.append(block_index)
@@ -546,11 +550,11 @@ class NifFormat(FileFormat):
             block_index = data._link_stack.pop(0)
             # case when there's no link
             if data.version >= 0x0303000D:
-                if block_index == -1: # link by block number
+                if block_index == -1:  # link by block number
                     self.set_value(None)
                     return
             else:
-                if block_index == 0: # link by pointer
+                if block_index == 0:  # link by pointer
                     self.set_value(None)
                     return
             # other case: look up the link and check the link type
@@ -558,10 +562,10 @@ class NifFormat(FileFormat):
             self.set_value(block)
             if self._template != None:
                 if not isinstance(block, self._template):
-                    #raise TypeError('expected an instance of %s but got instance of %s'%(self._template, block.__class__))
+                    # raise TypeError('expected an instance of %s but got instance of %s'%(self._template, block.__class__))
                     logging.getLogger("pyffi.nif.ref").warn(
-                    "Expected an %s but got %s: ignoring reference."
-                    % (self._template, block.__class__))
+                        "Expected an %s but got %s: ignoring reference."
+                        % (self._template, block.__class__))
 
         def get_links(self, data=None):
             val = self.get_value()
@@ -601,7 +605,7 @@ class NifFormat(FileFormat):
             if self.get_value() is oldbranch:
                 # set_value takes care of template type
                 self.set_value(newbranch)
-                #print("replacing", repr(oldbranch), "->", repr(newbranch))
+                # print("replacing", repr(oldbranch), "->", repr(newbranch))
             if self.get_value() is not None:
                 self.get_value().replace_global_node(oldbranch, newbranch)
 
@@ -636,7 +640,7 @@ class NifFormat(FileFormat):
 
         def __str__(self):
             # avoid infinite recursion
-            return '%s instance at 0x%08X'%(self._value.__class__, id(self._value))
+            return '%s instance at 0x%08X' % (self._value.__class__, id(self._value))
 
         def get_refs(self, data=None):
             return []
@@ -645,11 +649,11 @@ class NifFormat(FileFormat):
             return None
 
         def replace_global_node(self, oldbranch, newbranch,
-                              edge_filter=EdgeFilter()):
+                                edge_filter=EdgeFilter()):
             # overridden to avoid infinite recursion
             if self.get_value() is oldbranch:
                 self.set_value(newbranch)
-                #print("replacing", repr(oldbranch), "->", repr(newbranch))
+                # print("replacing", repr(oldbranch), "->", repr(newbranch))
 
     class LineString(BasicBase):
         """Basic type for strings ending in a newline character (0x0a).
@@ -675,6 +679,7 @@ class NifFormat(FileFormat):
         >>> str(m)
         'Hi There'
         """
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
             self.set_value('')
@@ -689,7 +694,7 @@ class NifFormat(FileFormat):
             return pyffi.object_models.common._as_str(self._value)
 
         def get_size(self, data=None):
-            return len(self._value) + 1 # +1 for trailing endline
+            return len(self._value) + 1  # +1 for trailing endline
 
         def get_hash(self, data=None):
             return self.get_value()
@@ -759,7 +764,7 @@ class NifFormat(FileFormat):
             'Joymaster HS1 Object Format - (JMI), Version 20.3.0.9'
             """
             if version == -1 or version is None:
-                raise ValueError('No string for version %s.'%version)
+                raise ValueError('No string for version %s.' % version)
             if modification == "neosteam":
                 if version != 0x0A010000:
                     raise ValueError("NeoSteam must have version 0x0A010000.")
@@ -771,9 +776,10 @@ class NifFormat(FileFormat):
             if version == 0x03000300:
                 v = "3.03"
             elif version <= 0x03010000:
-                v = "%i.%i"%((version >> 24) & 0xff, (version >> 16) & 0xff)
+                v = "%i.%i" % ((version >> 24) & 0xff, (version >> 16) & 0xff)
             else:
-                v = "%i.%i.%i.%i"%((version >> 24) & 0xff, (version >> 16) & 0xff, (version >> 8) & 0xff, version & 0xff)
+                v = "%i.%i.%i.%i" % (
+                    (version >> 24) & 0xff, (version >> 16) & 0xff, (version >> 8) & 0xff, version & 0xff)
             if modification == "ndoors":
                 return "NDSNIF....@....@...., Version %s" % v
             elif modification == "jmihs1":
@@ -790,7 +796,7 @@ class NifFormat(FileFormat):
 
         def read(self, stream, data):
             modification = data.modification
-            ver, = struct.unpack('<I', stream.read(4)) # always little endian
+            ver, = struct.unpack('<I', stream.read(4))  # always little endian
             if (not modification) or modification == "jmihs1":
                 if ver != data.version:
                     raise ValueError(
@@ -841,6 +847,7 @@ class NifFormat(FileFormat):
 
     class ShortString(BasicBase):
         """Another type for strings."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
             self._value = ''.encode("ascii")
@@ -871,7 +878,7 @@ class NifFormat(FileFormat):
 
         def write(self, stream, data):
             stream.write(struct.pack(data._byte_order + 'B',
-                                     len(self._value)+1))
+                                     len(self._value) + 1))
             stream.write(self._value)
             stream.write('\x00'.encode("ascii"))
 
@@ -894,7 +901,7 @@ class NifFormat(FileFormat):
                     try:
                         self._value = data._string_list[n]
                     except IndexError:
-                        raise ValueError('string index too large (%i)'%n)
+                        raise ValueError('string index too large (%i)' % n)
             else:
                 if n > 10000:
                     raise ValueError('string too long (0x%08X at 0x%08X)'
@@ -932,6 +939,7 @@ class NifFormat(FileFormat):
 
     class FilePath(string):
         """A file path."""
+
         def get_hash(self, data=None):
             """Returns a case insensitive hash value."""
             return self.get_value().lower()
@@ -939,9 +947,10 @@ class NifFormat(FileFormat):
     class ByteArray(BasicBase):
         """Array (list) of bytes. Implemented as basic type to speed up reading
         and also to prevent data to be dumped by __str__."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
-            self.set_value("".encode()) # b'' for > py25
+            self.set_value("".encode())  # b'' for > py25
 
         def get_value(self):
             return self._value
@@ -971,6 +980,7 @@ class NifFormat(FileFormat):
     class ByteMatrix(BasicBase):
         """Matrix of bytes. Implemented as basic type to speed up reading
         and to prevent data being dumped by __str__."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
             self.set_value([])
@@ -979,14 +989,14 @@ class NifFormat(FileFormat):
             return self._value
 
         def set_value(self, value):
-            assert(isinstance(value, list))
+            assert (isinstance(value, list))
             if value:
                 size1 = len(value[0])
             for x in value:
                 # TODO fix this for py3k
-                #assert(isinstance(x, basestring))
-                assert(len(x) == size1)
-            self._value = value # should be a list of strings of bytes
+                # assert(isinstance(x, basestring))
+                assert (len(x) == size1)
+            self._value = value  # should be a list of strings of bytes
 
         def get_size(self, data=None):
             if len(self._value) == 0:
@@ -995,7 +1005,7 @@ class NifFormat(FileFormat):
                 return len(self._value) * len(self._value[0]) + 8
 
         def get_hash(self, data=None):
-            return tuple( x.__hash__() for x in self._value )
+            return tuple(x.__hash__() for x in self._value)
 
         def read(self, stream, data):
             size1, = struct.unpack(data._byte_order + 'I',
@@ -1051,12 +1061,12 @@ class NifFormat(FileFormat):
         try:
             ver_list = [int(x) for x in version_str.split('.')]
         except ValueError:
-            return -1 # version not supported (i.e. version_str '10.0.1.3a' would trigger this)
+            return -1  # version not supported (i.e. version_str '10.0.1.3a' would trigger this)
         if len(ver_list) > 4 or len(ver_list) < 1:
-            return -1 # version not supported
+            return -1  # version not supported
         for ver_digit in ver_list:
             if (ver_digit | 0xff) > 0xff:
-                return -1 # version not supported
+                return -1  # version not supported
         while len(ver_list) < 4: ver_list.append(0)
         return (ver_list[0] << 24) + (ver_list[1] << 16) + (ver_list[2] << 8) + ver_list[3]
 
@@ -1136,16 +1146,19 @@ class NifFormat(FileFormat):
 
         def _getVersion(self):
             return self._version_value_.get_value()
+
         def _setVersion(self, value):
             self._version_value_.set_value(value)
-            
+
         def _getUserVersion(self):
             return self._user_version_value_.get_value()
+
         def _setUserVersion(self, value):
             self._user_version_value_.set_value(value)
 
         def _getUserVersion2(self):
             return self._user_version_2_value_.get_value()
+
         def _setUserVersion2(self, value):
             self._user_version_2_value_.set_value(value)
 
@@ -1230,7 +1243,7 @@ class NifFormat(FileFormat):
                     if ver >= 0x0A010000:
                         userver, = struct.unpack('<I', stream.read(4))
                         if userver >= 10:
-                            stream.read(4) # number of blocks
+                            stream.read(4)  # number of blocks
                             userver2, = struct.unpack('<I', stream.read(4))
                 finally:
                     stream.seek(pos)
@@ -1246,13 +1259,13 @@ class NifFormat(FileFormat):
         # DetailNode
 
         def replace_global_node(self, oldbranch, newbranch,
-                              edge_filter=EdgeFilter()):
+                                edge_filter=EdgeFilter()):
             for i, root in enumerate(self.roots):
                 if root is oldbranch:
                     self.roots[i] = newbranch
                 else:
                     root.replace_global_node(oldbranch, newbranch,
-                                           edge_filter=edge_filter)
+                                             edge_filter=edge_filter)
 
         def get_detail_child_nodes(self, edge_filter=EdgeFilter()):
             yield self._version_value_
@@ -1305,11 +1318,11 @@ class NifFormat(FileFormat):
             self.roots = []
 
             # read the blocks
-            self._link_stack = [] # list of indices, as they are added to the stack
+            self._link_stack = []  # list of indices, as they are added to the stack
             self._string_list = [s for s in self.header.strings]
-            self._block_dct = {} # maps block index to actual block
-            self.blocks = [] # records all blocks as read from file in order
-            block_num = 0 # the current block numner
+            self._block_dct = {}  # maps block index to actual block
+            self.blocks = []  # records all blocks as read from file in order
+            block_num = 0  # the current block numner
 
             while True:
                 if self.version < 0x0303000D:
@@ -1347,7 +1360,7 @@ class NifFormat(FileFormat):
                         if dummy != 0:
                             raise NifFormat.NifError(
                                 'non-zero block tag 0x%08X at 0x%08X)'
-                                %(dummy, stream.tell()))
+                                % (dummy, stream.tell()))
                 else:
                     block_type = NifFormat.SizedString()
                     block_type.read(stream, self)
@@ -1360,7 +1373,8 @@ class NifFormat(FileFormat):
                     # earlier versions
                     # the number of blocks is not in the header
                     # and a special block type string marks the end of the file
-                    if block_type == "End Of File": break
+                    if block_type == "End Of File":
+                        break
                     # read the block index, which is probably the memory
                     # location of the object when it was written to
                     # memory
@@ -1370,7 +1384,7 @@ class NifFormat(FileFormat):
                         if block_index in self._block_dct:
                             raise NifFormat.NifError(
                                 'duplicate block index (0x%08X at 0x%08X)'
-                                %(block_index, stream.tell()))
+                                % (block_index, stream.tell()))
                 # create the block
                 try:
                     block = getattr(NifFormat, block_type)()
@@ -1384,9 +1398,9 @@ class NifFormat(FileFormat):
                     block.read(stream, self)
                 except:
                     logger.exception("Reading %s failed" % block.__class__)
-                    #logger.error("link stack: %s" % self._link_stack)
-                    #logger.error("block that failed:")
-                    #logger.error("%s" % block)
+                    # logger.error("link stack: %s" % self._link_stack)
+                    # logger.error("block that failed:")
+                    # logger.error("%s" % block)
                     raise
                 # complete NiDataStream data
                 if block_type == "NiDataStream":
@@ -1448,10 +1462,10 @@ class NifFormat(FileFormat):
             """
             logger = logging.getLogger("pyffi.nif.data")
             # set up index and type dictionary
-            self.blocks = [] # list of all blocks to be written
-            self._block_index_dct = {} # maps block to block index
-            block_type_list = [] # list of all block type strings
-            block_type_dct = {} # maps block to block type string index
+            self.blocks = []  # list of all blocks to be written
+            self._block_index_dct = {}  # maps block to block index
+            block_type_list = []  # list of all block type strings
+            block_type_dct = {}  # maps block to block type string index
             self._string_list = []
             for root in self.roots:
                 self._makeBlockList(root,
@@ -1460,10 +1474,10 @@ class NifFormat(FileFormat):
                 for block in root.tree():
                     self._string_list.extend(
                         block.get_strings(self))
-            self._string_list = list(set(self._string_list)) # ensure unique elements
-            #print(self._string_list) # debug
+            self._string_list = list(set(self._string_list))  # ensure unique elements
+            # print(self._string_list) # debug
 
-            self.header.user_version = self.user_version # TODO dedicated type for user_version similar to FileVersion
+            self.header.user_version = self.user_version  # TODO dedicated type for user_version similar to FileVersion
             # for oblivion CS; apparently this is the version of the bhk blocks
             self.header.user_version_2 = self.user_version_2
             self.header.num_blocks = len(self.blocks)
@@ -1485,7 +1499,7 @@ class NifFormat(FileFormat):
             self.header.block_size.update_size()
             for i, block in enumerate(self.blocks):
                 self.header.block_size[i] = block.get_size(data=self)
-            #if verbose >= 2:
+            # if verbose >= 2:
             #    print(hdr)
 
             # set up footer
@@ -1497,7 +1511,7 @@ class NifFormat(FileFormat):
 
             # write the file
             logger.debug("Writing header")
-            #logger.debug("%s" % self.header)
+            # logger.debug("%s" % self.header)
             self.header.write(stream, self)
             for block in self.blocks:
                 # signal top level object if block is a root object
@@ -1512,8 +1526,8 @@ class NifFormat(FileFormat):
                 else:
                     # write block type string
                     s = NifFormat.SizedString()
-                    assert(block_type_list[block_type_dct[block]]
-                           == block.__class__.__name__) # debug
+                    assert (block_type_list[block_type_dct[block]]
+                            == block.__class__.__name__)  # debug
                     s.set_value(block.__class__.__name__)
                     s.write(stream, self)
                 # write block index
@@ -1530,7 +1544,7 @@ class NifFormat(FileFormat):
             ftr.write(stream, self)
 
         def _makeBlockList(
-            self, root, block_index_dct, block_type_list, block_type_dct):
+                self, root, block_index_dct, block_type_list, block_type_dct):
             """This is a helper function for write to set up the list of all blocks,
             the block index map, and the block type map.
 
@@ -1617,13 +1631,12 @@ class NifFormat(FileFormat):
                     raise ValueError(
                         "Expected trailing zero byte in footer, "
                         "but got %i instead." % extrabyte)
-            
+
         def write(self, stream, data):
             StructBase.write(self, stream, data)
             modification = getattr(data, 'modification', None)
             if modification == "neosteam":
                 stream.write("\x00".encode("ascii"))
-            
 
     class Header:
         def has_block_type(self, block_type):
@@ -1663,7 +1676,7 @@ class NifFormat(FileFormat):
                 [self.m_11, self.m_12, self.m_13],
                 [self.m_21, self.m_22, self.m_23],
                 [self.m_31, self.m_32, self.m_33]
-                ]
+            ]
 
         def as_tuple(self):
             """Return matrix as 3x3 tuple."""
@@ -1671,16 +1684,16 @@ class NifFormat(FileFormat):
                 (self.m_11, self.m_12, self.m_13),
                 (self.m_21, self.m_22, self.m_23),
                 (self.m_31, self.m_32, self.m_33)
-                )
+            )
 
         def __str__(self):
             return (
-                "[ %6.3f %6.3f %6.3f ]\n"
-                "[ %6.3f %6.3f %6.3f ]\n"
-                "[ %6.3f %6.3f %6.3f ]\n"
-                % (self.m_11, self.m_12, self.m_13,
-                   self.m_21, self.m_22, self.m_23,
-                   self.m_31, self.m_32, self.m_33))
+                    "[ %6.3f %6.3f %6.3f ]\n"
+                    "[ %6.3f %6.3f %6.3f ]\n"
+                    "[ %6.3f %6.3f %6.3f ]\n"
+                    % (self.m_11, self.m_12, self.m_13,
+                       self.m_21, self.m_22, self.m_23,
+                       self.m_31, self.m_32, self.m_33))
 
         def set_identity(self):
             """Set to identity matrix."""
@@ -1696,15 +1709,15 @@ class NifFormat(FileFormat):
 
         def is_identity(self):
             """Return ``True`` if the matrix is close to identity."""
-            if  (abs(self.m_11 - 1.0) > NifFormat.EPSILON
-                 or abs(self.m_12) > NifFormat.EPSILON
-                 or abs(self.m_13) > NifFormat.EPSILON
-                 or abs(self.m_21) > NifFormat.EPSILON
-                 or abs(self.m_22 - 1.0) > NifFormat.EPSILON
-                 or abs(self.m_23) > NifFormat.EPSILON
-                 or abs(self.m_31) > NifFormat.EPSILON
-                 or abs(self.m_32) > NifFormat.EPSILON
-                 or abs(self.m_33 - 1.0) > NifFormat.EPSILON):
+            if (abs(self.m_11 - 1.0) > NifFormat.EPSILON
+                    or abs(self.m_12) > NifFormat.EPSILON
+                    or abs(self.m_13) > NifFormat.EPSILON
+                    or abs(self.m_21) > NifFormat.EPSILON
+                    or abs(self.m_22 - 1.0) > NifFormat.EPSILON
+                    or abs(self.m_23) > NifFormat.EPSILON
+                    or abs(self.m_31) > NifFormat.EPSILON
+                    or abs(self.m_32) > NifFormat.EPSILON
+                    or abs(self.m_33 - 1.0) > NifFormat.EPSILON):
                 return False
             else:
                 return True
@@ -1774,20 +1787,20 @@ class NifFormat(FileFormat):
 
         def get_determinant(self):
             """Return determinant."""
-            return (self.m_11*self.m_22*self.m_33
-                    +self.m_12*self.m_23*self.m_31
-                    +self.m_13*self.m_21*self.m_32
-                    -self.m_31*self.m_22*self.m_13
-                    -self.m_21*self.m_12*self.m_33
-                    -self.m_11*self.m_32*self.m_23)
+            return (self.m_11 * self.m_22 * self.m_33
+                    + self.m_12 * self.m_23 * self.m_31
+                    + self.m_13 * self.m_21 * self.m_32
+                    - self.m_31 * self.m_22 * self.m_13
+                    - self.m_21 * self.m_12 * self.m_33
+                    - self.m_11 * self.m_32 * self.m_23)
 
         def get_scale(self):
             """Gets the scale (assuming is_scale_rotation is true!)."""
             scale = self.get_determinant()
             if scale < 0:
-                return -((-scale)**(1.0/3.0))
+                return -((-scale) ** (1.0 / 3.0))
             else:
-                return scale**(1.0/3.0)
+                return scale ** (1.0 / 3.0)
 
         def get_scale_rotation(self):
             """Decompose the matrix into scale and rotation, where scale is a float
@@ -1827,37 +1840,36 @@ class NifFormat(FileFormat):
 
             if trace > NifFormat.EPSILON:
                 s = (trace ** 0.5) * 2
-                quat.x = -( rot.m_32 - rot.m_23 ) / s
-                quat.y = -( rot.m_13 - rot.m_31 ) / s
-                quat.z = -( rot.m_21 - rot.m_12 ) / s
+                quat.x = -(rot.m_32 - rot.m_23) / s
+                quat.y = -(rot.m_13 - rot.m_31) / s
+                quat.z = -(rot.m_21 - rot.m_12) / s
                 quat.w = 0.25 * s
             elif rot.m_11 > max((rot.m_22, rot.m_33)):
-                s  = (( 1.0 + rot.m_11 - rot.m_22 - rot.m_33 ) ** 0.5) * 2
+                s = ((1.0 + rot.m_11 - rot.m_22 - rot.m_33) ** 0.5) * 2
                 quat.x = 0.25 * s
-                quat.y = (rot.m_21 + rot.m_12 ) / s
-                quat.z = (rot.m_13 + rot.m_31 ) / s
-                quat.w = -(rot.m_32 - rot.m_23 ) / s
+                quat.y = (rot.m_21 + rot.m_12) / s
+                quat.z = (rot.m_13 + rot.m_31) / s
+                quat.w = -(rot.m_32 - rot.m_23) / s
             elif rot.m_22 > rot.m_33:
-                s  = (( 1.0 + rot.m_22 - rot.m_11 - rot.m_33 ) ** 0.5) * 2
-                quat.x = (rot.m_21 + rot.m_12 ) / s
+                s = ((1.0 + rot.m_22 - rot.m_11 - rot.m_33) ** 0.5) * 2
+                quat.x = (rot.m_21 + rot.m_12) / s
                 quat.y = 0.25 * s
-                quat.z = (rot.m_32 + rot.m_23 ) / s
-                quat.w = -(rot.m_13 - rot.m_31 ) / s
+                quat.z = (rot.m_32 + rot.m_23) / s
+                quat.w = -(rot.m_13 - rot.m_31) / s
             else:
-                s  = (( 1.0 + rot.m_33 - rot.m_11 - rot.m_22 ) ** 0.5) * 2
-                quat.x = (rot.m_13 + rot.m_31 ) / s
-                quat.y = (rot.m_32 + rot.m_23 ) / s
+                s = ((1.0 + rot.m_33 - rot.m_11 - rot.m_22) ** 0.5) * 2
+                quat.x = (rot.m_13 + rot.m_31) / s
+                quat.y = (rot.m_32 + rot.m_23) / s
                 quat.z = 0.25 * s
-                quat.w = -(rot.m_21 - rot.m_12 ) / s
+                quat.w = -(rot.m_21 - rot.m_12) / s
 
             return scale, quat
-
 
         def get_inverse(self):
             """Get inverse (assuming is_scale_rotation is true!)."""
             # transpose inverts rotation but keeps the scale
             # dividing by scale^2 inverts the scale as well
-            return self.get_transpose() / (self.m_11**2 + self.m_12**2 + self.m_13**2)
+            return self.get_transpose() / (self.m_11 ** 2 + self.m_12 ** 2 + self.m_13 ** 2)
 
         def __mul__(self, rhs):
             if isinstance(rhs, (float, int)):
@@ -1890,7 +1902,7 @@ class NifFormat(FileFormat):
                 return mat
             else:
                 raise TypeError(
-                    "do not know how to multiply Matrix33 with %s"%rhs.__class__)
+                    "do not know how to multiply Matrix33 with %s" % rhs.__class__)
 
         def __div__(self, rhs):
             if isinstance(rhs, (float, int)):
@@ -1907,31 +1919,31 @@ class NifFormat(FileFormat):
                 return mat
             else:
                 raise TypeError(
-                    "do not know how to divide Matrix33 by %s"%rhs.__class__)
+                    "do not know how to divide Matrix33 by %s" % rhs.__class__)
 
         # py3k
         __truediv__ = __div__
 
         def __rmul__(self, lhs):
             if isinstance(lhs, (float, int)):
-                return self * lhs # commutes
+                return self * lhs  # commutes
             else:
                 raise TypeError(
-                    "do not know how to multiply %s with Matrix33"%lhs.__class__)
+                    "do not know how to multiply %s with Matrix33" % lhs.__class__)
 
         def __eq__(self, mat):
             if not isinstance(mat, NifFormat.Matrix33):
                 raise TypeError(
-                    "do not know how to compare Matrix33 and %s"%mat.__class__)
+                    "do not know how to compare Matrix33 and %s" % mat.__class__)
             if (abs(self.m_11 - mat.m_11) > NifFormat.EPSILON
-                or abs(self.m_12 - mat.m_12) > NifFormat.EPSILON
-                or abs(self.m_13 - mat.m_13) > NifFormat.EPSILON
-                or abs(self.m_21 - mat.m_21) > NifFormat.EPSILON
-                or abs(self.m_22 - mat.m_22) > NifFormat.EPSILON
-                or abs(self.m_23 - mat.m_23) > NifFormat.EPSILON
-                or abs(self.m_31 - mat.m_31) > NifFormat.EPSILON
-                or abs(self.m_32 - mat.m_32) > NifFormat.EPSILON
-                or abs(self.m_33 - mat.m_33) > NifFormat.EPSILON):
+                    or abs(self.m_12 - mat.m_12) > NifFormat.EPSILON
+                    or abs(self.m_13 - mat.m_13) > NifFormat.EPSILON
+                    or abs(self.m_21 - mat.m_21) > NifFormat.EPSILON
+                    or abs(self.m_22 - mat.m_22) > NifFormat.EPSILON
+                    or abs(self.m_23 - mat.m_23) > NifFormat.EPSILON
+                    or abs(self.m_31 - mat.m_31) > NifFormat.EPSILON
+                    or abs(self.m_32 - mat.m_32) > NifFormat.EPSILON
+                    or abs(self.m_33 - mat.m_33) > NifFormat.EPSILON):
                 return False
             return True
 
@@ -1981,12 +1993,12 @@ class NifFormat(FileFormat):
             return (self.x, self.y, self.z)
 
         def norm(self, sqrt=math.sqrt):
-            return sqrt(self.x*self.x + self.y*self.y + self.z*self.z)
+            return sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
 
         def normalize(self, ignore_error=False, sqrt=math.sqrt):
             # inlining norm() to reduce overhead
             try:
-                factor = 1.0 / sqrt(self.x*self.x + self.y*self.y + self.z*self.z)
+                factor = 1.0 / sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
             except ZeroDivisionError:
                 if not ignore_error:
                     raise
@@ -2010,7 +2022,7 @@ class NifFormat(FileFormat):
             return v
 
         def __str__(self):
-            return "[ %6.3f %6.3f %6.3f ]"%(self.x, self.y, self.z)
+            return "[ %6.3f %6.3f %6.3f ]" % (self.x, self.y, self.z)
 
         def __mul__(self, x):
             if isinstance(x, (float, int)):
@@ -2030,7 +2042,7 @@ class NifFormat(FileFormat):
             elif isinstance(x, NifFormat.Matrix44):
                 return self * x.get_matrix_33() + x.get_translation()
             else:
-                raise TypeError("do not know how to multiply Vector3 with %s"%x.__class__)
+                raise TypeError("do not know how to multiply Vector3 with %s" % x.__class__)
 
         def __rmul__(self, x):
             if isinstance(x, (float, int)):
@@ -2040,7 +2052,7 @@ class NifFormat(FileFormat):
                 v.z = x * self.z
                 return v
             else:
-                raise TypeError("do not know how to multiply %s and Vector3"%x.__class__)
+                raise TypeError("do not know how to multiply %s and Vector3" % x.__class__)
 
         def __div__(self, x):
             if isinstance(x, (float, int)):
@@ -2050,7 +2062,7 @@ class NifFormat(FileFormat):
                 v.z = self.z / x
                 return v
             else:
-                raise TypeError("do not know how to divide Vector3 and %s"%x.__class__)
+                raise TypeError("do not know how to divide Vector3 and %s" % x.__class__)
 
         # py3k
         __truediv__ = __div__
@@ -2069,7 +2081,7 @@ class NifFormat(FileFormat):
                 v.z = self.z + x.z
                 return v
             else:
-                raise TypeError("do not know how to add Vector3 and %s"%x.__class__)
+                raise TypeError("do not know how to add Vector3 and %s" % x.__class__)
 
         def __radd__(self, x):
             if isinstance(x, (float, int)):
@@ -2079,7 +2091,7 @@ class NifFormat(FileFormat):
                 v.z = x + self.z
                 return v
             else:
-                raise TypeError("do not know how to add %s and Vector3"%x.__class__)
+                raise TypeError("do not know how to add %s and Vector3" % x.__class__)
 
         def __sub__(self, x):
             if isinstance(x, (float, int)):
@@ -2095,7 +2107,7 @@ class NifFormat(FileFormat):
                 v.z = self.z - x.z
                 return v
             else:
-                raise TypeError("do not know how to substract Vector3 and %s"%x.__class__)
+                raise TypeError("do not know how to substract Vector3 and %s" % x.__class__)
 
         def __rsub__(self, x):
             if isinstance(x, (float, int)):
@@ -2105,7 +2117,7 @@ class NifFormat(FileFormat):
                 v.z = x - self.z
                 return v
             else:
-                raise TypeError("do not know how to substract %s and Vector3"%x.__class__)
+                raise TypeError("do not know how to substract %s and Vector3" % x.__class__)
 
         def __neg__(self):
             v = NifFormat.Vector3()
@@ -2118,18 +2130,18 @@ class NifFormat(FileFormat):
         def crossproduct(self, x):
             if isinstance(x, NifFormat.Vector3):
                 v = NifFormat.Vector3()
-                v.x = self.y*x.z - self.z*x.y
-                v.y = self.z*x.x - self.x*x.z
-                v.z = self.x*x.y - self.y*x.x
+                v.x = self.y * x.z - self.z * x.y
+                v.y = self.z * x.x - self.x * x.z
+                v.z = self.x * x.y - self.y * x.x
                 return v
             else:
-                raise TypeError("do not know how to calculate crossproduct of Vector3 and %s"%x.__class__)
+                raise TypeError("do not know how to calculate crossproduct of Vector3 and %s" % x.__class__)
 
         def __eq__(self, x):
             if isinstance(x, type(None)):
                 return False
             if not isinstance(x, NifFormat.Vector3):
-                raise TypeError("do not know how to compare Vector3 and %s"%x.__class__)
+                raise TypeError("do not know how to compare Vector3 and %s" % x.__class__)
             if abs(self.x - x.x) > NifFormat.EPSILON: return False
             if abs(self.y - x.y) > NifFormat.EPSILON: return False
             if abs(self.z - x.z) > NifFormat.EPSILON: return False
@@ -2187,7 +2199,7 @@ class NifFormat(FileFormat):
             return v
 
         def __str__(self):
-            return "[ %6.3f %6.3f %6.3f %6.3f ]"%(self.x, self.y, self.z, self.w)
+            return "[ %6.3f %6.3f %6.3f %6.3f ]" % (self.x, self.y, self.z, self.w)
 
         def __eq__(self, rhs):
             if isinstance(rhs, type(None)):
@@ -2231,16 +2243,16 @@ class NifFormat(FileFormat):
             self.dimensions.x *= scale
             self.dimensions.y *= scale
             self.dimensions.z *= scale
-            self.minimum_size  *= scale
+            self.minimum_size *= scale
 
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return mass, center, and inertia tensor."""
             # the dimensions describe half the size of the box in each dimension
             # so the length of a single edge is dimension.dir * 2
             mass, inertia = pyffi.utils.inertia.getMassInertiaBox(
                 (self.dimensions.x * 2, self.dimensions.y * 2, self.dimensions.z * 2),
-                density = density, solid = solid)
-            return mass, (0,0,0), inertia
+                density=density, solid=solid)
+            return mass, (0, 0, 0), inertia
 
     class bhkCapsuleShape:
         def apply_scale(self, scale):
@@ -2256,13 +2268,13 @@ class NifFormat(FileFormat):
             self.second_point.y *= scale
             self.second_point.z *= scale
 
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return mass, center, and inertia tensor."""
             # (assumes self.radius == self.radius_1 == self.radius_2)
             length = (self.first_point - self.second_point).norm()
             mass, inertia = pyffi.utils.inertia.getMassInertiaCapsule(
-                radius = self.radius, length = length,
-                density = density, solid = solid)
+                radius=self.radius, length=length,
+                density=density, solid=solid)
             # now fix inertia so it is expressed in the right coordinates
             # need a transform that maps (0,0,length/2) on (second - first) / 2
             # and (0,0,-length/2) on (first - second)/2
@@ -2271,15 +2283,15 @@ class NifFormat(FileFormat):
             index = min(enumerate(vec1), key=lambda val: abs(val[1]))[0]
             vec2 = vecCrossProduct(vec1, tuple((1 if i == index else 0)
                                                for i in range(3)))
-            vec2 = vecscalarMul(vec2, 1/vecNorm(vec2))
+            vec2 = vecscalarMul(vec2, 1 / vecNorm(vec2))
             # find an orthogonal vector to vec1 and vec2
             vec3 = vecCrossProduct(vec1, vec2)
             # get transform matrix
-            transform_transposed = (vec2, vec3, vec1) # this is effectively the transposed of our transform
+            transform_transposed = (vec2, vec3, vec1)  # this is effectively the transposed of our transform
             transform = matTransposed(transform_transposed)
             # check the result (debug)
-            assert(vecDistance(matvecMul(transform, (0,0,1)), vec1) < 0.0001)
-            assert(abs(matDeterminant(transform) - 1) < 0.0001)
+            assert (vecDistance(matvecMul(transform, (0, 0, 1)), vec1) < 0.0001)
+            assert (abs(matDeterminant(transform) - 1) < 0.0001)
             # transform the inertia tensor
             inertia = matMul(matMul(transform_transposed, inertia), transform)
             return (mass,
@@ -2302,15 +2314,15 @@ class NifFormat(FileFormat):
             chainA = parent.find_chain(self.entities[0])
             chainB = parent.find_chain(self.entities[1])
             # validate the chains
-            assert(isinstance(chainA[-1], NifFormat.bhkRigidBody))
-            assert(isinstance(chainA[-2], NifFormat.NiCollisionObject))
-            assert(isinstance(chainA[-3], NifFormat.NiNode))
-            assert(isinstance(chainB[-1], NifFormat.bhkRigidBody))
-            assert(isinstance(chainB[-2], NifFormat.NiCollisionObject))
-            assert(isinstance(chainB[-3], NifFormat.NiNode))
+            assert (isinstance(chainA[-1], NifFormat.bhkRigidBody))
+            assert (isinstance(chainA[-2], NifFormat.NiCollisionObject))
+            assert (isinstance(chainA[-3], NifFormat.NiNode))
+            assert (isinstance(chainB[-1], NifFormat.bhkRigidBody))
+            assert (isinstance(chainB[-2], NifFormat.NiCollisionObject))
+            assert (isinstance(chainB[-3], NifFormat.NiNode))
             # return the relative transform
-            return (chainA[-3].get_transform(relative_to = parent)
-                    * chainB[-3].get_transform(relative_to = parent).get_inverse())
+            return (chainA[-3].get_transform(relative_to=parent)
+                    * chainB[-3].get_transform(relative_to=parent).get_inverse())
 
     class bhkConvexVerticesShape:
         def apply_scale(self, scale):
@@ -2323,14 +2335,14 @@ class NifFormat(FileFormat):
             for n in self.normals:
                 n.w *= scale
 
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return mass, center, and inertia tensor."""
             # first find an enumeration of all triangles making up the convex shape
             vertices, triangles = pyffi.utils.quickhull.qhull3d(
                 [vert.as_tuple() for vert in self.vertices])
             # now calculate mass, center, and inertia
             return pyffi.utils.inertia.get_mass_center_inertia_polyhedron(
-                vertices, triangles, density = density, solid = solid)
+                vertices, triangles, density=density, solid=solid)
 
     class bhkLimitedHingeConstraint:
         def apply_scale(self, scale):
@@ -2349,11 +2361,11 @@ class NifFormat(FileFormat):
             self.sub_constraint.limited_hinge.update_a_b(self.get_transform_a_b(parent))
 
     class bhkListShape:
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return center of gravity and area."""
-            subshapes_mci = [ subshape.get_mass_center_inertia(density = density,
-                                                            solid = solid)
-                              for subshape in self.sub_shapes ]
+            subshapes_mci = [subshape.get_mass_center_inertia(density=density,
+                                                              solid=solid)
+                             for subshape in self.sub_shapes]
             total_mass = 0
             total_center = (0, 0, 0)
             total_inertia = ((0, 0, 0), (0, 0, 0), (0, 0, 0))
@@ -2371,7 +2383,7 @@ class NifFormat(FileFormat):
                 total_inertia = matAdd(total_inertia, inertia)
             return total_mass, total_center, total_inertia
 
-        def add_shape(self, shape, front = False):
+        def add_shape(self, shape, front=False):
             """Add shape to list."""
             # check if it's already there
             if shape in self.sub_shapes: return
@@ -2384,7 +2396,7 @@ class NifFormat(FileFormat):
                 self.sub_shapes[num_shapes] = shape
             else:
                 for i in range(num_shapes, 0, -1):
-                    self.sub_shapes[i] = self.sub_shapes[i-1]
+                    self.sub_shapes[i] = self.sub_shapes[i - 1]
                 self.sub_shapes[0] = shape
             # expand list of unknown ints as well
             self.num_unknown_ints = num_shapes + 1
@@ -2443,7 +2455,7 @@ class NifFormat(FileFormat):
             self.origin.x = minx - 0.1
             self.origin.y = miny - 0.1
             self.origin.z = minz - 0.1
-            self.scale = (256*256*254) / (0.2+max([maxx-minx,maxy-miny,maxz-minz]))
+            self.scale = (256 * 256 * 254) / (0.2 + max([maxx - minx, maxy - miny, maxz - minz]))
 
         def update_mopp(self):
             """Update the MOPP data, scale, and origin, and welding info.
@@ -2471,14 +2483,14 @@ class NifFormat(FileFormat):
                 material_per_vertex = []
                 for subshape in self.shape.get_sub_shapes():
                     material_per_vertex += (
-                        [subshape.material] * subshape.num_vertices)
+                            [subshape.material] * subshape.num_vertices)
                 material_per_triangle = [
                     material_per_vertex[hktri.triangle.v_1]
                     for hktri in self.shape.data.triangles]
                 # compute havok info
                 try:
                     origin, scale, mopp, welding_infos \
-                    = pyffi.utils.mopp.getMopperOriginScaleCodeWelding(
+                        = pyffi.utils.mopp.getMopperOriginScaleCodeWelding(
                         [vert.as_tuple() for vert in self.shape.data.vertices],
                         [(hktri.triangle.v_1,
                           hktri.triangle.v_2,
@@ -2521,8 +2533,8 @@ class NifFormat(FileFormat):
 
         def _makeSimpleMopp(self):
             """Make a simple mopp."""
-            mopp = [] # the mopp 'assembly' script
-            self._q = 256*256 / self.scale # quantization factor
+            mopp = []  # the mopp 'assembly' script
+            self._q = 256 * 256 / self.scale  # quantization factor
 
             # opcodes
             BOUNDX = 0x26
@@ -2533,14 +2545,14 @@ class NifFormat(FileFormat):
             TESTZ = 0x12
 
             # add first crude bounding box checks
-            self._vertsceil  = [ self._moppCeil(v) for v in self.shape.data.vertices ]
-            self._vertsfloor = [ self._moppFloor(v) for v in self.shape.data.vertices ]
-            minx = min([ v[0] for v in self._vertsfloor ])
-            miny = min([ v[1] for v in self._vertsfloor ])
-            minz = min([ v[2] for v in self._vertsfloor ])
-            maxx = max([ v[0] for v in self._vertsceil ])
-            maxy = max([ v[1] for v in self._vertsceil ])
-            maxz = max([ v[2] for v in self._vertsceil ])
+            self._vertsceil = [self._moppCeil(v) for v in self.shape.data.vertices]
+            self._vertsfloor = [self._moppFloor(v) for v in self.shape.data.vertices]
+            minx = min([v[0] for v in self._vertsfloor])
+            miny = min([v[1] for v in self._vertsfloor])
+            minz = min([v[2] for v in self._vertsfloor])
+            maxx = max([v[0] for v in self._vertsceil])
+            maxy = max([v[1] for v in self._vertsceil])
+            maxz = max([v[2] for v in self._vertsceil])
             if minx < 0 or miny < 0 or minz < 0: raise ValueError("cannot update mopp tree with invalid origin")
             if maxx > 255 or maxy > 255 or maxz > 255: raise ValueError("cannot update mopp tree with invalid scale")
             mopp.extend([BOUNDZ, minz, maxz])
@@ -2549,21 +2561,21 @@ class NifFormat(FileFormat):
 
             # add tree using subsequent X-Y-Z splits
             # (slow and no noticable difference from other simple tree so deactivated)
-            #tris = range(len(self.shape.data.triangles))
-            #tree = self.split_triangles(tris, [[minx,maxx],[miny,maxy],[minz,maxz]])
-            #mopp += self.mopp_from_tree(tree)
+            # tris = range(len(self.shape.data.triangles))
+            # tree = self.split_triangles(tris, [[minx,maxx],[miny,maxy],[minz,maxz]])
+            # mopp += self.mopp_from_tree(tree)
 
             # add a trivial tree
             # this prevents the player of walking through the model
             # but arrows may still fly through
             numtriangles = len(self.shape.data.triangles)
             i = 0x30
-            for t in range(numtriangles-1):
-                 mopp.extend([TESTZ, maxz, 0, 1, i])
-                 i += 1
-                 if i == 0x50:
-                     mopp.extend([0x09, 0x20]) # increment triangle offset
-                     i = 0x30
+            for t in range(numtriangles - 1):
+                mopp.extend([TESTZ, maxz, 0, 1, i])
+                i += 1
+                if i == 0x50:
+                    mopp.extend([0x09, 0x20])  # increment triangle offset
+                    i = 0x30
             mopp.extend([i])
 
             return mopp
@@ -2582,11 +2594,11 @@ class NifFormat(FileFormat):
 
         def split_triangles(self, ts, bbox, dir=0):
             """Direction 0=X, 1=Y, 2=Z"""
-            btest = [] # for bounding box tests
-            test = [] # for branch command
+            btest = []  # for bounding box tests
+            test = []  # for branch command
             # check bounding box
-            tris = [ t.triangle for t in self.shape.data.triangles ]
-            tsverts = [ tris[t].v_1 for t in ts] + [ tris[t].v_2 for t in ts] + [ tris[t].v_3 for t in ts]
+            tris = [t.triangle for t in self.shape.data.triangles]
+            tsverts = [tris[t].v_1 for t in ts] + [tris[t].v_2 for t in ts] + [tris[t].v_3 for t in ts]
             minx = min([self._vertsfloor[v][0] for v in tsverts])
             miny = min([self._vertsfloor[v][1] for v in tsverts])
             minz = min([self._vertsfloor[v][2] for v in tsverts])
@@ -2595,47 +2607,48 @@ class NifFormat(FileFormat):
             maxz = max([self._vertsceil[v][2] for v in tsverts])
             # add bounding box checks if it's reduced in a direction
             if (maxx - minx < bbox[0][1] - bbox[0][0]):
-                btest += [ 0x26, minx, maxx ]
+                btest += [0x26, minx, maxx]
                 bbox[0][0] = minx
                 bbox[0][1] = maxx
             if (maxy - miny < bbox[1][1] - bbox[1][0]):
-                btest += [ 0x27, miny, maxy ]
+                btest += [0x27, miny, maxy]
                 bbox[1][0] = miny
                 bbox[1][1] = maxy
             if (maxz - minz < bbox[2][1] - bbox[2][0]):
-                btest += [ 0x28, minz, maxz ]
+                btest += [0x28, minz, maxz]
                 bbox[2][0] = minz
                 bbox[2][1] = maxz
             # if only one triangle, no further split needed
             if len(ts) == 1:
                 if ts[0] < 32:
-                    return [ btest, [ 0x30 + ts[0] ], [], [] ]
+                    return [btest, [0x30 + ts[0]], [], []]
                 elif ts[0] < 256:
-                    return [ btest, [ 0x50, ts[0] ], [], [] ]
+                    return [btest, [0x50, ts[0]], [], []]
                 else:
-                    return [ btest, [ 0x51, ts[0] >> 8, ts[0] & 255 ], [], [] ]
+                    return [btest, [0x51, ts[0] >> 8, ts[0] & 255], [], []]
             # sort triangles in required direction
-            ts.sort(key = lambda t: max(self._vertsceil[tris[t].v_1][dir], self._vertsceil[tris[t].v_2][dir], self._vertsceil[tris[t].v_3][dir]))
+            ts.sort(key=lambda t: max(self._vertsceil[tris[t].v_1][dir], self._vertsceil[tris[t].v_2][dir],
+                                      self._vertsceil[tris[t].v_3][dir]))
             # split into two
-            ts1 = ts[:len(ts)/2]
-            ts2 = ts[len(ts)/2:]
+            ts1 = ts[:len(ts) / 2]
+            ts2 = ts[len(ts) / 2:]
             # get maximum coordinate of small group
-            ts1verts = [ tris[t].v_1 for t in ts1] + [ tris[t].v_2 for t in ts1] + [ tris[t].v_3 for t in ts1]
-            ts2verts = [ tris[t].v_1 for t in ts2] + [ tris[t].v_2 for t in ts2] + [ tris[t].v_3 for t in ts2]
+            ts1verts = [tris[t].v_1 for t in ts1] + [tris[t].v_2 for t in ts1] + [tris[t].v_3 for t in ts1]
+            ts2verts = [tris[t].v_1 for t in ts2] + [tris[t].v_2 for t in ts2] + [tris[t].v_3 for t in ts2]
             ts1max = max([self._vertsceil[v][dir] for v in ts1verts])
             # get minimum coordinate of large group
             ts2min = min([self._vertsfloor[v][dir] for v in ts2verts])
             # set up test
-            test += [0x10+dir, ts1max, ts2min]
+            test += [0x10 + dir, ts1max, ts2min]
             # set up new bounding boxes for each subtree
             # make copy
-            bbox1 = [[bbox[0][0],bbox[0][1]],[bbox[1][0],bbox[1][1]],[bbox[2][0],bbox[2][1]]]
-            bbox2 = [[bbox[0][0],bbox[0][1]],[bbox[1][0],bbox[1][1]],[bbox[2][0],bbox[2][1]]]
+            bbox1 = [[bbox[0][0], bbox[0][1]], [bbox[1][0], bbox[1][1]], [bbox[2][0], bbox[2][1]]]
+            bbox2 = [[bbox[0][0], bbox[0][1]], [bbox[1][0], bbox[1][1]], [bbox[2][0], bbox[2][1]]]
             # update bound in test direction
             bbox1[dir][1] = ts1max
             bbox2[dir][0] = ts2min
             # return result
-            nextdir = dir+1
+            nextdir = dir + 1
             if nextdir == 3: nextdir = 0
             return [btest, test, self.split_triangles(ts1, bbox1, nextdir), self.split_triangles(ts2, bbox2, nextdir)]
 
@@ -2646,7 +2659,7 @@ class NifFormat(FileFormat):
             submopp1 = self.mopp_from_tree(tree[2])
             submopp2 = self.mopp_from_tree(tree[3])
             if len(submopp1) < 256:
-                mopp += [ len(submopp1) ]
+                mopp += [len(submopp1)]
                 mopp += submopp1
                 mopp += submopp2
             else:
@@ -2660,13 +2673,14 @@ class NifFormat(FileFormat):
             return mopp
 
         # ported and extended from NifVis/bhkMoppBvTreeShape.py
-        def parse_mopp(self, start = 0, depth = 0, toffset = 0, verbose = False):
+        def parse_mopp(self, start=0, depth=0, toffset=0, verbose=False):
             """The mopp data is printed to the debug channel
             while parsed. Returns list of indices into mopp data of the bytes
             processed and a list of triangle indices encountered.
 
             The verbose argument is ignored (and is deprecated).
             """
+
             class Message:
                 def __init__(self):
                     self.logger = logging.getLogger("pyffi.mopp")
@@ -2685,96 +2699,96 @@ class NifFormat(FileFormat):
                     self.logger.error(self.msg)
                     self.msg = ""
 
-            mopp = self.mopp_data # shortcut notation
-            ids = [] # indices of bytes processed
-            tris = [] # triangle indices
-            i = start # current index
-            ret = False # set to True if an opcode signals a triangle index
+            mopp = self.mopp_data  # shortcut notation
+            ids = []  # indices of bytes processed
+            tris = []  # triangle indices
+            i = start  # current index
+            ret = False  # set to True if an opcode signals a triangle index
             while i < self.mopp_data_size and not ret:
                 # get opcode and print it
                 code = mopp[i]
                 msg = Message()
-                msg.append("%4i:"%i + "  "*depth + '0x%02X ' % code)
+                msg.append("%4i:" % i + "  " * depth + '0x%02X ' % code)
 
                 if code == 0x09:
                     # increment triangle offset
-                    toffset += mopp[i+1]
-                    msg.append(mopp[i+1])
+                    toffset += mopp[i + 1]
+                    msg.append(mopp[i + 1])
                     msg.append('%i [ triangle offset += %i, offset is now %i ]'
-                                    % (mopp[i+1], mopp[i+1], toffset))
-                    ids.extend([i,i+1])
+                               % (mopp[i + 1], mopp[i + 1], toffset))
+                    ids.extend([i, i + 1])
                     i += 2
 
-                elif code in [ 0x0A ]:
+                elif code in [0x0A]:
                     # increment triangle offset
-                    toffset += mopp[i+1]*256 + mopp[i+2]
-                    msg.append(mopp[i+1],mopp[i+2])
+                    toffset += mopp[i + 1] * 256 + mopp[i + 2]
+                    msg.append(mopp[i + 1], mopp[i + 2])
                     msg.append('[ triangle offset += %i, offset is now %i ]'
-                                    % (mopp[i+1]*256 + mopp[i+2], toffset))
-                    ids.extend([i,i+1,i+2])
+                               % (mopp[i + 1] * 256 + mopp[i + 2], toffset))
+                    ids.extend([i, i + 1, i + 2])
                     i += 3
 
-                elif code in [ 0x0B ]:
+                elif code in [0x0B]:
                     # unsure about first two arguments, but the 3rd and 4th set triangle offset
-                    toffset = 256*mopp[i+3] + mopp[i+4]
-                    msg.append(mopp[i+1],mopp[i+2],mopp[i+3],mopp[i+4])
+                    toffset = 256 * mopp[i + 3] + mopp[i + 4]
+                    msg.append(mopp[i + 1], mopp[i + 2], mopp[i + 3], mopp[i + 4])
                     msg.append('[ triangle offset = %i ]' % toffset)
-                    ids.extend([i,i+1,i+2,i+3,i+4])
+                    ids.extend([i, i + 1, i + 2, i + 3, i + 4])
                     i += 5
 
-                elif code in range(0x30,0x50):
+                elif code in range(0x30, 0x50):
                     # triangle compact
-                    msg.append('[ triangle %i ]'%(code-0x30+toffset))
+                    msg.append('[ triangle %i ]' % (code - 0x30 + toffset))
                     ids.append(i)
-                    tris.append(code-0x30+toffset)
+                    tris.append(code - 0x30 + toffset)
                     i += 1
                     ret = True
 
                 elif code == 0x50:
                     # triangle byte
-                    msg.append(mopp[i+1])
-                    msg.append('[ triangle %i ]'%(mopp[i+1]+toffset))
-                    ids.extend([i,i+1])
-                    tris.append(mopp[i+1]+toffset)
+                    msg.append(mopp[i + 1])
+                    msg.append('[ triangle %i ]' % (mopp[i + 1] + toffset))
+                    ids.extend([i, i + 1])
+                    tris.append(mopp[i + 1] + toffset)
                     i += 2
                     ret = True
 
-                elif code in [ 0x51 ]:
+                elif code in [0x51]:
                     # triangle short
-                    t = mopp[i+1]*256 + mopp[i+2] + toffset
-                    msg.append(mopp[i+1],mopp[i+2])
+                    t = mopp[i + 1] * 256 + mopp[i + 2] + toffset
+                    msg.append(mopp[i + 1], mopp[i + 2])
                     msg.append('[ triangle %i ]' % t)
-                    ids.extend([i,i+1,i+2])
+                    ids.extend([i, i + 1, i + 2])
                     tris.append(t)
                     i += 3
                     ret = True
 
-                elif code in [ 0x53 ]:
+                elif code in [0x53]:
                     # triangle short?
-                    t = mopp[i+3]*256 + mopp[i+4] + toffset
-                    msg.append(mopp[i+1],mopp[i+2],mopp[i+3],mopp[i+4])
+                    t = mopp[i + 3] * 256 + mopp[i + 4] + toffset
+                    msg.append(mopp[i + 1], mopp[i + 2], mopp[i + 3], mopp[i + 4])
                     msg.append('[ triangle %i ]' % t)
-                    ids.extend([i,i+1,i+2,i+3,i+4])
+                    ids.extend([i, i + 1, i + 2, i + 3, i + 4])
                     tris.append(t)
                     i += 5
                     ret = True
 
-                elif code in [ 0x05 ]:
+                elif code in [0x05]:
                     # byte jump
-                    msg.append('[ jump -> %i: ]'%(i+2+mopp[i+1]))
-                    ids.extend([i,i+1])
-                    i += 2+mopp[i+1]
+                    msg.append('[ jump -> %i: ]' % (i + 2 + mopp[i + 1]))
+                    ids.extend([i, i + 1])
+                    i += 2 + mopp[i + 1]
 
-                elif code in [ 0x06 ]:
+                elif code in [0x06]:
                     # short jump
-                    jump = mopp[i+1]*256 + mopp[i+2]
-                    msg.append('[ jump -> %i: ]'%(i+3+jump))
-                    ids.extend([i,i+1,i+2])
-                    i += 3+jump
+                    jump = mopp[i + 1] * 256 + mopp[i + 2]
+                    msg.append('[ jump -> %i: ]' % (i + 3 + jump))
+                    ids.extend([i, i + 1, i + 2])
+                    i += 3 + jump
 
-                elif code in [0x10,0x11,0x12, 0x13,0x14,0x15, 0x16,0x17,0x18, 0x19, 0x1A, 0x1B, 0x1C]:
+                elif code in [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C]:
                     # compact if-then-else with two arguments
-                    msg.append(mopp[i+1], mopp[i+2])
+                    msg.append(mopp[i + 1], mopp[i + 2])
                     if code == 0x10:
                         msg.append('[ branch X')
                     elif code == 0x11:
@@ -2783,88 +2797,96 @@ class NifFormat(FileFormat):
                         msg.append('[ branch Z')
                     else:
                         msg.append('[ branch ?')
-                    msg.append('-> %i: %i: ]'%(i+4,i+4+mopp[i+3]))
+                    msg.append('-> %i: %i: ]' % (i + 4, i + 4 + mopp[i + 3]))
                     msg.debug()
-                    msg.append("     " + "  "*depth + 'if:')
+                    msg.append("     " + "  " * depth + 'if:')
                     msg.debug()
-                    idssub1, trissub1 = self.parse_mopp(start = i+4, depth = depth+1, toffset = toffset, verbose = verbose)
-                    msg.append("     " + "  "*depth + 'else:')
+                    idssub1, trissub1 = self.parse_mopp(start=i + 4, depth=depth + 1, toffset=toffset, verbose=verbose)
+                    msg.append("     " + "  " * depth + 'else:')
                     msg.debug()
-                    idssub2, trissub2 = self.parse_mopp(start = i+4+mopp[i+3], depth = depth+1, toffset = toffset, verbose = verbose)
-                    ids.extend([i,i+1,i+2,i+3])
+                    idssub2, trissub2 = self.parse_mopp(start=i + 4 + mopp[i + 3], depth=depth + 1, toffset=toffset,
+                                                        verbose=verbose)
+                    ids.extend([i, i + 1, i + 2, i + 3])
                     ids.extend(idssub1)
                     ids.extend(idssub2)
                     tris.extend(trissub1)
                     tris.extend(trissub2)
                     ret = True
 
-                elif code in [0x20,0x21,0x22]:
+                elif code in [0x20, 0x21, 0x22]:
                     # compact if-then-else with one argument
-                    msg.append(mopp[i+1], '[ branch ? -> %i: %i: ]'%(i+3,i+3+mopp[i+2])).debug()
-                    msg.append("     " + "  "*depth + 'if:').debug()
-                    idssub1, trissub1 = self.parse_mopp(start = i+3, depth = depth+1, toffset = toffset, verbose = verbose)
-                    msg.append("     " + "  "*depth + 'else:').debug()
-                    idssub2, trissub2 = self.parse_mopp(start = i+3+mopp[i+2], depth = depth+1, toffset = toffset, verbose = verbose)
-                    ids.extend([i,i+1,i+2])
+                    msg.append(mopp[i + 1], '[ branch ? -> %i: %i: ]' % (i + 3, i + 3 + mopp[i + 2])).debug()
+                    msg.append("     " + "  " * depth + 'if:').debug()
+                    idssub1, trissub1 = self.parse_mopp(start=i + 3, depth=depth + 1, toffset=toffset, verbose=verbose)
+                    msg.append("     " + "  " * depth + 'else:').debug()
+                    idssub2, trissub2 = self.parse_mopp(start=i + 3 + mopp[i + 2], depth=depth + 1, toffset=toffset,
+                                                        verbose=verbose)
+                    ids.extend([i, i + 1, i + 2])
                     ids.extend(idssub1)
                     ids.extend(idssub2)
                     tris.extend(trissub1)
                     tris.extend(trissub2)
                     ret = True
 
-                elif code in [0x23,0x24,0x25]: # short if x <= a then 1; if x > b then 2;
-                    jump1 = mopp[i+3] * 256 + mopp[i+4]
-                    jump2 = mopp[i+5] * 256 + mopp[i+6]
-                    msg.append(mopp[i+1], mopp[i+2], '[ branch ? -> %i: %i: ]'%(i+7+jump1,i+7+jump2)).debug()
-                    msg.append("     " + "  "*depth + 'if:').debug()
-                    idssub1, trissub1 = self.parse_mopp(start = i+7+jump1, depth = depth+1, toffset = toffset, verbose = verbose)
-                    msg.append("     " + "  "*depth + 'else:').debug()
-                    idssub2, trissub2 = self.parse_mopp(start = i+7+jump2, depth = depth+1, toffset = toffset, verbose = verbose)
-                    ids.extend([i,i+1,i+2,i+3,i+4,i+5,i+6])
+                elif code in [0x23, 0x24, 0x25]:  # short if x <= a then 1; if x > b then 2;
+                    jump1 = mopp[i + 3] * 256 + mopp[i + 4]
+                    jump2 = mopp[i + 5] * 256 + mopp[i + 6]
+                    msg.append(mopp[i + 1], mopp[i + 2],
+                               '[ branch ? -> %i: %i: ]' % (i + 7 + jump1, i + 7 + jump2)).debug()
+                    msg.append("     " + "  " * depth + 'if:').debug()
+                    idssub1, trissub1 = self.parse_mopp(start=i + 7 + jump1, depth=depth + 1, toffset=toffset,
+                                                        verbose=verbose)
+                    msg.append("     " + "  " * depth + 'else:').debug()
+                    idssub2, trissub2 = self.parse_mopp(start=i + 7 + jump2, depth=depth + 1, toffset=toffset,
+                                                        verbose=verbose)
+                    ids.extend([i, i + 1, i + 2, i + 3, i + 4, i + 5, i + 6])
                     ids.extend(idssub1)
                     ids.extend(idssub2)
                     tris.extend(trissub1)
                     tris.extend(trissub2)
                     ret = True
-                elif code in [0x26,0x27,0x28]:
-                    msg.append(mopp[i+1], mopp[i+2])
+                elif code in [0x26, 0x27, 0x28]:
+                    msg.append(mopp[i + 1], mopp[i + 2])
                     if code == 0x26:
                         msg.append('[ bound X ]')
                     elif code == 0x27:
                         msg.append('[ bound Y ]')
                     elif code == 0x28:
                         msg.append('[ bound Z ]')
-                    ids.extend([i,i+1,i+2])
+                    ids.extend([i, i + 1, i + 2])
                     i += 3
                 elif code in [0x01, 0x02, 0x03, 0x04]:
-                    msg.append(mopp[i+1], mopp[i+2], mopp[i+3], '[ bound XYZ? ]')
-                    ids.extend([i,i+1,i+2,i+3])
+                    msg.append(mopp[i + 1], mopp[i + 2], mopp[i + 3], '[ bound XYZ? ]')
+                    ids.extend([i, i + 1, i + 2, i + 3])
                     i += 4
                 else:
-                    msg.append("unknown mopp code 0x%02X"%code).error()
+                    msg.append("unknown mopp code 0x%02X" % code).error()
                     msg.append("following bytes are").debug()
-                    extrabytes = [mopp[j] for j in range(i+1,min(self.mopp_data_size,i+10))]
-                    extraindex = [j       for j in range(i+1,min(self.mopp_data_size,i+10))]
+                    extrabytes = [mopp[j] for j in range(i + 1, min(self.mopp_data_size, i + 10))]
+                    extraindex = [j for j in range(i + 1, min(self.mopp_data_size, i + 10))]
                     msg.append(extrabytes).debug()
                     for b, j in zip(extrabytes, extraindex):
-                        if j+b+1 < self.mopp_data_size:
-                            msg.append("opcode after jump %i is 0x%02X"%(b,mopp[j+b+1]), [mopp[k] for k in range(j+b+2,min(self.mopp_data_size,j+b+11))]).debug()
-                    raise ValueError("unknown mopp opcode 0x%02X"%code)
+                        if j + b + 1 < self.mopp_data_size:
+                            msg.append("opcode after jump %i is 0x%02X" % (b, mopp[j + b + 1]), [mopp[k] for k in
+                                                                                                 range(j + b + 2, min(
+                                                                                                     self.mopp_data_size,
+                                                                                                     j + b + 11))]).debug()
+                    raise ValueError("unknown mopp opcode 0x%02X" % code)
 
                 msg.debug()
 
             return ids, tris
 
     class bhkMultiSphereShape:
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return center of gravity and area."""
             subshapes_mci = [
                 (mass, center, inertia)
                 for (mass, inertia), center in
-                zip( ( pyffi.utils.inertia.getMassInertiaSphere(radius = sphere.radius,
-                                                                 density = density, solid = solid)
-                        for sphere in self.spheres ),
-                      ( sphere.center.as_tuple() for sphere in self.spheres ) ) ]
+                zip((pyffi.utils.inertia.getMassInertiaSphere(radius=sphere.radius,
+                                                              density=density, solid=solid)
+                     for sphere in self.spheres),
+                    (sphere.center.as_tuple() for sphere in self.spheres))]
             total_mass = 0
             total_center = (0, 0, 0)
             total_inertia = ((0, 0, 0), (0, 0, 0), (0, 0, 0))
@@ -2896,8 +2918,8 @@ class NifFormat(FileFormat):
                 normals.extend(
                     (strip.vertices[tri2] - strip.vertices[tri1]).crossproduct(
                         strip.vertices[tri3] - strip.vertices[tri1])
-                    .normalized(ignore_error=True)
-                    .as_tuple()
+                        .normalized(ignore_error=True)
+                        .as_tuple()
                     for tri1, tri2, tri3 in strip.get_triangles())
             # create packed shape and add geometry
             packed = NifFormat.bhkPackedNiTriStripsShape()
@@ -2918,16 +2940,16 @@ class NifFormat(FileFormat):
             # return result
             return packed
 
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return mass, center, and inertia tensor."""
             # first find mass, center, and inertia of all shapes
             subshapes_mci = []
             for data in self.strips_data:
                 subshapes_mci.append(
                     pyffi.utils.inertia.get_mass_center_inertia_polyhedron(
-                        [ vert.as_tuple() for vert in data.vertices ],
-                        [ triangle for triangle in data.get_triangles() ],
-                        density = density, solid = solid))
+                        [vert.as_tuple() for vert in data.vertices],
+                        [triangle for triangle in data.get_triangles()],
+                        density=density, solid=solid))
 
             # now calculate mass, center, and inertia
             total_mass = 0
@@ -2941,15 +2963,15 @@ class NifFormat(FileFormat):
             return total_mass, total_center, total_inertia
 
     class bhkPackedNiTriStripsShape:
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return mass, center, and inertia tensor."""
             return pyffi.utils.inertia.get_mass_center_inertia_polyhedron(
-                [ vert.as_tuple() for vert in self.data.vertices ],
-                [ ( hktriangle.triangle.v_1,
-                    hktriangle.triangle.v_2,
-                    hktriangle.triangle.v_3 )
-                  for hktriangle in self.data.triangles ],
-                density = density, solid = solid)
+                [vert.as_tuple() for vert in self.data.vertices],
+                [(hktriangle.triangle.v_1,
+                  hktriangle.triangle.v_2,
+                  hktriangle.triangle.v_3)
+                 for hktriangle in self.data.triangles],
+                density=density, solid=solid)
 
         def get_sub_shapes(self):
             """Return sub shapes (works for both Oblivion and Fallout 3)."""
@@ -2994,10 +3016,10 @@ class NifFormat(FileFormat):
                 vdata.x = v[0] / 7.0
                 vdata.y = v[1] / 7.0
                 vdata.z = v[2] / 7.0
-                
+
         def get_vertex_hash_generator(
-            self,
-            vertexprecision=3, subshape_index=None):
+                self,
+                vertexprecision=3, subshape_index=None):
             """Generator which produces a tuple of integers for each
             vertex to ease detection of duplicate/close enough to remove
             vertices. The precision parameter denote number of
@@ -3038,9 +3060,9 @@ class NifFormat(FileFormat):
             vertexfactor = 10 ** vertexprecision
             if subshape_index is None:
                 for matid, vert in zip(chain(*[repeat(i, sub_shape.num_vertices)
-                                                for i, sub_shape
-                                                in enumerate(self.get_sub_shapes())]),
-                                        self.data.vertices):
+                                               for i, sub_shape
+                                               in enumerate(self.get_sub_shapes())]),
+                                       self.data.vertices):
                     yield (matid, tuple(float_to_int(value * vertexfactor)
                                         for value in vert.as_list()))
             else:
@@ -3049,9 +3071,9 @@ class NifFormat(FileFormat):
                                        self.get_sub_shapes()):
                     first_vertex += subshape.num_vertices
                 for vert_index in range(
-                    first_vertex,
-                    first_vertex
-                    + self.get_sub_shapes()[subshape_index].num_vertices):
+                        first_vertex,
+                        first_vertex
+                        + self.get_sub_shapes()[subshape_index].num_vertices):
                     yield tuple(float_to_int(value * vertexfactor)
                                 for value
                                 in self.data.vertices[vert_index].as_list())
@@ -3209,13 +3231,13 @@ class NifFormat(FileFormat):
             # apply scale on dimensions
             self.radius *= scale
 
-        def get_mass_center_inertia(self, density = 1, solid = True):
+        def get_mass_center_inertia(self, density=1, solid=True):
             """Return mass, center, and inertia tensor."""
             # the dimensions describe half the size of the box in each dimension
             # so the length of a single edge is dimension.dir * 2
             mass, inertia = pyffi.utils.inertia.getMassInertiaSphere(
-                self.radius, density = density, solid = solid)
-            return mass, (0,0,0), inertia
+                self.radius, density=density, solid=solid)
+            return mass, (0, 0, 0), inertia
 
     class bhkTransformShape:
         def apply_scale(self, scale):
@@ -3233,7 +3255,7 @@ class NifFormat(FileFormat):
             # get transform matrix and translation vector
             transform = self.transform.get_matrix_33().as_tuple()
             transform_transposed = matTransposed(transform)
-            translation = ( self.transform.m_14, self.transform.m_24, self.transform.m_34 )
+            translation = (self.transform.m_14, self.transform.m_24, self.transform.m_34)
             # transform center and inertia
             center = matvecMul(transform, center)
             center = vecAdd(center, translation)
@@ -3257,7 +3279,7 @@ class NifFormat(FileFormat):
             triangles = []
             trianglepartmap = []
             for bodypart, skinpartblock in zip(
-                self.partitions, self.skin_partition.skin_partition_blocks):
+                    self.partitions, self.skin_partition.skin_partition_blocks):
                 part_triangles = list(skinpartblock.get_mapped_triangles())
                 triangles += part_triangles
                 trianglepartmap += [bodypart.body_part] * len(part_triangles)
@@ -3284,6 +3306,7 @@ class NifFormat(FileFormat):
         >>> link.node_name
         b'Bip01 Tail'
         """
+
         def _get_string(self, offset):
             """A wrapper around string_palette.palette.get_string. Used by get_node_name
             etc. Returns the string at given offset."""
@@ -3389,7 +3412,7 @@ class NifFormat(FileFormat):
                 [self.m_11, self.m_12, self.m_13],
                 [self.m_21, self.m_22, self.m_23],
                 [self.m_31, self.m_32, self.m_33]
-                ]
+            ]
 
         def as_tuple(self):
             """Return matrix as 3x3 tuple."""
@@ -3397,16 +3420,16 @@ class NifFormat(FileFormat):
                 (self.m_11, self.m_12, self.m_13),
                 (self.m_21, self.m_22, self.m_23),
                 (self.m_31, self.m_32, self.m_33)
-                )
+            )
 
         def __str__(self):
-            return(
-                "[ %6.3f %6.3f %6.3f ]\n"
-                "[ %6.3f %6.3f %6.3f ]\n"
-                "[ %6.3f %6.3f %6.3f ]\n"
-                % (self.m_11, self.m_12, self.m_13,
-                   self.m_21, self.m_22, self.m_23,
-                   self.m_31, self.m_32, self.m_33))
+            return (
+                    "[ %6.3f %6.3f %6.3f ]\n"
+                    "[ %6.3f %6.3f %6.3f ]\n"
+                    "[ %6.3f %6.3f %6.3f ]\n"
+                    % (self.m_11, self.m_12, self.m_13,
+                       self.m_21, self.m_22, self.m_23,
+                       self.m_31, self.m_32, self.m_33))
 
         def set_identity(self):
             """Set to identity matrix."""
@@ -3425,15 +3448,15 @@ class NifFormat(FileFormat):
 
         def is_identity(self):
             """Return ``True`` if the matrix is close to identity."""
-            if  (abs(self.m_11 - 1.0) > NifFormat.EPSILON
-                 or abs(self.m_12) > NifFormat.EPSILON
-                 or abs(self.m_13) > NifFormat.EPSILON
-                 or abs(self.m_21) > NifFormat.EPSILON
-                 or abs(self.m_22 - 1.0) > NifFormat.EPSILON
-                 or abs(self.m_23) > NifFormat.EPSILON
-                 or abs(self.m_31) > NifFormat.EPSILON
-                 or abs(self.m_32) > NifFormat.EPSILON
-                 or abs(self.m_33 - 1.0) > NifFormat.EPSILON):
+            if (abs(self.m_11 - 1.0) > NifFormat.EPSILON
+                    or abs(self.m_12) > NifFormat.EPSILON
+                    or abs(self.m_13) > NifFormat.EPSILON
+                    or abs(self.m_21) > NifFormat.EPSILON
+                    or abs(self.m_22 - 1.0) > NifFormat.EPSILON
+                    or abs(self.m_23) > NifFormat.EPSILON
+                    or abs(self.m_31) > NifFormat.EPSILON
+                    or abs(self.m_32) > NifFormat.EPSILON
+                    or abs(self.m_33 - 1.0) > NifFormat.EPSILON):
                 return False
             else:
                 return True
@@ -3458,16 +3481,16 @@ class NifFormat(FileFormat):
         def __eq__(self, mat):
             if not isinstance(mat, NifFormat.InertiaMatrix):
                 raise TypeError(
-                    "do not know how to compare InertiaMatrix and %s"%mat.__class__)
+                    "do not know how to compare InertiaMatrix and %s" % mat.__class__)
             if (abs(self.m_11 - mat.m_11) > NifFormat.EPSILON
-                or abs(self.m_12 - mat.m_12) > NifFormat.EPSILON
-                or abs(self.m_13 - mat.m_13) > NifFormat.EPSILON
-                or abs(self.m_21 - mat.m_21) > NifFormat.EPSILON
-                or abs(self.m_22 - mat.m_22) > NifFormat.EPSILON
-                or abs(self.m_23 - mat.m_23) > NifFormat.EPSILON
-                or abs(self.m_31 - mat.m_31) > NifFormat.EPSILON
-                or abs(self.m_32 - mat.m_32) > NifFormat.EPSILON
-                or abs(self.m_33 - mat.m_33) > NifFormat.EPSILON):
+                    or abs(self.m_12 - mat.m_12) > NifFormat.EPSILON
+                    or abs(self.m_13 - mat.m_13) > NifFormat.EPSILON
+                    or abs(self.m_21 - mat.m_21) > NifFormat.EPSILON
+                    or abs(self.m_22 - mat.m_22) > NifFormat.EPSILON
+                    or abs(self.m_23 - mat.m_23) > NifFormat.EPSILON
+                    or abs(self.m_31 - mat.m_31) > NifFormat.EPSILON
+                    or abs(self.m_32 - mat.m_32) > NifFormat.EPSILON
+                    or abs(self.m_33 - mat.m_33) > NifFormat.EPSILON):
                 return False
             return True
 
@@ -3484,7 +3507,7 @@ class NifFormat(FileFormat):
             self.pivot_b.z = pivot_b.z
             # axes (rotation only)
             transform = transform.get_matrix_33()
-            axle_b = self.axle_a.get_vector_3() *  transform
+            axle_b = self.axle_a.get_vector_3() * transform
             perp_2_axle_in_b_2 = self.perp_2_axle_in_a_2.get_vector_3() * transform
             self.axle_b.x = axle_b.x
             self.axle_b.y = axle_b.y
@@ -3501,7 +3524,7 @@ class NifFormat(FileFormat):
                 [self.m_21, self.m_22, self.m_23, self.m_24],
                 [self.m_31, self.m_32, self.m_33, self.m_34],
                 [self.m_41, self.m_42, self.m_43, self.m_44]
-                ]
+            ]
 
         def as_tuple(self):
             """Return matrix as 4x4 tuple."""
@@ -3510,7 +3533,7 @@ class NifFormat(FileFormat):
                 (self.m_21, self.m_22, self.m_23, self.m_24),
                 (self.m_31, self.m_32, self.m_33, self.m_34),
                 (self.m_41, self.m_42, self.m_43, self.m_44)
-                )
+            )
 
         def set_rows(self, row0, row1, row2, row3):
             """Set matrix from rows."""
@@ -3520,15 +3543,15 @@ class NifFormat(FileFormat):
             self.m_41, self.m_42, self.m_43, self.m_44 = row3
 
         def __str__(self):
-            return(
-                "[ %6.3f %6.3f %6.3f %6.3f ]\n"
-                "[ %6.3f %6.3f %6.3f %6.3f ]\n"
-                "[ %6.3f %6.3f %6.3f %6.3f ]\n"
-                "[ %6.3f %6.3f %6.3f %6.3f ]\n"
-                % (self.m_11, self.m_12, self.m_13, self.m_14,
-                   self.m_21, self.m_22, self.m_23, self.m_24,
-                   self.m_31, self.m_32, self.m_33, self.m_34,
-                   self.m_41, self.m_42, self.m_43, self.m_44))
+            return (
+                    "[ %6.3f %6.3f %6.3f %6.3f ]\n"
+                    "[ %6.3f %6.3f %6.3f %6.3f ]\n"
+                    "[ %6.3f %6.3f %6.3f %6.3f ]\n"
+                    "[ %6.3f %6.3f %6.3f %6.3f ]\n"
+                    % (self.m_11, self.m_12, self.m_13, self.m_14,
+                       self.m_21, self.m_22, self.m_23, self.m_24,
+                       self.m_31, self.m_32, self.m_33, self.m_34,
+                       self.m_41, self.m_42, self.m_43, self.m_44))
 
         def set_identity(self):
             """Set to identity matrix."""
@@ -3552,21 +3575,21 @@ class NifFormat(FileFormat):
         def is_identity(self):
             """Return ``True`` if the matrix is close to identity."""
             if (abs(self.m_11 - 1.0) > NifFormat.EPSILON
-                or abs(self.m_12) > NifFormat.EPSILON
-                or abs(self.m_13) > NifFormat.EPSILON
-                or abs(self.m_14) > NifFormat.EPSILON
-                or abs(self.m_21) > NifFormat.EPSILON
-                or abs(self.m_22 - 1.0) > NifFormat.EPSILON
-                or abs(self.m_23) > NifFormat.EPSILON
-                or abs(self.m_24) > NifFormat.EPSILON
-                or abs(self.m_31) > NifFormat.EPSILON
-                or abs(self.m_32) > NifFormat.EPSILON
-                or abs(self.m_33 - 1.0) > NifFormat.EPSILON
-                or abs(self.m_34) > NifFormat.EPSILON
-                or abs(self.m_41) > NifFormat.EPSILON
-                or abs(self.m_42) > NifFormat.EPSILON
-                or abs(self.m_43) > NifFormat.EPSILON
-                or abs(self.m_44 - 1.0) > NifFormat.EPSILON):
+                    or abs(self.m_12) > NifFormat.EPSILON
+                    or abs(self.m_13) > NifFormat.EPSILON
+                    or abs(self.m_14) > NifFormat.EPSILON
+                    or abs(self.m_21) > NifFormat.EPSILON
+                    or abs(self.m_22 - 1.0) > NifFormat.EPSILON
+                    or abs(self.m_23) > NifFormat.EPSILON
+                    or abs(self.m_24) > NifFormat.EPSILON
+                    or abs(self.m_31) > NifFormat.EPSILON
+                    or abs(self.m_32) > NifFormat.EPSILON
+                    or abs(self.m_33 - 1.0) > NifFormat.EPSILON
+                    or abs(self.m_34) > NifFormat.EPSILON
+                    or abs(self.m_41) > NifFormat.EPSILON
+                    or abs(self.m_42) > NifFormat.EPSILON
+                    or abs(self.m_43) > NifFormat.EPSILON
+                    or abs(self.m_44 - 1.0) > NifFormat.EPSILON):
                 return False
             else:
                 return True
@@ -3690,6 +3713,7 @@ class NifFormat(FileFormat):
 
         def get_inverse(self, fast=True):
             """Calculates inverse (fast assumes is_scale_rotation_translation is True)."""
+
             def adjoint(m, ii, jj):
                 result = []
                 for i, row in enumerate(m):
@@ -3699,9 +3723,10 @@ class NifFormat(FileFormat):
                         if j == jj: continue
                         result[-1].append(x)
                 return result
+
             def determinant(m):
                 if len(m) == 2:
-                    return m[0][0]*m[1][1] - m[1][0]*m[0][1]
+                    return m[0][0] * m[1][1] - m[1][0] * m[0][1]
                 result = 0.0
                 for i in range(len(m)):
                     det = determinant(adjoint(m, i, 0))
@@ -3728,10 +3753,10 @@ class NifFormat(FileFormat):
                 nn = [[0.0 for i in range(4)] for j in range(4)]
                 det = determinant(m)
                 if abs(det) < NifFormat.EPSILON:
-                    raise ZeroDivisionError('cannot invert matrix:\n%s'%self)
+                    raise ZeroDivisionError('cannot invert matrix:\n%s' % self)
                 for i in range(4):
                     for j in range(4):
-                        if (i+j) & 1:
+                        if (i + j) & 1:
                             nn[j][i] = -determinant(adjoint(m, i, j)) / det
                         else:
                             nn[j][i] = determinant(adjoint(m, i, j)) / det
@@ -3765,25 +3790,25 @@ class NifFormat(FileFormat):
                 raise TypeError("matrix*vector not supported; please use left multiplication (vector*matrix)")
             elif isinstance(x, NifFormat.Matrix44):
                 m = NifFormat.Matrix44()
-                m.m_11 = self.m_11 * x.m_11  +  self.m_12 * x.m_21  +  self.m_13 * x.m_31  +  self.m_14 * x.m_41
-                m.m_12 = self.m_11 * x.m_12  +  self.m_12 * x.m_22  +  self.m_13 * x.m_32  +  self.m_14 * x.m_42
-                m.m_13 = self.m_11 * x.m_13  +  self.m_12 * x.m_23  +  self.m_13 * x.m_33  +  self.m_14 * x.m_43
-                m.m_14 = self.m_11 * x.m_14  +  self.m_12 * x.m_24  +  self.m_13 * x.m_34  +  self.m_14 * x.m_44
-                m.m_21 = self.m_21 * x.m_11  +  self.m_22 * x.m_21  +  self.m_23 * x.m_31  +  self.m_24 * x.m_41
-                m.m_22 = self.m_21 * x.m_12  +  self.m_22 * x.m_22  +  self.m_23 * x.m_32  +  self.m_24 * x.m_42
-                m.m_23 = self.m_21 * x.m_13  +  self.m_22 * x.m_23  +  self.m_23 * x.m_33  +  self.m_24 * x.m_43
-                m.m_24 = self.m_21 * x.m_14  +  self.m_22 * x.m_24  +  self.m_23 * x.m_34  +  self.m_24 * x.m_44
-                m.m_31 = self.m_31 * x.m_11  +  self.m_32 * x.m_21  +  self.m_33 * x.m_31  +  self.m_34 * x.m_41
-                m.m_32 = self.m_31 * x.m_12  +  self.m_32 * x.m_22  +  self.m_33 * x.m_32  +  self.m_34 * x.m_42
-                m.m_33 = self.m_31 * x.m_13  +  self.m_32 * x.m_23  +  self.m_33 * x.m_33  +  self.m_34 * x.m_43
-                m.m_34 = self.m_31 * x.m_14  +  self.m_32 * x.m_24  +  self.m_33 * x.m_34  +  self.m_34 * x.m_44
-                m.m_41 = self.m_41 * x.m_11  +  self.m_42 * x.m_21  +  self.m_43 * x.m_31  +  self.m_44 * x.m_41
-                m.m_42 = self.m_41 * x.m_12  +  self.m_42 * x.m_22  +  self.m_43 * x.m_32  +  self.m_44 * x.m_42
-                m.m_43 = self.m_41 * x.m_13  +  self.m_42 * x.m_23  +  self.m_43 * x.m_33  +  self.m_44 * x.m_43
-                m.m_44 = self.m_41 * x.m_14  +  self.m_42 * x.m_24  +  self.m_43 * x.m_34  +  self.m_44 * x.m_44
+                m.m_11 = self.m_11 * x.m_11 + self.m_12 * x.m_21 + self.m_13 * x.m_31 + self.m_14 * x.m_41
+                m.m_12 = self.m_11 * x.m_12 + self.m_12 * x.m_22 + self.m_13 * x.m_32 + self.m_14 * x.m_42
+                m.m_13 = self.m_11 * x.m_13 + self.m_12 * x.m_23 + self.m_13 * x.m_33 + self.m_14 * x.m_43
+                m.m_14 = self.m_11 * x.m_14 + self.m_12 * x.m_24 + self.m_13 * x.m_34 + self.m_14 * x.m_44
+                m.m_21 = self.m_21 * x.m_11 + self.m_22 * x.m_21 + self.m_23 * x.m_31 + self.m_24 * x.m_41
+                m.m_22 = self.m_21 * x.m_12 + self.m_22 * x.m_22 + self.m_23 * x.m_32 + self.m_24 * x.m_42
+                m.m_23 = self.m_21 * x.m_13 + self.m_22 * x.m_23 + self.m_23 * x.m_33 + self.m_24 * x.m_43
+                m.m_24 = self.m_21 * x.m_14 + self.m_22 * x.m_24 + self.m_23 * x.m_34 + self.m_24 * x.m_44
+                m.m_31 = self.m_31 * x.m_11 + self.m_32 * x.m_21 + self.m_33 * x.m_31 + self.m_34 * x.m_41
+                m.m_32 = self.m_31 * x.m_12 + self.m_32 * x.m_22 + self.m_33 * x.m_32 + self.m_34 * x.m_42
+                m.m_33 = self.m_31 * x.m_13 + self.m_32 * x.m_23 + self.m_33 * x.m_33 + self.m_34 * x.m_43
+                m.m_34 = self.m_31 * x.m_14 + self.m_32 * x.m_24 + self.m_33 * x.m_34 + self.m_34 * x.m_44
+                m.m_41 = self.m_41 * x.m_11 + self.m_42 * x.m_21 + self.m_43 * x.m_31 + self.m_44 * x.m_41
+                m.m_42 = self.m_41 * x.m_12 + self.m_42 * x.m_22 + self.m_43 * x.m_32 + self.m_44 * x.m_42
+                m.m_43 = self.m_41 * x.m_13 + self.m_42 * x.m_23 + self.m_43 * x.m_33 + self.m_44 * x.m_43
+                m.m_44 = self.m_41 * x.m_14 + self.m_42 * x.m_24 + self.m_43 * x.m_34 + self.m_44 * x.m_44
                 return m
             else:
-                raise TypeError("do not know how to multiply Matrix44 with %s"%x.__class__)
+                raise TypeError("do not know how to multiply Matrix44 with %s" % x.__class__)
 
         def __div__(self, x):
             if isinstance(x, (float, int)):
@@ -3806,7 +3831,7 @@ class NifFormat(FileFormat):
                 m.m_44 = self.m_44 / x
                 return m
             else:
-                raise TypeError("do not know how to divide Matrix44 by %s"%x.__class__)
+                raise TypeError("do not know how to divide Matrix44 by %s" % x.__class__)
 
         # py3k
         __truediv__ = __div__
@@ -3815,13 +3840,13 @@ class NifFormat(FileFormat):
             if isinstance(x, (float, int)):
                 return self * x
             else:
-                raise TypeError("do not know how to multiply %s with Matrix44"%x.__class__)
+                raise TypeError("do not know how to multiply %s with Matrix44" % x.__class__)
 
         def __eq__(self, m):
             if isinstance(m, type(None)):
                 return False
             if not isinstance(m, NifFormat.Matrix44):
-                raise TypeError("do not know how to compare Matrix44 and %s"%m.__class__)
+                raise TypeError("do not know how to compare Matrix44 and %s" % m.__class__)
             if abs(self.m_11 - m.m_11) > NifFormat.EPSILON: return False
             if abs(self.m_12 - m.m_12) > NifFormat.EPSILON: return False
             if abs(self.m_13 - m.m_13) > NifFormat.EPSILON: return False
@@ -3883,7 +3908,7 @@ class NifFormat(FileFormat):
                 m.m_44 = self.m_44 + x
                 return m
             else:
-                raise TypeError("do not know how to add Matrix44 and %s"%x.__class__)
+                raise TypeError("do not know how to add Matrix44 and %s" % x.__class__)
 
         def __sub__(self, x):
             if isinstance(x, (NifFormat.Matrix44)):
@@ -3965,6 +3990,7 @@ class NifFormat(FileFormat):
         >>> [prop.name for prop in node.properties]
         [b'hello', b'world']
         """
+
         def add_property(self, prop):
             """Add the given property to the property list.
 
@@ -3983,7 +4009,7 @@ class NifFormat(FileFormat):
             :type prop: L{NifFormat.NiProperty}
             """
             self.set_properties([otherprop for otherprop in self.get_properties()
-                                if not(otherprop is prop)])
+                                 if not (otherprop is prop)])
 
         def get_properties(self):
             """Return a list of the properties of the block.
@@ -4018,7 +4044,7 @@ class NifFormat(FileFormat):
             m.set_scale_rotation_translation(self.scale, self.rotation, self.translation)
             if not relative_to: return m
             # find chain from relative_to to self
-            chain = relative_to.find_chain(self, block_type = NifFormat.NiAVObject)
+            chain = relative_to.find_chain(self, block_type=NifFormat.NiAVObject)
             if not chain:
                 raise ValueError(
                     'cannot find a chain of NiAVObject blocks '
@@ -4120,6 +4146,7 @@ class NifFormat(FileFormat):
         >>> list(block.get_comp_data(60, 2, 2, 2.5, 1.5)) # doctest: +ELLIPSIS
         [(1.0, 2.00...), (4.0, 2.99...)]
         """
+
         def _getData(self, offset, num_elements, element_size, controlpoints):
             """Helper function for get_float_data and get_short_data. For internal
             use only."""
@@ -4256,10 +4283,10 @@ class NifFormat(FileFormat):
             # return all times
             for i in range(self.basis_data.num_control_points):
                 yield (
-                    self.start_time
-                    + (i * (self.stop_time - self.start_time)
-                       / (self.basis_data.num_control_points - 1))
-                    )
+                        self.start_time
+                        + (i * (self.stop_time - self.start_time)
+                           / (self.basis_data.num_control_points - 1))
+                )
 
         def _getFloatKeys(self, offset, element_size):
             """Helper function to get iterator to various keys. Internal use only."""
@@ -4271,8 +4298,8 @@ class NifFormat(FileFormat):
                 return
             # yield all keys
             for key in self.spline_data.get_float_data(offset,
-                                                    self.basis_data.num_control_points,
-                                                    element_size):
+                                                       self.basis_data.num_control_points,
+                                                       element_size):
                 yield key
 
         def _getCompKeys(self, offset, element_size, bias, multiplier):
@@ -4285,9 +4312,9 @@ class NifFormat(FileFormat):
                 return
             # yield all keys
             for key in self.spline_data.get_comp_data(offset,
-                                                   self.basis_data.num_control_points,
-                                                   element_size,
-                                                   bias, multiplier):
+                                                      self.basis_data.num_control_points,
+                                                      element_size,
+                                                      bias, multiplier):
                 yield key
 
     class NiBSplineTransformInterpolator:
@@ -4387,6 +4414,7 @@ class NifFormat(FileFormat):
         (4000, 5000, 6000, 0, 1000, 0, 0, 0, 0, 0, 310, 320, 330, 340)
         (1200, 3400, 5600, 1000, 0, 0, 97000, 96000, 0, 94000, 0, 0, 0, 0)
         """
+
         def update_center_radius(self):
             """Recalculate center and radius of the data."""
             # in case there are no vertices, set center and radius to zero
@@ -4419,7 +4447,7 @@ class NifFormat(FileFormat):
                 dx = cx - v.x
                 dy = cy - v.y
                 dz = cz - v.z
-                r2 = max(r2, dx*dx+dy*dy+dz*dz)
+                r2 = max(r2, dx * dx + dy * dy + dz * dz)
             self.radius = r2 ** 0.5
 
         def apply_scale(self, scale):
@@ -4435,9 +4463,9 @@ class NifFormat(FileFormat):
             self.radius *= scale
 
         def get_vertex_hash_generator(
-            self,
-            vertexprecision=3, normalprecision=3,
-            uvprecision=5, vcolprecision=3):
+                self,
+                vertexprecision=3, normalprecision=3,
+                uvprecision=5, vcolprecision=3):
             """Generator which produces a tuple of integers for each
             (vertex, normal, uv, vcol), to ease detection of duplicate
             vertices. The precision parameters denote number of
@@ -4460,7 +4488,7 @@ class NifFormat(FileFormat):
             :type vcolprecision: float
             :return: A generator yielding a hash value for each vertex.
             """
-            
+
             verts = self.vertices if self.has_vertices else None
             norms = self.normals if self.has_normals else None
             uvsets = self.uv_sets if len(self.uv_sets) else None
@@ -4473,7 +4501,7 @@ class NifFormat(FileFormat):
                 h = []
                 if verts:
                     h.extend([float_to_int(x * vertexfactor)
-                             for x in [verts[i].x, verts[i].y, verts[i].z]])
+                              for x in [verts[i].x, verts[i].y, verts[i].z]])
                 if norms:
                     h.extend([float_to_int(x * normalfactor)
                               for x in [norms[i].x, norms[i].y, norms[i].z]])
@@ -4547,6 +4575,7 @@ class NifFormat(FileFormat):
         >>> [child.name for child in skelroot.children]
         [b'geom', b'bone1', b'bone21', b'bone2', b'bone22', b'bone211']
         """
+
         def is_skin(self):
             """Returns True if geometry is skinned."""
             return self.skin_instance != None
@@ -4575,10 +4604,10 @@ class NifFormat(FileFormat):
             skelroot = skininst.skeleton_root
 
             bone_index = skininst.num_bones
-            skininst.num_bones = bone_index+1
+            skininst.num_bones = bone_index + 1
             skininst.bones.update_size()
             skininst.bones[bone_index] = bone
-            skindata.num_bones = bone_index+1
+            skindata.num_bones = bone_index + 1
             skindata.bone_list.update_size()
             skinbonedata = skindata.bone_list[bone_index]
             # set vertex weights
@@ -4587,8 +4616,6 @@ class NifFormat(FileFormat):
             for i, (vert_index, vert_weight) in enumerate(iter(vert_weights.items())):
                 skinbonedata.vertex_weights[i].index = vert_index
                 skinbonedata.vertex_weights[i].weight = vert_weight
-
-
 
         def get_vertex_weights(self):
             """Get vertex weights in a convenient format: list bone and weight per
@@ -4621,33 +4648,32 @@ class NifFormat(FileFormat):
                             boneweightlist.append([bonenum, skinweight.weight])
             return weights
 
-
         def flatten_skin(self):
             """Reposition all bone blocks and geometry block in the tree to be direct
             children of the skeleton root.
 
             Returns list of all used bones by the skin."""
 
-            if not self.is_skin(): return [] # nothing to do
+            if not self.is_skin(): return []  # nothing to do
 
-            result = [] # list of repositioned bones
-            self._validate_skin() # validate the skin
+            result = []  # list of repositioned bones
+            self._validate_skin()  # validate the skin
             skininst = self.skin_instance
             skindata = skininst.data
             skelroot = skininst.skeleton_root
 
             # reparent geometry
             self.set_transform(self.get_transform(skelroot))
-            geometry_parent = skelroot.find_chain(self, block_type = NifFormat.NiAVObject)[-2]
-            geometry_parent.remove_child(self) # detatch geometry from tree
-            skelroot.add_child(self, front = True) # and attatch it to the skeleton root
+            geometry_parent = skelroot.find_chain(self, block_type=NifFormat.NiAVObject)[-2]
+            geometry_parent.remove_child(self)  # detatch geometry from tree
+            skelroot.add_child(self, front=True)  # and attatch it to the skeleton root
 
             # reparent all the bone blocks
             for bone_block in skininst.bones:
                 # skeleton root, if it is used as bone, does not need to be processed
                 if bone_block == skelroot: continue
                 # get bone parent
-                bone_parent = skelroot.find_chain(bone_block, block_type = NifFormat.NiAVObject)[-2]
+                bone_parent = skelroot.find_chain(bone_block, block_type=NifFormat.NiAVObject)[-2]
                 # set new child transforms
                 for child in bone_block.children:
                     child.set_transform(child.get_transform(bone_parent))
@@ -4655,7 +4681,7 @@ class NifFormat(FileFormat):
                 for child in bone_block.children:
                     bone_parent.add_child(child)
                 bone_block.num_children = 0
-                bone_block.children.update_size() # = remove_child on each child
+                bone_block.children.update_size()  # = remove_child on each child
                 # set new bone transform
                 bone_block.set_transform(bone_block.get_transform(skelroot))
                 # reparent bone block
@@ -4664,8 +4690,6 @@ class NifFormat(FileFormat):
                 result.append(bone_block)
 
             return result
-
-
 
         # The nif skinning algorithm works as follows (as of nifskope):
         # v'                               # vertex after skinning in geometry space
@@ -4688,9 +4712,9 @@ class NifFormat(FileFormat):
             skindata = skininst.data
             skelroot = skininst.skeleton_root
 
-            vertices = [ NifFormat.Vector3() for i in range(self.data.num_vertices) ]
-            normals = [ NifFormat.Vector3() for i in range(self.data.num_vertices) ]
-            sumweights = [ 0.0 for i in range(self.data.num_vertices) ]
+            vertices = [NifFormat.Vector3() for i in range(self.data.num_vertices)]
+            normals = [NifFormat.Vector3() for i in range(self.data.num_vertices)]
+            sumweights = [0.0 for i in range(self.data.num_vertices)]
             skin_offset = skindata.get_transform()
             for i, bone_block in enumerate(skininst.bones):
                 bonedata = skindata.bone_list[i]
@@ -4707,13 +4731,11 @@ class NifFormat(FileFormat):
                     sumweights[index] += weight
 
             for i, s in enumerate(sumweights):
-                if abs(s - 1.0) > 0.01: 
+                if abs(s - 1.0) > 0.01:
                     logging.getLogger("pyffi.nif.nigeometry").warn(
                         "vertex %i has weights not summing to one" % i)
 
             return vertices, normals
-
-
 
         # ported and extended from niflib::NiNode::GoToSkeletonBindPosition() (r2518)
         def send_bones_to_bind_position(self):
@@ -4748,8 +4770,6 @@ class NifFormat(FileFormat):
                     child_matrix = child_offset.get_inverse() * parent_offset
                     child_bone.set_transform(child_matrix)
 
-
-
         # ported from niflib::NiSkinData::ResetOffsets (r2561)
         def update_bind_position(self):
             """Make current position of the bones the bind position for this geometry.
@@ -4772,7 +4792,7 @@ class NifFormat(FileFormat):
 
             # calculate bone offsets
             for i, bone in enumerate(skininst.bones):
-                 skindata.bone_list[i].set_transform(geomtransform * bone.get_transform(skelroot).get_inverse())
+                skindata.bone_list[i].set_transform(geomtransform * bone.get_transform(skelroot).get_inverse())
 
         def get_skin_partition(self):
             """Return the skin partition block."""
@@ -4808,12 +4828,12 @@ class NifFormat(FileFormat):
                 key.value.x *= scale
                 key.value.y *= scale
                 key.value.z *= scale
-                #key.forward.x *= scale
-                #key.forward.y *= scale
-                #key.forward.z *= scale
-                #key.backward.x *= scale
-                #key.backward.y *= scale
-                #key.backward.z *= scale
+                # key.forward.x *= scale
+                # key.forward.y *= scale
+                # key.forward.z *= scale
+                # key.backward.x *= scale
+                # key.backward.y *= scale
+                # key.backward.z *= scale
                 # what to do with TBC?
 
     class NiMaterialColorController:
@@ -4924,6 +4944,7 @@ class NifFormat(FileFormat):
         >>> [effect.name for effect in node.effects]
         [b'hello', b'world']
         """
+
         def add_child(self, child, front=False):
             """Add block to child list.
 
@@ -4945,7 +4966,7 @@ class NifFormat(FileFormat):
                 self.children[num_children] = child
             else:
                 for i in range(num_children, 0, -1):
-                    self.children[i] = self.children[i-1]
+                    self.children[i] = self.children[i - 1]
                 self.children[0] = child
 
         def remove_child(self, child):
@@ -4955,7 +4976,7 @@ class NifFormat(FileFormat):
             :type child: L{NifFormat.NiAVObject}
             """
             self.set_children([otherchild for otherchild in self.get_children()
-                              if not(otherchild is child)])
+                               if not (otherchild is child)])
 
         def get_children(self):
             """Return a list of the children of the block.
@@ -4994,7 +5015,7 @@ class NifFormat(FileFormat):
             :type effect: L{NifFormat.NiDynamicEffect}
             """
             self.set_effects([othereffect for othereffect in self.get_effects()
-                             if not(othereffect is effect)])
+                              if not (othereffect is effect)])
 
         def get_effects(self):
             """Return a list of the effects of the block.
@@ -5048,7 +5069,7 @@ class NifFormat(FileFormat):
                 # fix links to skeleton root and bones
                 for externalblock in child.tree():
                     if isinstance(externalblock, NifFormat.NiSkinInstance):
-                        if not(externalblock.skeleton_root is skelroot):
+                        if not (externalblock.skeleton_root is skelroot):
                             raise ValueError(
                                 "expected skeleton root %s but got %s"
                                 % (skelroot.name, externalblock.skeleton_root.name))
@@ -5075,8 +5096,8 @@ class NifFormat(FileFormat):
             """
             logger = logging.getLogger("pyffi.nif.ninode")
 
-            result = [] # list of reparented blocks
-            failed = [] # list of blocks that could not be reparented
+            result = []  # list of reparented blocks
+            failed = []  # list of blocks that could not be reparented
 
             id44 = NifFormat.Matrix44()
             id44.set_identity()
@@ -5097,12 +5118,12 @@ class NifFormat(FileFormat):
                     continue
                 # check transforms
                 if (geom.skin_instance.data.get_transform()
-                    * geom.get_transform(geom.skin_instance.skeleton_root) != id44):
+                        * geom.get_transform(geom.skin_instance.skeleton_root) != id44):
                     logger.warn(
                         "can't rebase %s: global skin data transform does not match "
                         "geometry transform relative to skeleton root" % geom.name)
                     failed.append(geom)
-                    continue # skip this one
+                    continue  # skip this one
                 # everything ok!
                 # find geometry parent
                 geomroot = geom.skin_instance.skeleton_root.find_chain(geom)[-2]
@@ -5127,8 +5148,8 @@ class NifFormat(FileFormat):
             """
             for geom in self.get_global_iterator():
                 if (isinstance(geom, NifFormat.NiGeometry)
-                    and geom.is_skin()
-                    and geom.skin_instance.skeleton_root is self):
+                        and geom.is_skin()
+                        and geom.skin_instance.skeleton_root is self):
                     yield geom
 
         def send_geometries_to_bind_position(self):
@@ -5227,8 +5248,8 @@ class NifFormat(FileFormat):
                     if not bonenode:
                         continue
                     bone_bind_transform[bonenode.name] = (
-                        bonedata.get_transform().get_inverse(fast=False)
-                        * geom.get_transform(self))
+                            bonedata.get_transform().get_inverse(fast=False)
+                            * geom.get_transform(self))
 
             # validation: check that bones share bind position
             bone_bind_transform = {}
@@ -5253,8 +5274,8 @@ class NifFormat(FileFormat):
                                         for row in diff.as_list()))
                     else:
                         bone_bind_transform[bonenode.name] = (
-                            bonedata.get_transform().get_inverse(fast=False)
-                            * geom.get_transform(self))
+                                bonedata.get_transform().get_inverse(fast=False)
+                                * geom.get_transform(self))
 
             logger.debug("Geometry bind position error is %f" % error)
             if error > 1e-3:
@@ -5307,8 +5328,8 @@ class NifFormat(FileFormat):
             for boneset in bonesets:
                 logger.debug(str([bone.name for bone in boneset]))
             parts = [[geom for geom in geoms
-                          if set(geom.skin_instance.bones) & set(boneset)]
-                         for boneset in bonesets]
+                      if set(geom.skin_instance.bones) & set(boneset)]
+                     for boneset in bonesets]
             logger.debug("geometries per partition are")
             for part in parts:
                 logger.debug(str([geom.name for geom in part]))
@@ -5333,7 +5354,7 @@ class NifFormat(FileFormat):
                 # find a geometry that has this bone
                 for geom in part:
                     for bonenode, bonedata in zip(geom.skin_instance.bones,
-                                                   geom.skin_instance.data.bone_list):
+                                                  geom.skin_instance.data.bone_list):
                         if bonenode is lowest_bonenode:
                             lowest_geom = geom
                             lowest_bonedata = bonedata
@@ -5380,7 +5401,7 @@ class NifFormat(FileFormat):
                         logger.debug("transforming bind position of bone %s"
                                      % bonenode.name)
                         bonedata.set_transform(diff.get_inverse(fast=False)
-                                              * bonedata.get_transform())
+                                               * bonedata.get_transform())
                     # transform geometry
                     logger.debug("transforming vertices and normals")
                     for vert in geom.data.vertices:
@@ -5427,7 +5448,9 @@ class NifFormat(FileFormat):
                                      *
                                      geom.get_transform(self)))
                             if diff.sup_norm() > 1e-3:
-                                logger.warning("Geometries %s and %s do not share the same bind position: bone %s will be sent to a position matching only one of these" % (geom.name, othergeom.name, bonenode.name))
+                                logger.warning(
+                                    "Geometries %s and %s do not share the same bind position: bone %s will be sent to a position matching only one of these" % (
+                                        geom.name, othergeom.name, bonenode.name))
                             # break the loop
                             break
                     else:
@@ -5654,7 +5677,7 @@ class NifFormat(FileFormat):
             self.add_extra_data(extra)
 
     class NiObject:
-        def find(self, block_name = None, block_type = None):
+        def find(self, block_name=None, block_type=None):
             # does this block match the search criteria?
             if block_name and block_type:
                 if isinstance(self, block_type):
@@ -5677,7 +5700,7 @@ class NifFormat(FileFormat):
 
             return None
 
-        def find_chain(self, block, block_type = None):
+        def find_chain(self, block, block_type=None):
             """Finds a chain of blocks going from C{self} to C{block}. If found,
             self is the first element and block is the last element. If no branch
             found, returns an empty list. Does not check whether there is more
@@ -5702,7 +5725,7 @@ class NifFormat(FileFormat):
             """
             pass
 
-        def tree(self, block_type = None, follow_all = True, unique = False):
+        def tree(self, block_type=None, follow_all=True, unique=False):
             """A generator for parsing all blocks in the tree (starting from and
             including C{self}).
 
@@ -5713,7 +5736,7 @@ class NifFormat(FileFormat):
             # unique blocks: reduce this to the case of non-unique blocks
             if unique:
                 block_list = []
-                for block in self.tree(block_type = block_type, follow_all = follow_all, unique = False):
+                for block in self.tree(block_type=block_type, follow_all=follow_all, unique=False):
                     if not block in block_list:
                         yield block
                         block_list.append(block)
@@ -5725,11 +5748,11 @@ class NifFormat(FileFormat):
             elif isinstance(self, block_type):
                 yield self
             elif not follow_all:
-                return # don't recurse further
+                return  # don't recurse further
 
             # yield tree attached to each child
             for child in self.get_refs():
-                for block in child.tree(block_type = block_type, follow_all = follow_all):
+                for block in child.tree(block_type=block_type, follow_all=follow_all):
                     yield block
 
         def _validateTree(self):
@@ -5766,7 +5789,7 @@ class NifFormat(FileFormat):
             if self.__class__ is not other.__class__:
                 return False
             if (self.name.lower() in specialnames
-                or other.name.lower() in specialnames):
+                    or other.name.lower() in specialnames):
                 # do not ignore name
                 return self.get_hash() == other.get_hash()
             else:
@@ -6015,14 +6038,14 @@ class NifFormat(FileFormat):
 
             # check class
             if (not isinstance(self, other.__class__)
-                or not isinstance(other, self.__class__)):
+                    or not isinstance(other, self.__class__)):
                 return False
 
             # check some trivial things first
             for attribute in (
-                "num_vertices", "keep_flags", "compress_flags", "has_vertices",
-                "num_uv_sets", "has_normals", "center", "radius",
-                "has_vertex_colors", "has_uv", "consistency_flags"):
+                    "num_vertices", "keep_flags", "compress_flags", "has_vertices",
+                    "num_uv_sets", "has_normals", "center", "radius",
+                    "has_vertex_colors", "has_uv", "consistency_flags"):
                 if getattr(self, attribute) != getattr(other, attribute):
                     return False
 
@@ -6077,6 +6100,7 @@ class NifFormat(FileFormat):
             :param triangles: An iterable of triangles to check.
             :type triangles: iterator or list of tuples of three ints
             """
+
             def triangleHash(triangle):
                 """Calculate hash of a non-degenerate triangle.
                 Returns ``None`` if the triangle is degenerate.
@@ -6111,16 +6135,15 @@ class NifFormat(FileFormat):
                     vec = NifFormat.Vector3()
                     # XXX _byte_order! assuming little endian
                     vec.x, vec.y, vec.z = struct.unpack('<fff',
-                                                        data[pos:pos+12])
+                                                        data[pos:pos + 12])
                     yield vec
                     pos += 12
-
 
             if self.data.num_vertices == 0:
                 return ()
 
             if not self.data.normals:
-                #raise ValueError('geometry has no normals')
+                # raise ValueError('geometry has no normals')
                 return None
 
             if (not self.data.tangents) or (not self.data.bitangents):
@@ -6131,7 +6154,7 @@ class NifFormat(FileFormat):
                         if extra.name == b'Tangent space (binormal & tangent vectors)':
                             break
                 else:
-                    #raise ValueError('geometry has no tangents')
+                    # raise ValueError('geometry has no tangents')
                     return None
                 if 24 * self.data.num_vertices != len(extra.binary_data):
                     raise ValueError(
@@ -6161,7 +6184,7 @@ class NifFormat(FileFormat):
             # check that self.data exists and is valid
             if not isinstance(self.data, NifFormat.NiTriBasedGeomData):
                 raise ValueError('cannot update tangent space of a geometry with %s data'
-                                 %(self.data.__class__ if self.data else 'no'))
+                                 % (self.data.__class__ if self.data else 'no'))
 
             verts = self.data.vertices
             norms = self.data.normals
@@ -6227,10 +6250,10 @@ class NifFormat(FileFormat):
                 sdir.z = (w3w1.v * v_2v_1.z - w2w1.v * v_3v_1.z) * r_sign
                 try:
                     sdir.normalize()
-                except ZeroDivisionError: # catches zero vector
-                    continue # skip triangle
-                except ValueError: # catches invalid data
-                    continue # skip triangle
+                except ZeroDivisionError:  # catches zero vector
+                    continue  # skip triangle
+                except ValueError:  # catches invalid data
+                    continue  # skip triangle
 
                 tdir = NifFormat.Vector3()
                 tdir.x = (w2w1.u * v_3v_1.x - w3w1.u * v_2v_1.x) * r_sign
@@ -6238,10 +6261,10 @@ class NifFormat(FileFormat):
                 tdir.z = (w2w1.u * v_3v_1.z - w3w1.u * v_2v_1.z) * r_sign
                 try:
                     tdir.normalize()
-                except ZeroDivisionError: # catches zero vector
-                    continue # skip triangle
-                except ValueError: # catches invalid data
-                    continue # skip triangle
+                except ZeroDivisionError:  # catches zero vector
+                    continue  # skip triangle
+                except ValueError:  # catches invalid data
+                    continue  # skip triangle
 
                 # vector combination algorithm could possibly be improved
                 for h in [h1, h2, h3]:
@@ -6289,7 +6312,7 @@ class NifFormat(FileFormat):
                     tanh.x -= n.x * scalar
                     tanh.y -= n.y * scalar
                     tanh.z -= n.z * scalar
-                    
+
                     scalar = binh * tanh
                     tanh.x -= binh.x * scalar
                     tanh.y -= binh.y * scalar
@@ -6303,7 +6326,7 @@ class NifFormat(FileFormat):
                         binh.normalize()
                     except ZeroDivisionError:
                         binh = yvec.crossproduct(n)
-                        binh.normalize() # should work now
+                        binh.normalize()  # should work now
                     tanh = n.crossproduct(binh)
 
             # tangent and binormal lists by vertex index
@@ -6354,16 +6377,14 @@ class NifFormat(FileFormat):
                     data_bins.x = vec.x
                     data_bins.y = vec.y
                     data_bins.z = vec.z
-                    
-                
 
         # ported from nifskope/skeleton.cpp:spSkinPartition
         def update_skin_partition(self,
-                                maxbonesperpartition=4, maxbonespervertex=4,
-                                verbose=0, stripify=True, stitchstrips=False,
-                                padbones=False,
-                                triangles=None, trianglepartmap=None,
-                                maximize_bone_sharing=False):
+                                  maxbonesperpartition=4, maxbonespervertex=4,
+                                  verbose=0, stripify=True, stitchstrips=False,
+                                  padbones=False,
+                                  triangles=None, trianglepartmap=None,
+                                  maximize_bone_sharing=False):
             """Recalculate skin partition data.
 
             :deprecated: Do not use the verbose argument.
@@ -6417,7 +6438,7 @@ class NifFormat(FileFormat):
             if minbones <= 0:
                 noweights = [v for v, weight in enumerate(weights)
                              if not weight]
-                #raise ValueError(
+                # raise ValueError(
                 logger.warn(
                     'bad NiSkinData: some vertices have no weights %s'
                     % noweights)
@@ -6430,14 +6451,14 @@ class NifFormat(FileFormat):
             for weight in weights:
                 if len(weight) > maxbonespervertex:
                     # delete bone influences with least weight
-                    weight.sort(key=lambda x: x[1], reverse=True) # sort by weight
+                    weight.sort(key=lambda x: x[1], reverse=True)  # sort by weight
                     # save lost weight to return to user
                     lostweight = max(
                         lostweight, max(
                             [x[1] for x in weight[maxbonespervertex:]]))
-                    del weight[maxbonespervertex:] # only keep first elements
+                    del weight[maxbonespervertex:]  # only keep first elements
                     # normalize
-                    totalweight = sum([x[1] for x in weight]) # sum of all weights
+                    totalweight = sum([x[1] for x in weight])  # sum of all weights
                     for x in weight: x[1] /= totalweight
                     maxbones = maxbonespervertex
                 # sort by again by bone (relied on later when matching vertices)
@@ -6468,7 +6489,7 @@ class NifFormat(FileFormat):
                     # this triangle
                     tribonesweights = {}
                     for bonenum in tribones: tribonesweights[bonenum] = 0.0
-                    nono = set() # bones with weight 1 cannot be removed
+                    nono = set()  # bones with weight 1 cannot be removed
                     for skinweights in [weights[t] for t in tri]:
                         # skinweights[0] is the first skinweight influencing vertex t
                         # and skinweights[0][0] is the bone number of that bone
@@ -6494,7 +6515,7 @@ class NifFormat(FileFormat):
                     # remove minbone from all vertices of this triangle and from all
                     # matching vertices
                     for t in tri:
-                        for tt in [t]: #match[t]:
+                        for tt in [t]:  # match[t]:
                             # remove bone
                             weight = weights[tt]
                             for i, (bonenum, boneweight) in enumerate(weight):
@@ -6516,7 +6537,7 @@ class NifFormat(FileFormat):
             # keep creating partitions as long as there are triangles left
             while triangles:
                 # create a partition
-                part = [set(), [], None] # bones, triangles, partition index
+                part = [set(), [], None]  # bones, triangles, partition index
                 usedverts = set()
                 addtriangles = True
                 # keep adding triangles to it as long as the flag is set
@@ -6536,7 +6557,7 @@ class NifFormat(FileFormat):
                         # or if part has all bones of tribones and index coincides
                         # then add this triangle to this part
                         if ((not part[0])
-                            or ((part[0] >= tribones) and (part[2] == partindex))):
+                                or ((part[0] >= tribones) and (part[2] == partindex))):
                             part[0] |= tribones
                             part[1].append(tri)
                             usedverts |= set(tri)
@@ -6589,7 +6610,7 @@ class NifFormat(FileFormat):
 
             # merge all partitions
             logger.info("Merging partitions.")
-            merged = True # signals success, in which case do another run
+            merged = True  # signals success, in which case do another run
             while merged:
                 merged = False
                 # newparts is to contain the updated merged partitions as we go
@@ -6611,11 +6632,11 @@ class NifFormat(FileFormat):
                         # if partition indices are the same, and bone limit is not
                         # exceeded, merge them
                         if ((parta[2] == partb[2])
-                            and (len(parta[0] | partb[0]) <= maxbonesperpartition)):
+                                and (len(parta[0] | partb[0]) <= maxbonesperpartition)):
                             parta[0] |= partb[0]
                             parta[1] += partb[1]
                             addedparts.add(b)
-                            merged = True # signal another try in merging partitions
+                            merged = True  # signal another try in merging partitions
                 # update partitions to the merged partitions
                 parts = newparts
 
@@ -6630,7 +6651,7 @@ class NifFormat(FileFormat):
                 skinpart = skininst.skin_partition
                 skindata.skin_partition = skinpart
             else:
-            # otherwise, create a new block and link it
+                # otherwise, create a new block and link it
                 skinpart = NifFormat.NiSkinPartition()
                 skindata.skin_partition = skinpart
                 skininst.skin_partition = skinpart
@@ -6711,8 +6732,8 @@ class NifFormat(FileFormat):
                 # decide whether to use strip or triangles as primitive
                 if stripify is None:
                     stripifyblock = (
-                        strips_size < triangles_size
-                        and all(len(strip) < 65536 for strip in strips))
+                            strips_size < triangles_size
+                            and all(len(strip) < 65536 for strip in strips))
                 else:
                     stripifyblock = stripify
                 if stripifyblock:
@@ -6762,7 +6783,7 @@ class NifFormat(FileFormat):
                 for i, bonenum in enumerate(bones):
                     skinpartblock.bones[i] = bonenum
                 for i in range(len(bones), skinpartblock.num_bones):
-                    skinpartblock.bones[i] = 0 # dummy bone slots refer to first bone
+                    skinpartblock.bones[i] = 0  # dummy bone slots refer to first bone
                 skinpartblock.has_vertex_map = True
                 skinpartblock.vertex_map.update_size()
                 for i, v in enumerate(vertices):
@@ -6791,7 +6812,7 @@ class NifFormat(FileFormat):
                     # clear strips array
                     skinpartblock.strips.update_size()
                     skinpartblock.triangles.update_size()
-                    for i, (v_1,v_2,v_3) in enumerate(triangles):
+                    for i, (v_1, v_2, v_3) in enumerate(triangles):
                         skinpartblock.triangles[i].v_1 = vertices.index(v_1)
                         skinpartblock.triangles[i].v_2 = vertices.index(v_2)
                         skinpartblock.triangles[i].v_3 = vertices.index(v_3)
@@ -6804,7 +6825,7 @@ class NifFormat(FileFormat):
                     for j in range(len(weights[v])):
                         skinpartblock.bone_indices[i][j] = bones.index(weights[v][j][0])
                         boneindices.remove(skinpartblock.bone_indices[i][j])
-                    for j in range(len(weights[v]),skinpartblock.num_weights_per_vertex):
+                    for j in range(len(weights[v]), skinpartblock.num_weights_per_vertex):
                         if padbones:
                             # if padbones is True then we have enforced
                             # num_bones == num_weights_per_vertex so this will not trigger
@@ -6837,7 +6858,7 @@ class NifFormat(FileFormat):
             """Update centers and radii of all skin data fields."""
             # shortcuts relevant blocks
             if not self.skin_instance:
-                return # no skin, nothing to do
+                return  # no skin, nothing to do
             self._validate_skin()
             geomdata = self.data
             skininst = self.skin_instance
@@ -6868,7 +6889,7 @@ class NifFormat(FileFormat):
                 r2 = 0.0
                 for v in boneverts:
                     d = center - v
-                    r2 = max(r2, d.x*d.x+d.y*d.y+d.z*d.z)
+                    r2 = max(r2, d.x * d.x + d.y * d.y + d.z * d.z)
                 radius = r2 ** 0.5
 
                 # transform center in proper coordinates (radius remains unaffected)
@@ -6939,17 +6960,18 @@ class NifFormat(FileFormat):
         >>> block.get_triangles()
         [(0, 2, 1), (1, 2, 3), (2, 4, 3)]
         """
+
         def get_triangles(self):
             return [(t.v_1, t.v_2, t.v_3) for t in self.triangles]
 
-        def set_triangles(self, triangles, stitchstrips = False):
+        def set_triangles(self, triangles, stitchstrips=False):
             # note: the stitchstrips argument is ignored - only present to ensure
             # uniform interface between NiTriShapeData and NiTriStripsData
 
             # initialize triangle array
             n = len(triangles)
             self.num_triangles = n
-            self.num_triangle_points = 3*n
+            self.num_triangle_points = 3 * n
             self.has_triangles = (n > 0)
             self.triangles.update_size()
 
@@ -6983,10 +7005,11 @@ class NifFormat(FileFormat):
         >>> block.get_triangles()
         [(0, 2, 1), (1, 2, 3), (2, 4, 3)]
         """
+
         def get_triangles(self):
             return pyffi.utils.tristrip.triangulate(self.points)
 
-        def set_triangles(self, triangles, stitchstrips = False):
+        def set_triangles(self, triangles, stitchstrips=False):
             self.set_strips(pyffi.utils.vertex_cache.stripify(
                 triangles, stitchstrips=stitchstrips))
 
@@ -7020,8 +7043,8 @@ class NifFormat(FileFormat):
             self.pivot_b.z = pivot_b.z
             # axes (rotation only)
             transform = transform.get_matrix_33()
-            plane_b = self.plane_a.get_vector_3() *  transform
-            twist_b = self.twist_a.get_vector_3() *  transform
+            plane_b = self.plane_a.get_vector_3() * transform
+            twist_b = self.twist_a.get_vector_3() * transform
             self.plane_b.x = plane_b.x
             self.plane_b.y = plane_b.y
             self.plane_b.z = plane_b.z
@@ -7060,7 +7083,7 @@ class NifFormat(FileFormat):
                 ...
             ValueError: ...
             """
-            _b00 = pyffi.object_models.common._b00 # shortcut
+            _b00 = pyffi.object_models.common._b00  # shortcut
             # check that offset isn't too large
             if offset >= len(self.palette):
                 raise ValueError(
@@ -7068,15 +7091,15 @@ class NifFormat(FileFormat):
                     "but palette is only %i long"
                     % (offset, len(self.palette)))
             # check that a string starts at this offset
-            if offset > 0 and self.palette[offset-1:offset] != _b00:
+            if offset > 0 and self.palette[offset - 1:offset] != _b00:
                 logger = logging.getLogger("pyffi.nif.stringpalette")
                 logger.warning(
                     "StringPalette: no string starts at offset %i "
                     "(string is %s, preceeding character is %s)" % (
                         offset,
                         self.palette[offset:self.palette.find(_b00, offset)],
-                        self.palette[offset-1:offset],
-                        ))
+                        self.palette[offset - 1:offset],
+                    ))
             # return the string
             return self.palette[offset:self.palette.find(_b00, offset)]
 
@@ -7097,7 +7120,7 @@ class NifFormat(FileFormat):
             >>> print(repr(pal.palette.decode("ascii")).lstrip("u"))
             'abc\\x00def\\x00'
             """
-            _b00 = pyffi.object_models.common._b00 # shortcut
+            _b00 = pyffi.object_models.common._b00  # shortcut
             return self.palette[:-1].split(_b00)
 
         def add_string(self, text):
@@ -7120,7 +7143,7 @@ class NifFormat(FileFormat):
             # empty text
             if not text:
                 return -1
-            _b00 = pyffi.object_models.common._b00 # shortcut
+            _b00 = pyffi.object_models.common._b00  # shortcut
             # convert text to bytes if necessary
             text = pyffi.object_models.common._as_bytes(text)
             # check if string is already in the palette
@@ -7156,7 +7179,7 @@ class NifFormat(FileFormat):
             >>> print(repr(pal.palette.decode("ascii")).lstrip("u"))
             ''
             """
-            self.palette = pyffi.object_models.common._b # empty bytes object
+            self.palette = pyffi.object_models.common._b  # empty bytes object
             self.length = 0
 
     class TexCoord:
@@ -7164,14 +7187,14 @@ class NifFormat(FileFormat):
             return [self.u, self.v]
 
         def normalize(self):
-            r = (self.u*self.u + self.v*self.v) ** 0.5
+            r = (self.u * self.u + self.v * self.v) ** 0.5
             if r < NifFormat.EPSILON:
-                raise ZeroDivisionError('cannot normalize vector %s'%self)
+                raise ZeroDivisionError('cannot normalize vector %s' % self)
             self.u /= r
             self.v /= r
 
         def __str__(self):
-            return "[ %6.3f %6.3f ]"%(self.u, self.v)
+            return "[ %6.3f %6.3f ]" % (self.u, self.v)
 
         def __mul__(self, x):
             if isinstance(x, (float, int)):
@@ -7182,7 +7205,7 @@ class NifFormat(FileFormat):
             elif isinstance(x, NifFormat.TexCoord):
                 return self.u * x.u + self.v * x.v
             else:
-                raise TypeError("do not know how to multiply TexCoord with %s"%x.__class__)
+                raise TypeError("do not know how to multiply TexCoord with %s" % x.__class__)
 
         def __rmul__(self, x):
             if isinstance(x, (float, int)):
@@ -7191,7 +7214,7 @@ class NifFormat(FileFormat):
                 v.v = x * self.v
                 return v
             else:
-                raise TypeError("do not know how to multiply %s and TexCoord"%x.__class__)
+                raise TypeError("do not know how to multiply %s and TexCoord" % x.__class__)
 
         def __add__(self, x):
             if isinstance(x, (float, int)):
@@ -7205,7 +7228,7 @@ class NifFormat(FileFormat):
                 v.v = self.v + x.v
                 return v
             else:
-                raise TypeError("do not know how to add TexCoord and %s"%x.__class__)
+                raise TypeError("do not know how to add TexCoord and %s" % x.__class__)
 
         def __radd__(self, x):
             if isinstance(x, (float, int)):
@@ -7214,7 +7237,7 @@ class NifFormat(FileFormat):
                 v.v = x + self.v
                 return v
             else:
-                raise TypeError("do not know how to add %s and TexCoord"%x.__class__)
+                raise TypeError("do not know how to add %s and TexCoord" % x.__class__)
 
         def __sub__(self, x):
             if isinstance(x, (float, int)):
@@ -7228,7 +7251,7 @@ class NifFormat(FileFormat):
                 v.v = self.v - x.v
                 return v
             else:
-                raise TypeError("do not know how to substract TexCoord and %s"%x.__class__)
+                raise TypeError("do not know how to substract TexCoord and %s" % x.__class__)
 
         def __rsub__(self, x):
             if isinstance(x, (float, int)):
@@ -7237,7 +7260,7 @@ class NifFormat(FileFormat):
                 v.v = x - self.v
                 return v
             else:
-                raise TypeError("do not know how to substract %s and TexCoord"%x.__class__)
+                raise TypeError("do not know how to substract %s and TexCoord" % x.__class__)
 
         def __neg__(self):
             v = NifFormat.TexCoord()
@@ -7245,6 +7268,8 @@ class NifFormat(FileFormat):
             v.v = -self.v
             return v
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

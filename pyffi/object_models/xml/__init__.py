@@ -343,6 +343,16 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
           - Makes an alias C{self.cls} for C{cls}.
           - Initializes a stack C{self.stack} of xml tags.
           - Initializes the current tag.
+
+        :param cls: The class created using MetaFileFormat, for example
+            NifFormat.
+        :type cls: pyffi.object_models.FileFormat
+        :param name: The name of the class, for example 'NifFormat'.
+        :type name: str
+        :param bases: The base classes, usually (object,).
+        :type bases: set[Any]
+        :param dct: A dictionary of class attributes, such as 'xml_file_name'.
+        :type dct: Dict[Any, Any]
         """
 
         # initialize base class (no super because base class is old style)
@@ -467,25 +477,27 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         self.__tag = tag
 
         if self.current_tag == self.tag_struct:
-            self.start_tag_struct()
+            self.start_parent_tag_struct()
         elif self.current_tag == self.tag_file:
-            self.start_tag_file()
+            self.start_parent_tag_file()
         elif self.current_tag == self.tag_version:
-            self.start_tag_version()
+            self.start_parent_tag_version()
         elif self.current_tag == self.tag_alias:
-            self.start_tag_alias()
+            self.start_parent_tag_alias()
         elif self.current_tag == self.tag_enum:
-            self.start_tag_enum()
+            self.start_parent_tag_enum()
         elif self.current_tag == self.tag_bit_struct:
-            self.start_tag_bitstruct()
+            self.start_parent_tag_bitstruct()
         else:
             try:
-                func = getattr(self, "start_tag_%s" % self.inverse_tags_extra[self.current_tag])
+                func = getattr(self, "start_parent_tag_%s" % self.inverse_tags_extra[self.current_tag])
                 func()
             except AttributeError:
                 raise XmlError("Unhandled tag `%s`" % name)
+            except KeyError:
+                raise XmlError("Unhandled tag `%s`" % name)
 
-    def start_tag_struct(self):
+    def start_parent_tag_struct(self):
         self.push_tag(self.__tag)
         # struct -> attribute
         if self.__tag == self.tag_attribute:
@@ -502,7 +514,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         else:
             raise XmlError("Only add and version tags allowed in struct declaration")
 
-    def start_tag_file(self):
+    def start_parent_tag_file(self):
         self.push_tag(self.__tag)
 
         # fileformat -> struct
@@ -609,13 +621,13 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         expected basic, alias, enum, bitstruct, struct, or version,
         but got %s instead""" % self.__name)
 
-    def start_tag_version(self):
+    def start_parent_tag_version(self):
         raise XmlError("Version tag must not contain any sub tags")
 
-    def start_tag_alias(self):
+    def start_parent_tag_alias(self):
         raise XmlError("Alias tag must not contain any sub tags")
 
-    def start_tag_enum(self):
+    def start_parent_tag_enum(self):
         self.push_tag(self.__tag)
         if not self.__tag == self.tag_option:
             raise XmlError("only option tags allowed in enum declaration")
@@ -629,7 +641,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         self.class_dict["_enumkeys"].append(self.__attrs["name"])
         self.class_dict["_enumvalues"].append(value)
 
-    def start_tag_bitstruct(self):
+    def start_parent_tag_bitstruct(self):
         self.push_tag(self.__tag)
         if self.__tag == self.tag_bits:
             # mandatory parameters
@@ -680,8 +692,10 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         self.__attrs = None
         self.__tag = tag
 
-        if self.pop_tag() != tag:
-            raise XmlError("Mismatching end element tag for element `%s`" % name)
+        popped_tag = self.pop_tag()
+
+        if popped_tag != tag:
+            raise XmlError("Mismatching end element tag for element `%s` (%d, %d)" % (name, tag, popped_tag))
         elif tag == self.tag_attribute:
             self.end_tag_attribute()
         elif tag == self.tag_struct:
@@ -701,7 +715,11 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                 func = getattr(self, "end_tag_%s" % self.inverse_tags_extra[self.current_tag])
                 func()
             except AttributeError:
-                raise XmlError("Unhandled tag `%s`" % name)
+                # raise XmlError("Unhandled tag `%s`" % name)
+                return
+            except KeyError:
+                # raise XmlError("Unhandled tag `%s`" % name)
+                return
 
     def end_tag_attribute(self):
         return
@@ -833,8 +851,17 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         else:
             try:
                 func = getattr(self, "document_tag_%s" % self.inverse_tags_extra[self.current_tag])
+                func()
             except AttributeError:
                 return  # Later on, log the undocumented characters
+            except KeyError:
+                try:
+                    func = getattr(self, "document_tag_%s" % self.inverse_tags[self.current_tag])
+                    func()
+                except AttributeError:
+                    return  # Later on, log the undocumented characters
+                except KeyError:
+                    return  # Later on, log the undocumented characters
 
     def _document_class_doc(self):
         self.class_dict["__doc__"] += str(self.__chars.strip())
