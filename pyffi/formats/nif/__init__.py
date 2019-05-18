@@ -1,7 +1,4 @@
 """
-:mod:`pyffi.formats.nif` --- COLLADA (.dae)
-============================================
-
 :mod:`pyffi.formats.nif` --- NetImmerse/Gamebryo (.nif and .kf)
 ===============================================================
 
