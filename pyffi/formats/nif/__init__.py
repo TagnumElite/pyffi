@@ -1179,10 +1179,12 @@ class NifFormat(FileFormat):
             :type stream: ``file``
             """
             pos = stream.tell()
+
             try:
                 s = stream.readline(64).rstrip()
             finally:
                 stream.seek(pos)
+
             self.modification = None
             if s.startswith("NetImmerse File Format, Version ".encode("ascii")):
                 version_str = s[32:].decode("ascii")
@@ -1200,12 +1202,14 @@ class NifFormat(FileFormat):
                 self.modification = "jmihs1"
             else:
                 raise ValueError("Not a NIF file.")
+
             try:
                 ver = NifFormat.version_number(version_str)
             except:
-                raise ValueError("Nif version %s not supported." % version_str)
-            if not ver in list(NifFormat.versions.values()):
-                raise ValueError("Nif version %s not supported." % version_str)
+                raise ValueError("Nif version '%s' not supported." % version_str)
+            if version_str not in [x.num for x in NifFormat.versions.values()]:
+                raise ValueError("Nif version '%s' not supported." % version_str)
+
             # check version integer and user version
             userver = 0
             userver2 = 0

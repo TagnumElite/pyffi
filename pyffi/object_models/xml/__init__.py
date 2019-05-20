@@ -394,7 +394,9 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         # elements for versions
         self.version_string: str = None
 
+        # The tag name
         self.__name: str = None
+        # The tag attributes
         self.__attrs: dict = None
         self.__tag: int = None
         self.__chars: str = None
@@ -517,7 +519,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
     def start_parent_tag_file(self):
         self.push_tag(self.__tag)
 
-        # fileformat -> struct
+        # fileformat -> struct, compound, niobject
         if self.__tag == self.tag_struct:
             self.class_name = self.__attrs["name"]
             # struct types can be organized in a hierarchy
@@ -541,6 +543,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
             # set attributes (see class StructBase)
             self.class_dict = {
                 "_is_template": self.__attrs.get("istemplate") == "1",
+                "__attrs": self.__attrs,
                 "_attrs": [],
                 "_games": {},
                 "__doc__": "",
@@ -853,15 +856,17 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                 func = getattr(self, "document_tag_%s" % self.inverse_tags_extra[self.current_tag])
                 func()
             except AttributeError:
-                return  # Later on, log the undocumented characters
+                pass  # Later on, log the undocumented characters
             except KeyError:
-                try:
-                    func = getattr(self, "document_tag_%s" % self.inverse_tags[self.current_tag])
-                    func()
-                except AttributeError:
-                    return  # Later on, log the undocumented characters
-                except KeyError:
-                    return  # Later on, log the undocumented characters
+                pass
+
+            try:
+                func = getattr(self, "document_tag_%s" % self.inverse_tags[self.current_tag])
+                func()
+            except AttributeError:
+                pass  # Later on, log the undocumented characters
+            except KeyError:
+                pass  # Later on, log the undocumented characters
 
     def _document_class_doc(self):
         self.class_dict["__doc__"] += str(self.__chars.strip())

@@ -37,18 +37,24 @@
 #
 # ***** END LICENSE BLOCK *****
 
+import collections
+import logging
 import time  # for timing stuff
 import xml.sax
 from typing import Dict, List
 
 import pyffi.object_models
-from pyffi.object_models.xml import StructAttribute
+from pyffi.object_models.xml import XmlSaxHandler as OldXmlHandler
 from pyffi.object_models.xml import XmlError
+from pyffi.object_models.niftools_xml.expression import Expression
 from pyffi.object_models.niftools_xml.version import Version
+from pyffi.object_models.xml.struct_ import StructBase
+
+
 
 
 # noinspection PyMethodParameters
-class MetaFileFormat(pyffi.object_models.xml.MetaFileFormat):
+class MetaFileFormat(pyffi.object_models.MetaFileFormat):
     """The MetaFileFormat metaclass transforms the XML description
     of a file format into a bunch of classes which can be directly
     used to manipulate files in this format.
@@ -104,14 +110,48 @@ class MetaFileFormat(pyffi.object_models.xml.MetaFileFormat):
                              % (time.clock() - start))
 
 
-class FileFormat(pyffi.object_models.xml.FileFormat, metaclass=MetaFileFormat):
-    """This class can be used as a base class for niftools file formats
-    described by an xml file."""
-    pass
+class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
+    """This class can be used as a base class for file formats
+    described by an xml file.
+
+    """
+    xml_file_name = None  #: Override.
+    xml_file_path = None  #: Override.
+    logger = logging.getLogger("pyffi.object_models.niftools_xml")
+    debug: bool = False
+
+    # We also keep an ordered list of all classes that have been created.
+    # The xml_struct list includes all xml generated struct classes,
+    # including those that are replaced by a native class in cls (for
+    # instance NifFormat.String). The idea is that these lists should
+    # contain sufficient info from the xml so they can be used to write
+    # other python scripts that would otherwise have to implement their own
+    # xml parser. See makehsl.py for an example of usage.
+    #
+    # (note: no classes are created for basic types, so no list for those)
+    xml_enum = []
+    xml_alias = []
+    xml_bit_struct = []
+    xml_struct = []
+    xml_token = collections.OrderedDict()
+    versions = collections.OrderedDict()
 
 
-class XmlSaxHandler(pyffi.object_models.xml.XmlSaxHandler):
-    def __init__(self, cls, name, bases, dct):
+class XmlSaxHandler(OldXmlHandler):
+    # We inherit OldSaxHandler, add a 0 on the end to not influence OldXmlHandler
+    tag_token = 110
+    tag_subtoken = 120
+
+    # for compatibility with niftools
+    tags_extra: Dict[str, int] = {
+        "niftoolsxml": OldXmlHandler.tag_file,
+        "compound": OldXmlHandler.tag_struct,
+        "niobject": OldXmlHandler.tag_struct,
+        "bitflags": OldXmlHandler.tag_bit_struct,
+        "token": tag_token,
+    }
+
+    def __init__(self, cls: FileFormat, name: str, bases, dct):
         super().__init__(cls, name, bases, dct)
 
         # initialize dictionaries
@@ -119,15 +159,58 @@ class XmlSaxHandler(pyffi.object_models.xml.XmlSaxHandler):
         cls.versions: Dict[str, Version] = {}
         # cls.games maps each supported game to a list of header version
         # numbers
-        cls.games: Dict[str, str] = {}
+        cls.games: Dict[str, str] = collections.OrderedDict()
+
+        #
+        # cls.tokens = {}
+
+        # Used for scope lookup, eg scope['vercond'] == ['verexpr', 'global', 'operator']
+        cls.scopes: Dict[str, List[str]] = {}
+
+        # Current token group name
+        self.current_token = None
 
     def start_parent_tag_file(self):
         if self.__tag == self.tag_version:
             self.push_tag(self.__tag)
             self.version_string = str(self.__attrs["id"])
             self.cls.versions[self.version_string] = Version(**self.__attrs)
+        elif self.__tag == self.tag_token:
+            self.push_tag(self.__tag)
+
+            if self.__name not in self.tags_extra:
+                self.tags_extra[self.__name] = self.tag_subtoken
+
+            self.current_token = self.__name
+
+            if self.__name in self.cls.tokens:
+                raise XmlError("Token '%s' already defined in file" % self.__name)
+            else:
+                self.cls.tokens[self.__name] = {}
+
+            attrs = self.__attrs['attrs']
+            for x in attrs.split(' '):
+                if x in self.cls.scopes:
+                    self.cls.scopes[x].append(self.__name)
+                else:
+                    self.cls.scopes[x] = [self.__name]
         else:
             super(XmlSaxHandler, self).start_parent_tag_file()
+
+    def start_parent_tag_token(self):
+        self.push_tag(self.__tag)
+        # token -> sub token
+        if self.__tag == self.tag_subtoken:
+            if self.__name != self.current_token:
+                raise XmlError("Token '%s' used in wrong token group '%s'" % (self.__name, self.current_token))
+
+            self.cls.tokens[self.current_token][self.__attrs['token']] = self.__attrs['string']
+        else:
+            raise XmlError("Unrecognised tag '%s' in token group '%s' declaration" % (self.__name, self.current_token))
+
+    def end_tag_token(self):
+        # Reset variable
+        self.current_token = None
 
     def document_tag_version(self):
         # fileformat -> version

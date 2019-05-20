@@ -49,8 +49,8 @@ class Version(object):
     id: str = field(compare=False)
     num: str
     supported: bool = field(default=False, compare=False)
-    user: List[str] = field(default_factory=list, compare=False)
-    bsver: List[str] = field(default_factory=list, compare=False)
+    user: List[str] = field(default_factory=list)
+    bsver: List[str] = field(default_factory=list)
     custom: bool = field(default=False, compare=False)
     ext: List[str] = field(default_factory=list, compare=False)
     games: List[str] = field(default_factory=list, compare=False, init=False)
