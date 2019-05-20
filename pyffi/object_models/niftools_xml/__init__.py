@@ -162,7 +162,7 @@ class XmlSaxHandler(OldXmlHandler):
         cls.games: Dict[str, str] = collections.OrderedDict()
 
         #
-        # cls.tokens = {}
+        cls.tokens = collections.OrderedDict()
 
         # Used for scope lookup, eg scope['vercond'] == ['verexpr', 'global', 'operator']
         cls.scopes: Dict[str, List[str]] = {}
@@ -175,25 +175,58 @@ class XmlSaxHandler(OldXmlHandler):
             self.push_tag(self.__tag)
             self.version_string = str(self.__attrs["id"])
             self.cls.versions[self.version_string] = Version(**self.__attrs)
+        elif self.__tag == self.tag_struct:
+            self.push_tag(self.__tag)
+            self.class_name = self.__attrs["name"]
+            # struct types can be organized in a hierarchy
+            # if inherit attribute is defined, then look for corresponding
+            # base block
+            class_basename = self.__attrs.get("inherit")
+            if class_basename:
+                # if that base struct has not yet been assigned to a
+                # class, then we have a problem
+                try:
+                    self.class_bases += (getattr(self.cls, class_basename),)
+                except KeyError:
+                    raise XmlError(
+                        "typo, or forward declaration of struct %s"
+                        % class_basename)
+            else:
+                self.class_bases = (StructBase,)
+            # istemplate attribute is optional
+            # if not set, then the struct is not a template
+            # set attributes (see class StructBase)
+            self.class_dict = {
+                "_is_template": self.__attrs.get("istemplate", "0") in ("true", "1"),
+                "_attrs": [],
+                "_games": {},
+                "_since": self.__attrs.get("since"),
+                "_until": self.__attrs.get("until"),
+                "_versions": self.__attrs.get("versions", "").split(" "),
+                "__attrs": dict(self.__attrs),
+                "__doc__": "",
+                "__module__": self.cls.__module__,
+            }
         elif self.__tag == self.tag_token:
             self.push_tag(self.__tag)
 
-            if self.__name not in self.tags_extra:
-                self.tags_extra[self.__name] = self.tag_subtoken
+            name = self.__attrs['name']
+            self.current_token = name
 
-            self.current_token = self.__name
+            if name not in self.tags_extra:
+                self.tags_extra[name] = self.tag_subtoken
 
-            if self.__name in self.cls.tokens:
-                raise XmlError("Token '%s' already defined in file" % self.__name)
+            if name in self.cls.tokens:
+                raise XmlError("Token '%s' already defined in file" % name)
             else:
-                self.cls.tokens[self.__name] = {}
+                self.cls.tokens[name] = {}
 
             attrs = self.__attrs['attrs']
             for x in attrs.split(' '):
                 if x in self.cls.scopes:
-                    self.cls.scopes[x].append(self.__name)
+                    self.cls.scopes[x].append(name)
                 else:
-                    self.cls.scopes[x] = [self.__name]
+                    self.cls.scopes[x] = [name]
         else:
             super(XmlSaxHandler, self).start_parent_tag_file()
 
@@ -210,7 +243,8 @@ class XmlSaxHandler(OldXmlHandler):
 
     def end_tag_token(self):
         # Reset variable
-        self.current_token = None
+        # self.current_token = None
+        pass
 
     def document_tag_version(self):
         # fileformat -> version
