@@ -51,6 +51,140 @@ from pyffi.object_models.niftools_xml.version import Version
 from pyffi.object_models.xml.struct_ import StructBase
 
 
+class StructAttribute(object):
+    """Helper class to collect attribute data of struct add tags."""
+
+    name = None
+    """The name of this member variable."""
+
+    type_ = None
+    """The type of this member variable (type is ``str`` for forward
+    declarations, and resolved to :class:`BasicBase` or
+    :class:`StructBase` later).
+    """
+
+    default = None
+    """The default value of this member variable."""
+
+    template = None
+    """The template type of this member variable (initially ``str``,
+    resolved to :class:`BasicBase` or :class:`StructBase` at the end
+    of the xml parsing), and if there is no template type, then this
+    variable will equal ``type(None)``.
+    """
+
+    arg = None
+    """The argument of this member variable."""
+
+    arr1 = None
+    """The first array size of this member variable, as
+    :class:`Expression` or ``type(None)``.
+    """
+
+    arr2 = None
+    """The second array size of this member variable, as
+    :class:`Expression` or ``type(None)``.
+    """
+
+    cond = None
+    """The condition of this member variable, as
+    :class:`Expression` or ``type(None)``.
+    """
+
+    excludeT = None
+    """
+    """
+
+    onlyT = None
+    """
+    """
+
+    since = None
+    """The first version this member exists, as ``int``, and ``None`` if
+    there is no lower limit.
+    """
+
+    until = None
+    """The last version this member exists, as ``int``, and ``None`` if
+    there is no upper limit.
+    """
+
+    vercond = None
+    """The version condition this member exists, as ``int``, and ``None`` if
+    it exists for all user versions.
+    :class:`Expression` or ``type(None)``.
+    """
+
+    is_abstract = False
+    """Whether the attribute is abstract or not (read and written)."""
+
+    def __init__(self, cls, attrs):
+        """Initialize attribute from the xml attrs dictionary of an
+        add tag.
+
+        :param cls: The class where all types reside.
+        :param attrs: The xml add tag attribute dictionary."""
+        # mandatory parameters
+        self.displayname = attrs["name"]
+        self.name = cls.name_attribute(self.displayname)
+        try:
+            attrs_type_str = attrs["type"]
+        except KeyError:
+            raise AttributeError("'%s' is missing a type attribute"
+                                 % self.displayname)
+        if attrs_type_str != "TEMPLATE":
+            try:
+                self.type_ = getattr(cls, attrs_type_str)
+            except AttributeError:
+                # forward declaration, resolved at endDocument
+                self.type_ = attrs_type_str
+        else:
+            self.type_ = type(None)  # type determined at runtime
+        # optional parameters
+        # TODO: Default fetch from tokens
+        self.default = attrs.get("default")
+        self.template = attrs.get("template")  # resolved in endDocument
+        self.arg = attrs.get("arg")
+        self.arr1 = attrs.get("arr1")
+        self.arr2 = attrs.get("arr2")
+        self.cond = attrs.get("cond")
+        self.vercond = attrs.get("vercond")
+        self.since = attrs.get("ver1")  # TODO: Replace get var to since when nif.xml is updated
+        self.until = attrs.get("ver2")  # TODO: Replace get var to until when nif.xml is updated
+        self.excludeT = attrs.get("excludeT")
+        self.onlyT = attrs.get("onlyT")
+        self.doc = ""  # handled in xml parser's characters function
+        self.is_abstract = (attrs.get("abstract") == "1")
+
+        # post-processing
+        if self.default:
+            try:
+                tmp = self.type_()
+                tmp.set_value(self.default)
+                self.default = tmp.get_value()
+                del tmp
+            except Exception:
+                # conversion failed; not a big problem
+                self.default = None
+        if self.arr1:
+            self.arr1 = Expression(self.arr1, cls.name_attribute)
+        if self.arr2:
+            self.arr2 = Expression(self.arr2, cls.name_attribute)
+        if self.cond:
+            self.cond = Expression(self.cond, cls.name_attribute)
+        if self.vercond:
+            self.vercond = Expression(self.vercond, cls.name_attribute)
+        if self.arg:
+            try:
+                self.arg = int(self.arg)
+            except ValueError:
+                self.arg = cls.name_attribute(self.arg)
+
+        # TODO: Since and Until must fetch tokens and use them
+        if self.since:
+            self.since = cls.version_number(self.since)
+        if self.until:
+            self.until = cls.version_number(self.until)
 
 
 # noinspection PyMethodParameters
@@ -133,8 +267,10 @@ class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
     xml_alias = []
     xml_bit_struct = []
     xml_struct = []
-    xml_token = collections.OrderedDict()
-    versions = collections.OrderedDict()
+    xml_token = []
+    versions = {}
+    scopes = {}
+    tokens = {}
 
 
 class XmlSaxHandler(OldXmlHandler):
@@ -169,6 +305,9 @@ class XmlSaxHandler(OldXmlHandler):
 
         # Current token group name
         self.current_token = None
+
+        # Completed struct additions for each struct
+        self.completed_struct_additions: Dict[str, List[str]] = {}
 
     def start_parent_tag_file(self):
         if self.__tag == self.tag_version:
@@ -240,6 +379,29 @@ class XmlSaxHandler(OldXmlHandler):
             self.cls.tokens[self.current_token][self.__attrs['token']] = self.__attrs['string']
         else:
             raise XmlError("Unrecognised tag '%s' in token group '%s' declaration" % (self.__name, self.current_token))
+
+    def start_parent_tag_struct(self):
+        self.push_tag(self.__tag)
+        # struct -> attribute
+        if self.__tag == self.tag_attribute:
+            name = self.__attrs['name']
+            if self.class_name in self.completed_struct_additions:
+                if name in self.completed_struct_additions[self.class_name]:
+                    base_class = list(filter(lambda x: x.displayname == name, reversed(self.class_dict['_attrs'])))[0]
+                    if isinstance(base_class.type_, str):
+                        if self.__attrs['type'] != base_class.type_:
+                            raise XmlError("Duplicate Struct attribute found '%s' in '%s' with differing types" % (name, self.class_name))
+                        else:
+                            # TODO: Add special MultiStructAttribute
+                            pass
+                else:
+                    self.completed_struct_additions[self.class_name].append(name)
+            else:
+                self.completed_struct_additions[self.class_name] = [name]
+            # add attribute to class dictionary
+            self.class_dict["_attrs"].append(StructAttribute(self.cls, self.__attrs))
+        else:
+            raise XmlError("Only add tags allowed in struct declaration")
 
     def end_tag_token(self):
         # Reset variable
