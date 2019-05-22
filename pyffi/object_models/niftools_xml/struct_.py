@@ -39,25 +39,6 @@
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-# --------------------------------------------------------------------------
-# ***** BEGIN LICENSE BLOCK *****
-#
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-#
-#
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
-#
-#
-# ***** END LICENSE BLOCK *****
-# --------------------------------------------------------------------------
-
 # note: some imports are defined at the end to avoid problems with circularity
 import logging
 from functools import partial

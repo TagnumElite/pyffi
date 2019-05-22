@@ -44,6 +44,7 @@ import xml.sax
 from typing import Dict, List
 
 import pyffi.object_models
+from pyffi.errors import PyFFIException
 from pyffi.object_models.xml import XmlSaxHandler as OldXmlHandler
 from pyffi.object_models.xml import XmlError
 from pyffi.object_models.niftools_xml.expression import Expression
