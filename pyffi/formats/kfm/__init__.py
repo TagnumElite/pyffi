@@ -137,23 +137,6 @@ The Guild 2 0x01024B00
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-# ***** BEGIN LICENSE BLOCK *****
-#
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-#
-#
-#    * Neither the name of the NIF File Format Library and Tools
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
-#
-#
-# ***** END LICENSE BLOCK *****
-
 import os
 import re
 
@@ -163,7 +146,6 @@ import pyffi.object_models.xml
 import pyffi.object_models.xml.struct_
 from pyffi.object_models.xml.basic import BasicBase
 from pyffi.utils.graph import EdgeFilter
-
 
 
 class KfmFormat(pyffi.object_models.xml.FileFormat):
