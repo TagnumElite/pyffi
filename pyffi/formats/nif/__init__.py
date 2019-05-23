@@ -172,7 +172,7 @@ Create a NIF model from scratch and write to file
 Get list of versions and games
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
->>> for vnum in sorted(NifFormat.versions.values()):
+>>> for vnum in sorted([NifFormat.version_number(x.num) for x in NifFormat.versions.values()]):
 ...     print('0x%08X' % vnum) # doctest: +REPORT_UDIFF
 0x02030000
 0x03000000
@@ -187,16 +187,31 @@ Get list of versions and games
 0x04020200
 0x0A000100
 0x0A000102
-0x0A000103
 0x0A010000
 0x0A010065
 0x0A01006A
 0x0A020000
+0x0A020000
 0x0A020001
+0x0A030001
 0x0A040001
+0x14000004
+0x14000004
 0x14000004
 0x14000005
 0x14010003
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
+0x14020007
 0x14020007
 0x14020008
 0x14030001
@@ -204,11 +219,14 @@ Get list of versions and games
 0x14030003
 0x14030006
 0x14030009
+0x14030009
 0x14050000
 0x14060000
 0x14060500
 0x1E000002
+0x1E010001
 0x1E010003
+0x1E020003
 >>> for game, versions in sorted(NifFormat.games.items(), key=lambda x: x[0]):
 ...     print("%s " % game + " ".join('0x%08X' % vnum for vnum in versions)) # doctest: +REPORT_UDIFF
 ? 0x0A000103
@@ -370,7 +388,7 @@ import pyffi.utils.vertex_cache
 from pyffi.object_models.editable import EditableBoolComboBox
 from pyffi.object_models.niftools_xml import FileFormat
 from pyffi.object_models.xml.basic import BasicBase
-from pyffi.object_models.xml.struct_ import StructBase
+from pyffi.object_models.niftools_xml.struct_ import StructBase
 from pyffi.utils.graph import EdgeFilter
 from pyffi.utils.mathutils import *  # XXX todo get rid of from XXX import *
 
@@ -407,6 +425,8 @@ class NifFormat(FileFormat):
     ushort = pyffi.object_models.common.UShort
     hfloat = pyffi.object_models.common.HFloat
     float = pyffi.object_models.common.Float
+    uint64 = pyffi.object_models.common.UInt64
+    int64 = pyffi.object_models.common.Int64
     BlockTypeIndex = pyffi.object_models.common.UShort
     StringIndex = pyffi.object_models.common.UInt
     SizedString = pyffi.object_models.common.SizedString

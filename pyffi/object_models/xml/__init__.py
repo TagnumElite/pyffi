@@ -42,15 +42,14 @@ file, and xml handler for converting the xml description into Python classes.
 import logging
 import time  # for timing stuff
 import xml.sax
-
 from typing import List, Dict
 
 import pyffi.object_models
-from pyffi.object_models.xml.struct_ import StructBase
 from pyffi.object_models.xml.basic import BasicBase
 from pyffi.object_models.xml.bit_struct import BitStructBase
 from pyffi.object_models.xml.enum import EnumBase
 from pyffi.object_models.xml.expression import Expression
+from pyffi.object_models.xml.struct_ import StructBase
 
 
 class MetaFileFormat(pyffi.object_models.MetaFileFormat):
@@ -300,6 +299,8 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
     """This class contains all functions for parsing the xml and converting
     the xml structure into Python classes."""
 
+    # This is used for tags that are ignored
+    tag_skip = 0
     tag_file = 1
     tag_version = 2
     tag_basic = 3
@@ -478,7 +479,9 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         self.__attrs = attrs
         self.__tag = tag
 
-        if self.current_tag == self.tag_struct:
+        if tag == self.tag_skip:
+            self.push_tag(tag)
+        elif self.current_tag == self.tag_struct:
             self.start_parent_tag_struct()
         elif self.current_tag == self.tag_file:
             self.start_parent_tag_file()

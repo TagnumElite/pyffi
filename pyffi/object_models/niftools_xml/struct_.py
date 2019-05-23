@@ -43,103 +43,12 @@
 import logging
 from functools import partial
 
-from pyffi.utils.graph import DetailNode, GlobalNode, EdgeFilter
 import pyffi.object_models.common
+import pyffi.object_models.xml.struct_
+from pyffi.utils.graph import EdgeFilter
 
 
-class _MetaStructBase(type):
-    """This metaclass checks for the presence of _attrs and _is_template
-    attributes. For each attribute in _attrs, an
-    <attrname> property is generated which gets and sets basic types,
-    and gets other types (struct and array). Used as metaclass of
-    StructBase."""
-
-    def __init__(cls, name, bases, dct):
-        super(_MetaStructBase, cls).__init__(name, bases, dct)
-        # does the type contain a Ref or a Ptr?
-        cls._has_links = getattr(cls, '_has_links', False)
-        # does the type contain a Ref?
-        cls._has_refs = getattr(cls, '_has_refs', False)
-        # does the type contain a string?
-        cls._has_strings = getattr(cls, '_has_strings', False)
-        for attr in dct.get('_attrs', []):
-            # basestring is a forward compound type declaration
-            # and issubclass must take a type as first argument
-            # hence this hack
-            if not isinstance(attr.type_, str) and \
-                    issubclass(attr.type_, BasicBase) and attr.arr1 is None:
-                # get and set basic attributes
-                setattr(cls, attr.name, property(
-                    partial(StructBase.get_basic_attribute, name=attr.name),
-                    partial(StructBase.set_basic_attribute, name=attr.name),
-                    doc=attr.doc))
-            elif not isinstance(attr.type_, str) and \
-                    issubclass(attr.type_, StructBase) and attr.arr1 is None:
-                # get and set struct attributes
-                setattr(cls, attr.name, property(
-                    partial(StructBase.get_attribute, name=attr.name),
-                    partial(StructBase.set_attribute, name=attr.name),
-                    doc=attr.doc))
-            elif attr.type_ == type(None) and attr.arr1 is None:
-                # get and set template attributes
-                setattr(cls, attr.name, property(
-                    partial(StructBase.get_template_attribute, name=attr.name),
-                    partial(StructBase.set_template_attribute, name=attr.name),
-                    doc=attr.doc))
-            else:
-                # other types of attributes: get only
-                setattr(cls, attr.name, property(
-                    partial(StructBase.get_attribute, name=attr.name),
-                    doc=attr.doc))
-
-            # check for links and refs and strings
-            if not cls._has_links:
-                if attr.type_ != type(None):  # templates!
-                    # attr.type_ basestring means forward declaration
-                    # we cannot know if it has links, so assume yes
-                    if (isinstance(attr.type_, str)
-                            or attr.type_._has_links):
-                        cls._has_links = True
-                # else:
-                #    cls._has_links = True
-                # or false... we can't know at this point... might be necessary
-                # to uncomment this if template types contain refs
-
-            if not cls._has_refs:
-                if attr.type_ != type(None):
-                    # attr.type_ basestring means forward declaration
-                    # we cannot know if it has refs, so assume yes
-                    if (isinstance(attr.type_, str)
-                            or attr.type_._has_refs):
-                        cls._has_refs = True
-                # else:
-                #    cls._has_refs = True # dito, see comment above
-
-            if not cls._has_strings:
-                if attr.type_ != type(None):
-                    # attr.type_ basestring means forward declaration
-                    # we cannot know if it has strings, so assume yes
-                    if (isinstance(attr.type_, str)
-                            or attr.type_._has_strings):
-                        cls._has_strings = True
-                else:
-                    # enabled because there is a template key type that has
-                    # strings
-                    cls._has_strings = True
-
-        # precalculate the attribute list
-        # profiling shows that this speeds up most of the StructBase methods
-        # that rely on parsing the attribute list
-        cls._attribute_list = cls._get_attribute_list()
-
-        # precalculate the attribute name list
-        cls._names = cls._get_names()
-
-    def __repr__(cls):
-        return "<struct '%s'>" % (cls.__name__)
-
-
-class StructBase(GlobalNode, metaclass=_MetaStructBase):
+class StructBase(pyffi.object_models.xml.struct_.StructBase):
     """Base class from which all file struct types are derived.
 
     The StructBase class implements the basic struct interface:
@@ -222,12 +131,6 @@ class StructBase(GlobalNode, metaclass=_MetaStructBase):
         * b : 9
     <BLANKLINE>
     """
-
-    _is_template = False
-    _attrs = []
-    _games = {}
-    arg = None
-    logger = logging.getLogger("pyffi.nif.data.struct")
 
     # initialize all attributes
     def __init__(self, template=None, argument=None, parent=None):
@@ -569,8 +472,8 @@ class StructBase(GlobalNode, metaclass=_MetaStructBase):
 
             # skip dupiclate names
 
-            if attr.name in names:
-                continue
+            # if attr.name in names:
+            #     continue
             # print("duplicate check passed") # debug
 
             names.add(attr.name)

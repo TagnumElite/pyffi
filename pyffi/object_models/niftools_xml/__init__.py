@@ -45,10 +45,10 @@ from typing import Dict, List
 
 import pyffi.object_models
 from pyffi.errors import PyFFIException
-from pyffi.object_models.xml import XmlSaxHandler as OldXmlHandler
-from pyffi.object_models.xml import XmlError
 from pyffi.object_models.niftools_xml.expression import Expression
 from pyffi.object_models.niftools_xml.version import Version
+from pyffi.object_models.xml import XmlError
+from pyffi.object_models.xml import XmlSaxHandler as OldXmlHandler
 from pyffi.object_models.xml.struct_ import StructBase
 
 
@@ -124,7 +124,9 @@ class StructAttribute(object):
         add tag.
 
         :param cls: The class where all types reside.
-        :param attrs: The xml add tag attribute dictionary."""
+        :type cls: FileFormat
+        :param attrs: The xml add tag attribute dictionary.
+        :type attrs: Mappable Object"""
         # mandatory parameters
         self.displayname = attrs["name"]
         self.name = cls.name_attribute(self.displayname)
@@ -286,6 +288,7 @@ class XmlSaxHandler(OldXmlHandler):
         "niobject": OldXmlHandler.tag_struct,
         "bitflags": OldXmlHandler.tag_bit_struct,
         "token": tag_token,
+        "module": OldXmlHandler.tag_skip,
     }
 
     def __init__(self, cls: FileFormat, name: str, bases, dct):
@@ -315,6 +318,21 @@ class XmlSaxHandler(OldXmlHandler):
             self.push_tag(self.__tag)
             self.version_string = str(self.__attrs["id"])
             self.cls.versions[self.version_string] = Version(**self.__attrs)
+
+        # fileformat -> basic
+        elif self.__tag == self.tag_basic:
+            self.class_name = self.__attrs["name"]
+            # Each basic type corresponds to a type defined in C{self.cls}.
+            # The link between basic types and C{self.cls} types is done
+            # via the name of the class.
+            self.basic_class = getattr(self.cls, self.class_name)
+            # check the class variables
+            is_generic = (self.__attrs.get("generic", "").lower() in ('true', '1'))
+            if self.basic_class._is_template != is_generic:
+                raise XmlError(
+                    'class %s should have _is_template = %s'
+                    % (self.class_name, is_generic))
+
         elif self.__tag == self.tag_struct:
             self.push_tag(self.__tag)
             self.class_name = self.__attrs["name"]
@@ -337,7 +355,7 @@ class XmlSaxHandler(OldXmlHandler):
             # if not set, then the struct is not a template
             # set attributes (see class StructBase)
             self.class_dict = {
-                "_is_template": self.__attrs.get("istemplate", "0") in ("true", "1"),
+                "_is_template": self.__attrs.get("generic", "0") in ("true", "1"),
                 "_attrs": [],
                 "_games": {},
                 "_since": self.__attrs.get("since"),
@@ -384,21 +402,36 @@ class XmlSaxHandler(OldXmlHandler):
     def start_parent_tag_struct(self):
         self.push_tag(self.__tag)
         # struct -> attribute
-        if self.__tag == self.tag_attribute:
+        if self.__tag == self.tag_attribute:  # TODO: Really cleanup and optimize this crap
             name = self.__attrs['name']
             if self.class_name in self.completed_struct_additions:
                 if name in self.completed_struct_additions[self.class_name]:
-                    base_class = list(filter(lambda x: x.displayname == name, reversed(self.class_dict['_attrs'])))[0]
-                    if isinstance(base_class.type_, str):
-                        if self.__attrs['type'] != base_class.type_:
-                            raise XmlError("Duplicate Struct attribute found '%s' in '%s' with differing types" % (name, self.class_name))
-                        else:
-                            # TODO: Add special MultiStructAttribute
+                    for base_class in filter(lambda x: x.displayname == name, reversed(self.class_dict['_attrs'])):
+                        i_type = self.__attrs['type']
+                        o_type = base_class.type_
+                        if not isinstance(o_type, str):
+                            o_type = o_type.__name__
+
+                        if i_type.lower() == o_type.lower():
+                            # TODO: Add special StructAttributeReference
                             pass
+                        else:
+                            # TODO: Add special StructMultiAttribute
+                            # print(i_type, o_type)
+                            # raise XmlError("Duplicate Struct attribute found '%s' in '%s'
+                            # with differing types" % (name, self.class_name))
+                            print("Duplicate Struct attribute found '%s' in '%s' with differing types" % (
+                            name, self.class_name))
+                            pass
+                        # We only wanted the last/only attribute so break on first
+                        break
+                    else:
+                        pass  # Non duplicate Item, skip. This is here for debug purposes
                 else:
                     self.completed_struct_additions[self.class_name].append(name)
             else:
                 self.completed_struct_additions[self.class_name] = [name]
+
             # add attribute to class dictionary
             self.class_dict["_attrs"].append(StructAttribute(self.cls, self.__attrs))
         else:
