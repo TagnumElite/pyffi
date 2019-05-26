@@ -1,12 +1,10 @@
 """Expression parser (for arr1, arr2, cond, and vercond xml attributes of
 <add> tag)."""
 
-
-
 # ------------------------------------------------------------------------
 #  ***** BEGIN LICENSE BLOCK *****
 #
-#  Copyright (c) 2007-2019, NIF File Format Library and Tools.
+#  Copyright © 2007-2019, Python File Format Interface.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -21,7 +19,7 @@
 #       disclaimer in the documentation and/or other materials provided
 #       with the distribution.
 #
-#     * Neither the name of the NIF File Format Library and Tools
+#     * Neither the name of the Python File Format Interface
 #       project nor the names of its contributors may be used to endorse
 #       or promote products derived from this software without specific
 #       prior written permission.
@@ -42,12 +40,18 @@
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
+
 import re
-import pyffi
-from pyffi.object_models.xml import expression
+import typing
+
+# from simpleeval import SimpleEval
 
 
-class Expression(pyffi.object_models.xml.expression.Expression):
+# eval(expression, globals=None, locals=None)
+# sorted(x, key=str.lower, reverse=True)  # get a larger to lower len list
+
+
+class Expression(object):
     """This class represents an expression.
 
     >>> class A(object):
@@ -119,16 +123,23 @@ class Expression(pyffi.object_models.xml.expression.Expression):
     True
 
     """
+
+    __slots__ = ('expression_str', 'name_filer', 'file_format', 'tokens')
+
     operators = {'==', '!=', '>=', '<=', '&&', '||', '&', '|', '-', '!', '<', '>', '/', '*', '+'}
 
-    def __init__(self, expr_str, name_filter=None):
-        try:
-            left, self._op, right = self._partition(expr_str)
-            self._left = self._parse(left, name_filter)
-            self._right = self._parse(right, name_filter)
-        except:
-            print("error while parsing expression '%s'" % expr_str)
-            raise
+    def __init__(self, expr_str: str, name_filter: typing.Callable[[str], str] = None, tokens=None):
+        """
+        :param expr_str:
+        :type expr_str: ``str``
+        :param name_filter:
+        :param tokens:
+        :type tokens: ``dict``
+        """
+
+        self.tokens = tokens
+        self.name_filer = name_filter
+        self.expression_str = self._parse(expr_str)
 
     def eval(self, data=None):
         """Evaluate the expression to an integer."""
@@ -218,14 +229,16 @@ class Expression(pyffi.object_models.xml.expression.Expression):
     def __str__(self):
         """Reconstruct the expression to a string."""
 
-        left = str(self._left) if not self._left is None else ""
-        if not self._op: return left
-        right = str(self._right) if not self._right is None else ""
+        left = str(self._left) if self._left is not None else ""
+        if not self._op:
+            return left
+        right = str(self._right) if self._right is not None else ""
         return left + ' ' + self._op + ' ' + right
 
-    @classmethod
-    def _parse(cls, expr_str, name_filter=None):
+    def _parse(self, expr_str, name_filter=None):
         """Returns an Expression, string, or int, depending on the contents of <expr_str>."""
+
+        return expr_str
 
         if not expr_str:
             # empty string
@@ -255,9 +268,8 @@ class Expression(pyffi.object_models.xml.expression.Expression):
         # (where a dot separates components)
         if name_filter is None:
             name_filter = lambda x: x
-        return '.'.join(name_filter(comp)
-                        for comp in expr_str.split("."))
-        return expr_str
+        return '.'.join(name_filter(comp) for comp in expr_str.split("."))
+        # return expr_str
 
     @classmethod
     def _partition(cls, expr_str):

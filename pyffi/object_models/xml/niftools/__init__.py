@@ -1,54 +1,62 @@
-""""""
+"""
+:mod:`pyffi.object_models.xml.niftools` --- NifTools XML File Format
+====================================================================
 
-# ***** BEGIN LICENSE BLOCK *****
+Classes
+-------
+"""
+
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
 #
-# Copyright (c) 2007-2012, Python File Format Interface
-# All rights reserved.
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
 #
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
 #
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
 #
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
 #
-# ***** END LICENSE BLOCK *****
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
+
 
 import collections
 import logging
 import time  # for timing stuff
 import xml.sax
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import pyffi.object_models
-from pyffi.errors import PyFFIException
-from pyffi.object_models.niftools_xml.expression import Expression
-from pyffi.object_models.niftools_xml.version import Version
-from pyffi.object_models.xml import XmlError
+from pyffi.errors import XMLException
 from pyffi.object_models.xml import XmlSaxHandler as OldXmlHandler
+from pyffi.object_models.xml.niftools.expression import Expression
+from pyffi.object_models.xml.niftools.version import Version
 from pyffi.object_models.xml.struct_ import StructBase
 
 
@@ -124,7 +132,7 @@ class StructAttribute(object):
         add tag.
 
         :param cls: The class where all types reside.
-        :type cls: FileFormat
+        :type cls: ``FileFormat``
         :param attrs: The xml add tag attribute dictionary.
         :type attrs: Mappable Object"""
         # mandatory parameters
@@ -190,6 +198,11 @@ class StructAttribute(object):
             self.until = cls.version_number(self.until)
 
 
+class StructAttributeReference(StructAttribute):
+    """"""
+    pass
+
+
 # noinspection PyMethodParameters
 class MetaFileFormat(pyffi.object_models.MetaFileFormat):
     """The MetaFileFormat metaclass transforms the XML description
@@ -197,7 +210,7 @@ class MetaFileFormat(pyffi.object_models.MetaFileFormat):
     used to manipulate files in this format.
 
     The actual implementation of the parser is delegated to
-    pyffi.object_models.niftools_xml.FileFormat.
+    pyffi.object_models.xml.niftools.FileFormat.
     """
 
     def __init__(cls, name, bases, dct):
@@ -208,9 +221,13 @@ class MetaFileFormat(pyffi.object_models.MetaFileFormat):
 
         :param cls: The class created using MetaFileFormat, for example
             NifFormat.
+        :type cls: ``FileFormat``
         :param name: The name of the class, for example 'NifFormat'.
+        :type name: str
         :param bases: The base classes, usually (object,).
+        :type bases: Tuple
         :param dct: A dictionary of class attributes, such as 'xml_file_name'.
+        :type dct: dict
         """
 
         super(MetaFileFormat, cls).__init__(name, bases, dct)
@@ -251,10 +268,22 @@ class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
     """This class can be used as a base class for file formats
     described by an xml file.
 
+    :var list xml_enum: A List of ``Enum``
+    :var list xml_alias: A List of ``Alias``
+    :var list xml_bit_struct: A list of ``BitStruct``
+    :var list xml_struct: A list of ``StructBase``
+    :var list xml_token: A List of ``str``
+    :var collections.OrderedDict versions: An ordered list of ``Version``
+    :var collections.OrderedDict scopes: An ordered dict of scopes
+    :var collections.OrderedDict tokens: An ordered dict of tokens
     """
-    xml_file_name = None  #: Override.
-    xml_file_path = None  #: Override.
-    logger = logging.getLogger("pyffi.object_models.niftools_xml")
+    #: Name of the xml file, must be overridden.
+    xml_file_name: str = None
+    #: Location of the xml file, must be overridden.
+    xml_file_path: Union[str, List[str]] = None
+    #: Logger, defaults to 'pyffi.object_models.xml.niftools'
+    logger = logging.getLogger("pyffi.object_models.xml.niftools")
+    #: Activate Debug mode, defaults to false.
     debug: bool = False
 
     # We also keep an ordered list of all classes that have been created.
@@ -271,15 +300,36 @@ class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
     xml_bit_struct = []
     xml_struct = []
     xml_token = []
-    versions = {}
-    scopes = {}
-    tokens = {}
+    versions = collections.OrderedDict()
+    scopes = collections.OrderedDict()
+    tokens = collections.OrderedDict()
+    __scope_cache = {}
+
+    def get_tokens(self, scope="global"):
+        """Returns
+
+        :param str scope: The scope to fetch for
+        :return: A dictionary of Name: String values
+        :rtype: ``dict``
+        :raises ValueError: Scope doesn't exist"""
+
+        if scope not in self.scopes:
+            raise ValueError("Scope '%s' doesn't exist" % scope)
+        elif scope in self.__scope_cache:
+            # Tokens shouldn't be modifiable after parsing the xml, so use a cache per scope
+            return self.__scope_cache[scope]
+        else:
+            for token in reversed(self.scopes[scope]):
+                for name, string in self.tokens[token].items():
+                    yield
 
 
 class XmlSaxHandler(OldXmlHandler):
     # We inherit OldSaxHandler, add a 0 on the end to not influence OldXmlHandler
     tag_token = 110
     tag_subtoken = 120
+    tag_bitfield = 130
+    tag_member = 140
 
     # for compatibility with niftools
     tags_extra: Dict[str, int] = {
@@ -289,6 +339,8 @@ class XmlSaxHandler(OldXmlHandler):
         "bitflags": OldXmlHandler.tag_bit_struct,
         "token": tag_token,
         "module": OldXmlHandler.tag_skip,
+        "bitfield": tag_bitfield,
+        "member": tag_member,
     }
 
     def __init__(self, cls: FileFormat, name: str, bases, dct):
@@ -305,7 +357,7 @@ class XmlSaxHandler(OldXmlHandler):
         cls.tokens = collections.OrderedDict()
 
         # Used for scope lookup, eg scope['vercond'] == ['verexpr', 'global', 'operator']
-        cls.scopes: Dict[str, List[str]] = {}
+        cls.scopes: Dict[str, List[str]] = collections.OrderedDict()
 
         # Current token group name
         self.current_token = None
@@ -315,7 +367,6 @@ class XmlSaxHandler(OldXmlHandler):
 
     def start_parent_tag_file(self):
         if self.__tag == self.tag_version:
-            self.push_tag(self.__tag)
             self.version_string = str(self.__attrs["id"])
             self.cls.versions[self.version_string] = Version(**self.__attrs)
 
@@ -329,12 +380,15 @@ class XmlSaxHandler(OldXmlHandler):
             # check the class variables
             is_generic = (self.__attrs.get("generic", "").lower() in ('true', '1'))
             if self.basic_class._is_template != is_generic:
-                raise XmlError(
+                raise XMLException(
                     'class %s should have _is_template = %s'
                     % (self.class_name, is_generic))
 
+        # fileformat -> bitfield
+        elif self.__tag == self.tag_bitfield:
+            pass
+
         elif self.__tag == self.tag_struct:
-            self.push_tag(self.__tag)
             self.class_name = self.__attrs["name"]
             # struct types can be organized in a hierarchy
             # if inherit attribute is defined, then look for corresponding
@@ -346,12 +400,13 @@ class XmlSaxHandler(OldXmlHandler):
                 try:
                     self.class_bases += (getattr(self.cls, class_basename),)
                 except KeyError:
-                    raise XmlError(
+                    raise XMLException(
                         "typo, or forward declaration of struct %s"
                         % class_basename)
             else:
                 self.class_bases = (StructBase,)
-            # istemplate attribute is optional
+
+            # generic attribute is optional
             # if not set, then the struct is not a template
             # set attributes (see class StructBase)
             self.class_dict = {
@@ -365,9 +420,8 @@ class XmlSaxHandler(OldXmlHandler):
                 "__doc__": "",
                 "__module__": self.cls.__module__,
             }
-        elif self.__tag == self.tag_token:
-            self.push_tag(self.__tag)
 
+        elif self.__tag == self.tag_token:
             name = self.__attrs['name']
             self.current_token = name
 
@@ -375,7 +429,7 @@ class XmlSaxHandler(OldXmlHandler):
                 self.tags_extra[name] = self.tag_subtoken
 
             if name in self.cls.tokens:
-                raise XmlError("Token '%s' already defined in file" % name)
+                raise XMLException("Token '%s' already defined in file" % name)
             else:
                 self.cls.tokens[name] = {}
 
@@ -393,14 +447,14 @@ class XmlSaxHandler(OldXmlHandler):
         # token -> sub token
         if self.__tag == self.tag_subtoken:
             if self.__name != self.current_token:
-                raise XmlError("Token '%s' used in wrong token group '%s'" % (self.__name, self.current_token))
+                raise XMLException("Token '%s' used in wrong token group '%s'" % (self.__name, self.current_token))
 
             self.cls.tokens[self.current_token][self.__attrs['token']] = self.__attrs['string']
         else:
-            raise XmlError("Unrecognised tag '%s' in token group '%s' declaration" % (self.__name, self.current_token))
+            raise XMLException(
+                "Unrecognised tag '%s' in token group '%s' declaration" % (self.__name, self.current_token))
 
     def start_parent_tag_struct(self):
-        self.push_tag(self.__tag)
         # struct -> attribute
         if self.__tag == self.tag_attribute:  # TODO: Really cleanup and optimize this crap
             name = self.__attrs['name']
@@ -418,10 +472,10 @@ class XmlSaxHandler(OldXmlHandler):
                         else:
                             # TODO: Add special StructMultiAttribute
                             # print(i_type, o_type)
-                            # raise XmlError("Duplicate Struct attribute found '%s' in '%s'
+                            # raise XMLException("Duplicate Struct attribute found '%s' in '%s'
                             # with differing types" % (name, self.class_name))
                             print("Duplicate Struct attribute found '%s' in '%s' with differing types" % (
-                            name, self.class_name))
+                                name, self.class_name))
                             pass
                         # We only wanted the last/only attribute so break on first
                         break
@@ -435,7 +489,15 @@ class XmlSaxHandler(OldXmlHandler):
             # add attribute to class dictionary
             self.class_dict["_attrs"].append(StructAttribute(self.cls, self.__attrs))
         else:
-            raise XmlError("Only add tags allowed in struct declaration")
+            raise XMLException("Only `add` tags allowed in struct declaration, found '%s'" % self.__name)
+
+    def start_parent_tag_bitfield(self):
+        self.push_tag(self.__tag)
+        # Bitfield -> Member
+        if self.__tag == self.tag_member:
+            pass
+        else:
+            raise XMLException("Only `member` tags allowed in bitfield declaration, found '%s'" % self.__name)
 
     def end_tag_token(self):
         # Reset variable
@@ -447,7 +509,7 @@ class XmlSaxHandler(OldXmlHandler):
         if self.stack[1] == self.tag_file:
             games_dict: Dict[str, str] = self.cls.games
         else:
-            raise XmlError("Version parsing error at '%s'" % self.__chars)
+            raise XMLException("Version parsing error at '%s'" % self.__chars)
 
         # update the games_dict dictionary
         for game_str in (str(g.strip()) for g in self.__chars.split(',')):
@@ -455,7 +517,7 @@ class XmlSaxHandler(OldXmlHandler):
                 main_game = game_str.strip('{}')
                 self.cls.versions[self.version_string].add_game(main_game)
                 if main_game in games_dict:
-                    raise XmlError("Duplicate Main Game: '%s'" % main_game)
+                    raise XMLException("Duplicate Main Game: '%s'" % main_game)
                 else:
                     games_dict[main_game] = self.version_string
             else:

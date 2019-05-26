@@ -1,54 +1,59 @@
-"""Defines base class for arrays of data."""
+"""
+:mod:`pyffi.object_models.array_type` --- Array Types
+=====================================================
 
-# --------------------------------------------------------------------------
-# ***** BEGIN LICENSE BLOCK *****
-#
-# Copyright (c) 2007-2012, Python File Format Interface
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
-#
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# ***** END LICENSE BLOCK *****
-# --------------------------------------------------------------------------
+Defines base class for arrays of data.
+"""
 
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
+#
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
+#
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
+#
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
 
-
-from pyffi.object_models.any_type import AnyType
 import pyffi.object_models.simple_type
+from pyffi.object_models.any_type import AnyType
 from pyffi.utils.graph import EdgeFilter
+
 
 class ValidatedList(list):
     """Abstract base class for lists whose items can be validated (for
     instance, for type checks).
     """
+
     def __init__(self, *args, **kwargs):
         """Initialize empty list."""
         list.__init__(self, *args, **kwargs)
@@ -86,6 +91,7 @@ class ValidatedList(list):
         self.validate(item)
         list.insert(self, index, item)
 
+
 class AnyArray(ValidatedList, AnyType):
     """Abstract base class for all array types.
 
@@ -98,7 +104,7 @@ class AnyArray(ValidatedList, AnyType):
     def is_interchangeable(self, other):
         """Check if array's are interchangeable."""
         # compare classes
-        if not(self.__class__ is other.__class__):
+        if not (self.__class__ is other.__class__):
             return False
         # compare lengths
         if list.__len__(self) != list.__len__(other):
@@ -135,11 +141,13 @@ class AnyArray(ValidatedList, AnyType):
     def get_detail_child_names(self, edge_filter=EdgeFilter()):
         return ("[%i]" % i for i in range(list.__len__(self)))
 
+
 class MetaUniformArray(type):
     """Metaclass for L{UniformArray}. Checks that
     L{ItemType<UniformArray.ItemType>} is an
     L{AnyType<pyffi.object_models.any_type.AnyType>} subclass.
     """
+
     def __init__(cls, name, bases, dct):
         """Initialize array type."""
         # create the class
@@ -147,6 +155,7 @@ class MetaUniformArray(type):
         # check type of elements
         if not issubclass(cls.ItemType, AnyType):
             raise TypeError("array ItemType must be an AnyType subclass")
+
 
 class UniformArray(AnyArray, metaclass=MetaUniformArray):
     """Wrapper for array with elements of the same type; this type must be
@@ -187,11 +196,13 @@ class UniformArray(AnyArray, metaclass=MetaUniformArray):
                             % (item.__class__.__name__,
                                cls.ItemType.__name__))
 
+
 class MetaUniformSimpleArray(type):
     """Metaclass for L{UniformSimpleArray}. Checks that
     L{ItemType<UniformSimpleArray.ItemType>} is an
     L{SimpleType<pyffi.object_models.simple_type.SimpleType>} subclass.
     """
+
     def __init__(cls, name, bases, dct):
         """Initialize array type."""
         # create the class
@@ -200,6 +211,7 @@ class MetaUniformSimpleArray(type):
         if not issubclass(cls.ItemType,
                           pyffi.object_models.simple_type.SimpleType):
             raise TypeError("array ItemType must be a SimpleType subclass")
+
 
 class UniformSimpleArray(AnyArray, metaclass=MetaUniformSimpleArray):
     """Base class for array's with direct access to values of simple items."""

@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------
 #  ***** BEGIN LICENSE BLOCK *****
 #
-#  Copyright (c) 2007-2019, NIF File Format Library and Tools.
+#  Copyright © 2007-2019, Python File Format Interface.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -18,7 +18,7 @@
 #       disclaimer in the documentation and/or other materials provided
 #       with the distribution.
 #
-#     * Neither the name of the NIF File Format Library and Tools
+#     * Neither the name of the Python File Format Interface
 #       project nor the names of its contributors may be used to endorse
 #       or promote products derived from this software without specific
 #       prior written permission.
@@ -40,12 +40,9 @@
 # ------------------------------------------------------------------------
 
 # note: some imports are defined at the end to avoid problems with circularity
-import logging
-from functools import partial
 
 import pyffi.object_models.common
 import pyffi.object_models.xml.struct_
-from pyffi.utils.graph import EdgeFilter
 
 
 class StructBase(pyffi.object_models.xml.struct_.StructBase):
@@ -384,16 +381,6 @@ class StructBase(pyffi.object_models.xml.struct_.StructBase):
                 oldbranch, newbranch, **kwargs)
 
     @classmethod
-    def get_games(cls):
-        """Get games for which this block is supported."""
-        return list(cls._games.keys())
-
-    @classmethod
-    def get_versions(cls, game):
-        """Get versions supported for C{game}."""
-        return cls._games[game]
-
-    @classmethod
     def _get_attribute_list(cls):
         """Calculate the list of all attributes of this structure."""
         # string of attributes of base classes of cls
@@ -523,35 +510,6 @@ class StructBase(pyffi.object_models.xml.struct_.StructBase):
             self.set_basic_attribute(value, name)
         except AttributeError:
             self.set_attribute(value, name)
-
-    def tree(self):
-        """A generator for parsing all blocks in the tree (starting from and
-        including C{self}). By default, there is no tree structure, so returns
-        self."""
-        # return self
-        yield self
-
-    # DetailNode
-
-    def get_detail_child_nodes(self, edge_filter=EdgeFilter()):
-        """Yield children of this structure."""
-        return (item for item in self._items)
-
-    def get_detail_child_names(self, edge_filter=EdgeFilter()):
-        """Yield names of the children of this structure."""
-        return (name for name in self._names)
-
-    # GlobalNode
-
-    def get_global_display(self):
-        """Construct a convenient name for the block itself."""
-        return (pyffi.object_models.common._as_str(self.name)
-                if hasattr(self, "name") else "")
-
-    def get_global_child_nodes(self, edge_filter=EdgeFilter()):
-        # TODO replace get_refs with a generator as well
-        for branch in self.get_refs():
-            yield branch
 
 
 from pyffi.object_models.xml.basic import BasicBase

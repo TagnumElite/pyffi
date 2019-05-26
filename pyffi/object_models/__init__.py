@@ -1,6 +1,6 @@
 """
-:mod:`pyffi.object_models` --- File format description engines
-==============================================================
+:mod:`pyffi.object_models` --- File Formats and Types
+=====================================================
 
 .. warning::
 
@@ -11,7 +11,7 @@ is a group of classes whose instances can hold the information
 contained in a file whose format is described in a particular way
 (xml, xsd, and possibly others).
 
-..
+.. note::
   There is a strong distinction between types that contain very specific
   simple data (SimpleType) and more complex types that contain groups of
   simple data (ComplexType, with its descendants StructType for named
@@ -27,6 +27,33 @@ contained in a file whose format is described in a particular way
   floats, strings, and so on. Some simple types may also be derived from
   already implemented simple types, if the metadata description allows
   this.
+
+Implemented Formats
+-------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   formats/mex
+   formats/xml/index
+   formats/xml/niftools
+   formats/xsd
+
+Implemented Types
+-----------------
+
+.. toctree::
+   :maxdepth: 1
+
+   types/any
+   types/array
+   types/binary
+   types/common
+   types/editable
+   types/simple
+
+Base Formats
+------------
 
 .. autoclass:: MetaFileFormat
    :show-inheritance:
@@ -75,10 +102,8 @@ contained in a file whose format is described in a particular way
 # ***** END LICENSE BLOCK *****
 
 import codecs
-import logging
-import os.path # os.path.altsep
-import re # compile
-import sys # version_info
+import os.path  # os.path.altsep
+import re  # compile
 
 import pyffi.utils
 import pyffi.utils.graph
@@ -151,7 +176,7 @@ class FileFormat(object):
 
     _RE_NAME_SEP = re.compile('[_\W]+')
     """Matches seperators for splitting names."""
-    
+
     _RE_NAME_DIGITS = re.compile('([0-9]+)|([a-zA-Z]+)')
     """Matches digits or characters for splitting names."""
 
@@ -291,6 +316,7 @@ class FileFormat(object):
         :param name: The attribute name.
         :type name: ``str``
         :return: Reformatted attribute name, useable by python.
+        :rtype: ``str``
 
         >>> FileFormat.name_attribute('tHis is A Silly naME')
         't_his_is_a_silly_na_m_e'
@@ -377,6 +403,7 @@ class FileFormat(object):
             finally:
                 stream.close()
 
+
 class ArchiveFileFormat(FileFormat):
     """This class is the base class for all archive file formats. It
     implements incremental reading and writing of archive files.
@@ -393,7 +420,7 @@ class ArchiveFileFormat(FileFormat):
         def __init__(self, name=None, mode=None, fileobj=None):
             """Sets _stream and _mode."""
             # at least:
-            #self._stream = fileobj if fileobj else open(name, mode)
+            # self._stream = fileobj if fileobj else open(name, mode)
             raise NotImplementedError
 
         def get_members(self):
@@ -404,7 +431,7 @@ class ArchiveFileFormat(FileFormat):
 
         def close(self):
             # at least:
-            #self._stream.close()
+            # self._stream.close()
             raise NotImplementedError
 
         def read(self, stream):
@@ -418,6 +445,7 @@ class ArchiveFileFormat(FileFormat):
             self.__init__(mode='w', fileobj=stream)
             # set all members to the new stream
             self.set_members(members)
+
 
 class ArchiveMember(object):
     stream = None

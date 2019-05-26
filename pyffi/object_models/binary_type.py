@@ -1,73 +1,83 @@
-"""Implements common basic types in XML file format descriptions."""
+"""
+:mod:`pyffi.object_models.binary_type` --- Binary Types
+=======================================================
 
-# ***** BEGIN LICENSE BLOCK *****
+Implements common basic types in XML file format descriptions.
+"""
+
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
 #
-# Copyright (c) 2007-2012, Python File Format Interface.
-# All rights reserved.
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
 #
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
 #
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
 #
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
 #
-# ***** END LICENSE BLOCK *****
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
 
 import struct
 
 from pyffi.object_models.any_type import AnyType
-from pyffi.object_models.simple_type import SimpleType
-from pyffi.object_models.editable import EditableSpinBox
+from pyffi.object_models.editable import EditableBoolComboBox
 from pyffi.object_models.editable import EditableFloatSpinBox
 from pyffi.object_models.editable import EditableLineEdit
-from pyffi.object_models.editable import EditableBoolComboBox
+from pyffi.object_models.editable import EditableSpinBox
+from pyffi.object_models.simple_type import SimpleType
+
 
 # Base classes
 
 class BinaryType(AnyType):
     """Abstract base class for binary data types."""
+
     def get_size(self):
         raise NotImplementedError
+
 
 class BinarySimpleType(SimpleType, BinaryType):
     """Abstract base class for binary data types."""
     pass
 
+
 # Helper objects and helper functions (private)
 
-_b = "".encode("ascii") # py3k's b""
-_b00 = "\x00".encode("ascii") # py3k's b"\x00"
-
+_b = "".encode("ascii")  # py3k's b""
+_b00 = "\x00".encode("ascii")  # py3k's b"\x00"
 
 # supports the bytes object for < py26
 try:
     bytes
 except NameError:
-    bytes = str # for py25 backwards compatibility
+    bytes = str  # for py25 backwards compatibility
 
 if bytes is str:
     # < py3k: str for byte strings, unicode for text strings
@@ -77,6 +87,7 @@ else:
     # >= py3k: bytes for byte strings, str for text strings
     _bytes = bytes
     _str = str
+
 
 def _as_bytes(value):
     """Helper function which converts a string to _bytes (this is useful for
@@ -101,6 +112,7 @@ def _as_bytes(value):
     else:
         raise TypeError("expected %s or %s" % (_bytes.__name__, _str.__name__))
 
+
 def _as_str(value):
     """Helper function to convert bytes back to str. This is used in
     the __str__ functions for simple string types. If you want a custom
@@ -120,6 +132,7 @@ def _as_str(value):
         # < py3k: use ascii encoding to produce a str
         # (this avoids unicode errors)
         return value.encode("ascii", "replace")
+
 
 # SimpleType implementations for common binary types
 
@@ -156,10 +169,10 @@ class IntType(BinarySimpleType, EditableSpinBox):
     '0x44332211'
     """
 
-    _min = -0x80000000 #: Minimum value.
+    _min = -0x80000000  #: Minimum value.
     _max = 0x7fffffff  #: Maximum value.
-    _struct = 'i'      #: Character used to represent type in struct.
-    _size = 4          #: Number of bytes.
+    _struct = 'i'  #: Character used to represent type in struct.
+    _size = 4  #: Number of bytes.
 
     # SimpleType
 
@@ -177,13 +190,13 @@ class IntType(BinarySimpleType, EditableSpinBox):
             val = int(value)
         except ValueError:
             try:
-                val = int(value, 16) # for '0x...' strings
+                val = int(value, 16)  # for '0x...' strings
             except ValueError:
                 try:
-                    val = getattr(self, value) # for enums
+                    val = getattr(self, value)  # for enums
                 except AttributeError:
                     raise ValueError(
-                        "cannot convert value '%s' to integer"%value)
+                        "cannot convert value '%s' to integer" % value)
         if val < self._min or val > self._max:
             raise ValueError('value out of range (%i)' % val)
         self._value = val
@@ -232,12 +245,14 @@ class IntType(BinarySimpleType, EditableSpinBox):
         """
         return self._max
 
+
 class UIntType(IntType):
     """Implementation of a 32-bit unsigned integer type."""
     _min = 0
     _max = 0xffffffff
     _struct = 'I'
     _size = 4
+
 
 class ByteType(IntType):
     """Implementation of a 8-bit signed integer type."""
@@ -246,12 +261,14 @@ class ByteType(IntType):
     _struct = 'b'
     _size = 1
 
+
 class UByteType(IntType):
     """Implementation of a 8-bit unsigned integer type."""
     _min = 0
     _max = 0xff
     _struct = 'B'
     _size = 1
+
 
 class ShortType(IntType):
     """Implementation of a 16-bit signed integer type."""
@@ -260,12 +277,14 @@ class ShortType(IntType):
     _struct = 'h'
     _size = 2
 
+
 class UShortType(UIntType):
     """Implementation of a 16-bit unsigned integer type."""
     _min = 0
     _max = 0xffff
     _struct = 'H'
     _size = 2
+
 
 class BoolType(UByteType, EditableBoolComboBox):
     """Simple bool implementation."""
@@ -287,6 +306,7 @@ class BoolType(UByteType, EditableBoolComboBox):
             raise TypeError("expected a bool")
         self._value = 1 if value else 0
 
+
 class CharType(BinarySimpleType, EditableLineEdit):
     """Implementation of an (unencoded) 8-bit character."""
 
@@ -300,8 +320,8 @@ class CharType(BinarySimpleType, EditableLineEdit):
         :param value: The value to assign (bytes of length 1).
         :type value: bytes
         """
-        assert(isinstance(value, _bytes))
-        assert(len(value) == 1)
+        assert (isinstance(value, _bytes))
+        assert (len(value) == 1)
         self._value = value
 
     def read(self, stream):
@@ -329,6 +349,7 @@ class CharType(BinarySimpleType, EditableLineEdit):
         :return: Number of bytes.
         """
         return 1
+
 
 class Float(BinarySimpleType, EditableFloatSpinBox):
     """Implementation of a 32-bit float."""
@@ -368,6 +389,7 @@ class Float(BinarySimpleType, EditableFloatSpinBox):
         """
         return 4
 
+
 class ZString(BinarySimpleType, EditableLineEdit):
     """String of variable length (null terminated).
 
@@ -388,7 +410,7 @@ class ZString(BinarySimpleType, EditableLineEdit):
     >>> str(m)
     'Hi There!'
     """
-    _maxlen = 1000 #: The maximum length.
+    _maxlen = 1000  #: The maximum length.
 
     def __init__(self):
         """Initialize the string."""
@@ -443,6 +465,7 @@ class ZString(BinarySimpleType, EditableLineEdit):
         :return: Number of bytes.
         """
         return len(self._value) + 1
+
 
 class FixedString(BinarySimpleType, EditableLineEdit):
     """String of fixed length. Default length is 0, so you must override
@@ -521,6 +544,7 @@ class FixedString(BinarySimpleType, EditableLineEdit):
         """
         return self._len
 
+
 class SizedString(BinarySimpleType, EditableLineEdit):
     """Basic type for strings. The type starts with an unsigned int which
     describes the length of the string.
@@ -596,8 +620,10 @@ class SizedString(BinarySimpleType, EditableLineEdit):
         stream.write(struct.pack('<I', len(self._value)))
         stream.write(self._value)
 
+
 class UndecodedData(SimpleType, BinaryType):
     """Basic type for undecoded data trailing at the end of a file."""
+
     def __init__(self):
         self._value = _b
 

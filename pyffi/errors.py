@@ -1,4 +1,9 @@
-""""""
+"""
+PyFFI Exceptions
+================
+
+"""
+
 
 # ------------------------------------------------------------------------
 #  ***** BEGIN LICENSE BLOCK *****
@@ -45,3 +50,13 @@ class PyFFIException(Exception):
     pass
 
 
+class FileFormatException(PyFFIException):
+    pass
+
+
+class ParserException(PyFFIException):
+    pass
+
+
+class XMLException(ParserException):
+    pass

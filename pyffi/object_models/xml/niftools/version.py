@@ -1,11 +1,4 @@
-"""
-:mod:`pyffi.object_models.any_type` --- Any Types
-=================================================
-
-Defines base class for any type that stores mutable data
-which is readable and writable, and can check for exchangeable
-alternatives.
-"""
+""""""
 
 # ------------------------------------------------------------------------
 #  ***** BEGIN LICENSE BLOCK *****
@@ -46,49 +39,55 @@ alternatives.
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-import pyffi.utils.graph
+# noinspection PyCompatibility
+from dataclasses import dataclass, field
+from typing import List
 
-class AnyType(pyffi.utils.graph.DetailNode):
-    """Abstract base class from which all types are derived."""
 
-    def read(self, stream):
-        """Read object from file.
+@dataclass
+class Version(object):
+    """Version object for each version"""
 
-        :param stream: The stream to read from.
-        :type stream: ``file``
+    id: str = field(compare=False)
+    num: str
+    supported: bool = field(default=False, compare=False)
+    user: List[str] = field(default_factory=list)
+    bsver: List[str] = field(default_factory=list)
+    custom: bool = field(default=False, compare=False)
+    ext: List[str] = field(default_factory=list, compare=False)
+    games: List[str] = field(default_factory=list, compare=False, init=False)
+
+    def add_game(self, game: str):
+        self.games.append(game)
+
+    @property
+    def version(self) -> int:
+        """Converts version string into an integer.
+        :return: 
+        :rtype: int
         """
-        raise NotImplementedError
 
-    def write(self, stream):
-        """Write object to file.
+        # 3.03 case is special
+        if self.num == '3.03':
+            return 0x03000300
 
-        :param stream: The stream to write to.
-        :type stream: ``file``
-        """
-        raise NotImplementedError
+        # NS (neosteam) case is special
+        if self.num == 'NS':
+            return 0x0A010000
 
-    def is_interchangeable(self, other):
-        """Returns ``True`` if objects are interchangeable, that is,
-        "close" enough to each other so they can be considered equal
-        for practical purposes. This is useful for instance when comparing
-        data and trying to remove duplicates.
+        try:
+            ver_list = [int(x) for x in self.num.split('.')]
+        except ValueError:
+            return -1  # version not supported (i.e. version_str '10.0.1.3a' would trigger this)
 
-        This default implementation simply checks for object identity.
+        if len(ver_list) > 4 or len(ver_list) < 1:
+            return -1  # version not supported
 
-        >>> x = AnyType()
-        >>> y = AnyType()
-        >>> x.is_interchangeable(y)
-        False
-        >>> x.is_interchangeable(x)
-        True
+        for ver_digit in ver_list:
+            if (ver_digit | 0xff) > 0xff:
+                return -1  # version not supported
 
-        :return: ``True`` if objects are close, ``False`` otherwise.
-        :rtype: ``bool``
-        """
-        return self is other
+        while len(ver_list) < 4:
+            ver_list.append(0)
 
-    def __hash__(self):
-        """AnyType objects are mutable, so raise type error on hash
-        calculation, as they cannot be safely used as dictionary keys.
-        """
-        raise TypeError("%s objects are unhashable" % self.__class__.__name__)
+        return (ver_list[0] << 24) + (ver_list[1] << 16) + (ver_list[2] << 8) + ver_list[3]

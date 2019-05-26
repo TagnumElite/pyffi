@@ -5,9 +5,10 @@
 .. toctree::
    :maxdepth: 3
 
+   errors
    formats/index
    spells/index
-   object_models
+   object_models/index
 
 """
 

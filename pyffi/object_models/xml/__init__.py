@@ -1,43 +1,72 @@
-"""Format classes and metaclasses for binary file formats described by an xml
+"""
+:mod:`pyffi.object_models.xml` --- XML File Format
+==================================================
+
+Format classes and metaclasses for binary file formats described by an xml
 file, and xml handler for converting the xml description into Python classes.
+
+Classes
+-------
+
+.. autoclass:: MetaFileFormat
+   :show-inheritance:
+   :members:
+
+.. autoclass:: FileFormat
+   :show-inheritance:
+   :members:
+
+.. autoclass:: StructAttribute
+   :show-inheritance:
+   :members:
+
+.. autoclass:: BitStructAttribute
+   :show-inheritance:
+   :members:
+
+.. autoclass:: XmlSaxHandler
+   :show-inheritance:
+   :members:
 """
 
-# ***** BEGIN LICENSE BLOCK *****
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
 #
-# Copyright (c) 2007-2012, Python File Format Interface
-# All rights reserved.
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
 #
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
 #
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
 #
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
 #
-# ***** END LICENSE BLOCK *****
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
 
 import logging
 import time  # for timing stuff
@@ -45,6 +74,7 @@ import xml.sax
 from typing import List, Dict
 
 import pyffi.object_models
+from pyffi.errors import XMLException
 from pyffi.object_models.xml.basic import BasicBase
 from pyffi.object_models.xml.bit_struct import BitStructBase
 from pyffi.object_models.xml.enum import EnumBase
@@ -288,12 +318,6 @@ class BitStructAttribute(object):
             self.ver2 = cls.version_number(self.ver2)
 
 
-class XmlError(Exception):
-    """The XML handler will throw this exception if something goes wrong while
-    parsing."""
-    pass
-
-
 # noinspection PyUnusedLocal
 class XmlSaxHandler(xml.sax.handler.ContentHandler):
     """This class contains all functions for parsing the xml and converting
@@ -446,7 +470,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
             try:
                 tag = self.tags_extra[name]
             except KeyError:
-                raise XmlError("error unknown element '%s'" % name)
+                raise XMLException("error unknown element '%s'" % name)
 
         # Check the stack, if the stack does not exist then we must be
         # at the root of the xml file, and the tag must be "fileformat".
@@ -454,7 +478,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         # so we can exit the function after pushing the tag on the stack.
         if not self.stack:
             if tag != self.tag_file:
-                raise XmlError("this is not a fileformat xml file")
+                raise XMLException("this is not a fileformat xml file")
             self.push_tag(tag)
             return
 
@@ -498,9 +522,12 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                 func = getattr(self, "start_parent_tag_%s" % self.inverse_tags_extra[self.current_tag])
                 func()
             except AttributeError:
-                raise XmlError("Unhandled tag `%s`" % name)
+                raise XMLException("Unhandled tag `%s`" % name)
             except KeyError:
-                raise XmlError("Unhandled tag `%s`" % name)
+                if self.current_tag in self.inverse_tags:
+                    pass
+                else:
+                    raise XMLException("Unhandled tag `%s`" % name)
 
     def start_parent_tag_struct(self):
         self.push_tag(self.__tag)
@@ -517,7 +544,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                 self.version_string)
             # (class_dict["_games"] is updated when reading the characters)
         else:
-            raise XmlError("Only add and version tags allowed in struct declaration")
+            raise XMLException("Only add and version tags allowed in struct declaration")
 
     def start_parent_tag_file(self):
         self.push_tag(self.__tag)
@@ -536,7 +563,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                     self.class_bases += (
                         getattr(self.cls, class_basename),)
                 except KeyError:
-                    raise XmlError(
+                    raise XMLException(
                         "typo, or forward declaration of struct %s"
                         % class_basename)
             else:
@@ -562,7 +589,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
             # check the class variables
             is_template = (self.__attrs.get("istemplate") == "1")
             if self.basic_class._is_template != is_template:
-                raise XmlError(
+                raise XMLException(
                     'class %s should have _is_template = %s'
                     % (self.class_name, is_template))
 
@@ -579,7 +606,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                 try:
                     typ = getattr(self.cls, typename)
                 except AttributeError:
-                    raise XmlError(
+                    raise XMLException(
                         "typo, or forward declaration of type %s"
                         % typename)
                 numbytes = typ.get_size()
@@ -595,7 +622,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
             try:
                 self.class_bases += (getattr(self.cls, typename),)
             except AttributeError:
-                raise XmlError(
+                raise XMLException(
                     "typo, or forward declaration of type %s" % typename)
             self.class_dict = {"__doc__": "",
                                "__module__": self.cls.__module__}
@@ -623,20 +650,20 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
             # (self.cls.games is updated when reading the characters)
 
         else:
-            raise XmlError("""
+            raise XMLException("""
         expected basic, alias, enum, bitstruct, struct, or version,
         but got %s instead""" % self.__name)
 
     def start_parent_tag_version(self):
-        raise XmlError("Version tag must not contain any sub tags")
+        raise XMLException("Version tag must not contain any sub tags")
 
     def start_parent_tag_alias(self):
-        raise XmlError("Alias tag must not contain any sub tags")
+        raise XMLException("Alias tag must not contain any sub tags")
 
     def start_parent_tag_enum(self):
         self.push_tag(self.__tag)
         if not self.__tag == self.tag_option:
-            raise XmlError("only option tags allowed in enum declaration")
+            raise XMLException("only option tags allowed in enum declaration")
         value = self.__attrs["value"]
         try:
             # note: use long rather than int to work around 0xffffffff
@@ -662,7 +689,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
             # check if extra bits must be inserted
             numextrabits = int(self.__attrs["value"]) - bitpos
             if numextrabits < 0:
-                raise XmlError("values of bitflags must be increasing")
+                raise XMLException("values of bitflags must be increasing")
             if numextrabits > 0:
                 self.class_dict["_attrs"].append(
                     BitStructAttribute(
@@ -676,7 +703,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                     self.cls,
                     dict(name=self.__attrs["name"], numbits=1)))
         else:
-            raise XmlError("Only bits tags allowed in struct type declaration")
+            raise XMLException("Only bits tags allowed in struct type declaration")
 
     def endElement(self, name):
         """Called at the end of each xml tag.
@@ -684,7 +711,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         Creates classes."""
 
         if not self.stack:
-            raise XmlError("Mismatching end element tag for element `%s`" % name)
+            raise XMLException("Mismatching end element tag for element `%s`" % name)
 
         try:
             tag = self.tags[name]
@@ -692,7 +719,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
             try:
                 tag = self.tags_extra[name]
             except KeyError:
-                raise XmlError("Error unknown element `%s`" % name)
+                raise XMLException("Error unknown element `%s`" % name)
 
         self.__name = name
         self.__attrs = None
@@ -701,7 +728,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         popped_tag = self.pop_tag()
 
         if popped_tag != tag:
-            raise XmlError("Mismatching end element tag for element `%s` (%d, %d)" % (name, tag, popped_tag))
+            raise XMLException("Mismatching end element tag for element `%s` (%d, %d)" % (name, tag, popped_tag))
         elif tag == self.tag_attribute:
             self.end_tag_attribute()
         elif tag == self.tag_struct:
@@ -721,10 +748,10 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
                 func = getattr(self, "end_tag_%s" % self.inverse_tags_extra[self.current_tag])
                 func()
             except AttributeError:
-                # raise XmlError("Unhandled tag `%s`" % name)
+                # raise XMLException("Unhandled tag `%s`" % name)
                 return
             except KeyError:
-                # raise XmlError("Unhandled tag `%s`" % name)
+                # raise XMLException("Unhandled tag `%s`" % name)
                 return
 
     def end_tag_attribute(self):
@@ -900,7 +927,7 @@ class XmlSaxHandler(xml.sax.handler.ContentHandler):
         elif self.stack[1] == self.tag_struct:
             games_dict = self.class_dict["_games"]
         else:
-            raise XmlError("Version parsing error at '%s'" % self.__chars)
+            raise XMLException("Version parsing error at '%s'" % self.__chars)
 
         # update the games_dict dictionary
         for game_str in (str(g.strip()) for g in self.__chars.split(',')):

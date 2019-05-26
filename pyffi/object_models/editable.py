@@ -1,52 +1,61 @@
-"""Implements abstract editor base classes.
+"""
+:mod:`pyffi.object_models.editable` --- Editable Types
+======================================================
+
+Implements abstract editor base classes.
 
 These abstract base classes provide an abstract layer for editing data in a
 graphical user interface.
 
-@todo: Make these into true abstract base classes, and implement and use the
+.. todo::
+    Make these into true abstract base classes, and implement and use the
     get_editor_value and set_editor_value functions in non-abstract derived
     classes.
 """
 
-# ***** BEGIN LICENSE BLOCK *****
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
 #
-# Copyright (c) 2007-2012, Python File Format Interface
-# All rights reserved.
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
 #
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
 #
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
 #
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
 #
-# ***** END LICENSE BLOCK *****
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
+
 
 class EditableBase(object):
     """The base class for all delegates."""
+
     def get_editor_value(self):
         """Return data as a value to initialize an editor with.
         Override this method.
@@ -66,6 +75,7 @@ class EditableBase(object):
         """
         raise NotImplementedError
 
+
 class EditableSpinBox(EditableBase):
     """Abstract base class for data that can be edited with a spin box that
     contains an integer. Override get_editor_minimum and get_editor_maximum to
@@ -74,6 +84,7 @@ class EditableSpinBox(EditableBase):
     Requirement: get_editor_value must return an ``int``, set_editor_value
     must take an ``int``.
     """
+
     def get_editor_value(self):
         return self.get_value()
 
@@ -85,6 +96,7 @@ class EditableSpinBox(EditableBase):
 
     def get_editor_maximum(self):
         return 0x7fffffff
+
 
 class EditableFloatSpinBox(EditableSpinBox):
     """Abstract base class for data that can be edited with a spin box that
@@ -98,6 +110,7 @@ class EditableFloatSpinBox(EditableSpinBox):
     def get_editor_decimals(self):
         return 5
 
+
 class EditableLineEdit(EditableBase):
     """Abstract base class for data that can be edited with a single line
     editor.
@@ -107,6 +120,7 @@ class EditableLineEdit(EditableBase):
     """
     pass
 
+
 class EditableTextEdit(EditableLineEdit):
     """Abstract base class for data that can be edited with a multiline editor.
 
@@ -114,6 +128,7 @@ class EditableTextEdit(EditableLineEdit):
     must take a ``str``.
     """
     pass
+
 
 class EditableComboBox(EditableBase):
     """Abstract base class for data that can be edited with combo boxes.
@@ -127,11 +142,13 @@ class EditableComboBox(EditableBase):
         """Tuple of strings, each string describing an item."""
         return ()
 
+
 class EditableBoolComboBox(EditableComboBox):
     """Class for data that can be edited with a bool combo box.
 
     Requirement: get_value must return a ``bool``, set_value must take a ``bool``.
     """
+
     def get_editor_keys(self):
         return ("False", "True")
 
@@ -145,4 +162,3 @@ class EditableBoolComboBox(EditableComboBox):
 
     def get_editor_value(self):
         return 1 if self.get_value() else 0
-

@@ -1,44 +1,66 @@
-"""This module provides a base class and a metaclass for parsing an XSD
+"""
+:mod:`pyffi.object_models.xsd` --- XSD File Format
+==================================================
+
+This module provides a base class and a metaclass for parsing an XSD
 schema and providing an interface for writing XML files that follow this
 schema.
+
+.. autoclass:: MetaFileFormat
+   :show-inheritance:
+   :members:
+
+.. autoclass:: FileFormat
+   :show-inheritance:
+   :members:
+
+.. autoclass:: Tree
+   :show-inheritance:
+   :members:
+
+.. autoclass:: Type
+   :show-inheritance:
+   :members:
 """
 
-# ***** BEGIN LICENSE BLOCK *****
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
 #
-# Copyright (c) 2007-2012, Python File Format Interface
-# All rights reserved.
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
 #
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
 #
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
 #
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
 #
-# ***** END LICENSE BLOCK *****
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
 
 import logging
 import time
@@ -46,6 +68,7 @@ import weakref
 import xml.etree.cElementTree
 
 import pyffi.object_models
+
 
 class Tree(object):
     """Converts an xsd element tree into a tree of nodes that contain
@@ -183,18 +206,18 @@ class Tree(object):
             # now set attributes for this node
             if self.name:
                 # could have self._type or not, but should not have a self.ref
-                assert(not self.ref) # debug
+                assert (not self.ref)  # debug
                 self.pyname = fileformat.name_attribute(self.name)
                 node = self
             elif self.ref:
                 # no name and no type should be defined
-                assert(not self.name) # debug
-                assert(not self.type_) # debug
+                assert (not self.name)  # debug
+                assert (not self.type_)  # debug
                 self.pyname = fileformat.name_attribute(self.ref)
                 # resolve reference
                 for child in self.schema.children:
                     if (isinstance(child, self.__class__)
-                        and child.name == self.ref):
+                            and child.name == self.ref):
                         node = child
                         break
                 else:
@@ -419,7 +442,7 @@ class Tree(object):
 
     class Selector(Node):
         pass
-        
+
     class Sequence(Node):
         pass
 
@@ -489,6 +512,7 @@ class Tree(object):
             setattr(cls, class_name, class_)
             return class_(element, parent)
 
+
 class MetaFileFormat(pyffi.object_models.MetaFileFormat):
     """The MetaFileFormat metaclass transforms the XSD description of a
     xml format into a bunch of classes which can be directly used to
@@ -525,7 +549,7 @@ class MetaFileFormat(pyffi.object_models.MetaFileFormat):
                 # create nodes for every element in the XSD tree
                 schema = Tree.node_factory(
                     # XXX cElementTree python bug when running nosetests
-                    #xml.etree.cElementTree.parse(xsdfile).getroot(), None)
+                    # xml.etree.cElementTree.parse(xsdfile).getroot(), None)
                     xml.etree.ElementTree.parse(xsdfile).getroot(), None)
             finally:
                 xsdfile.close()
@@ -537,6 +561,7 @@ class MetaFileFormat(pyffi.object_models.MetaFileFormat):
             cls.logger.debug("Parsing finished in %.3f seconds."
                              % (time.clock() - start))
 
+
 class Type(object):
     _node = None
 
@@ -546,20 +571,21 @@ class Type(object):
         # TODO initialize all attributes
         self._node.instantiate(self)
 
+
 class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
     """This class can be used as a base class for file formats. It implements
     a number of useful functions such as walking over directory trees and a
     default attribute naming function.
     """
-    xsdFileName = None #: Override.
-    xsdFilePath = None #: Override.
+    xsdFileName = None  #: Override.
+    xsdFilePath = None  #: Override.
     logger = logging.getLogger("pyffi.object_models.xsd")
 
     @classmethod
     def name_parts(cls, name):
         # introduces extra splits for some names
-        name = name.replace("NMTOKEN", "NM_TOKEN") # name token
-        name = name.replace("IDREF", "ID_REF") # identifier reference
+        name = name.replace("NMTOKEN", "NM_TOKEN")  # name token
+        name = name.replace("IDREF", "ID_REF")  # identifier reference
         # do the split
         return pyffi.object_models.FileFormat.name_parts(name)
 

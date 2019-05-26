@@ -1,55 +1,70 @@
-"""Format classes and metaclasses for binary file formats described by a
+"""
+:mod:`pyffi.object_models.mex` --- MEX File Format
+==================================================
+
+Format classes and metaclasses for binary file formats described by a
 mexscript file, and mexscript parser for converting the mexscript description
 into Python classes.
+
+.. autoclass:: _MetaMexFileFormat
+   :show-inheritance:
+   :members:
+
+.. autoclass:: MexFileFormat
+   :show-inheritance:
+   :members:
 """
 
-# ***** BEGIN LICENSE BLOCK *****
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
 #
-# Copyright (c) 2007-2012, Python File Format Interface
-# All rights reserved.
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
 #
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
 #
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
 #
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
 #
-# ***** END LICENSE BLOCK *****
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
 
 import logging
 
 import pyffi.object_models
 import pyffi.object_models.simple_type
 
+
 class _MetaMexFileFormat(pyffi.object_models.MetaFileFormat):
     """Converts the mex script into an archive parser."""
 
     def __init__(cls, name, bases, dct):
-        super(_MetaMexScriptFileFormat, cls).__init__(name, bases, dct)
+        super(_MetaMexFileFormat, cls).__init__(name, bases, dct)
 
         # open the mex script
         mexfilename = dct.get('mexfilename')
@@ -57,12 +72,13 @@ class _MetaMexFileFormat(pyffi.object_models.MetaFileFormat):
             mexfile = cls.openfile(mexfilename, cls.mexfilepath)
             # XXX todo: parse the script
 
+
 class MexFileFormat(pyffi.object_models.FileFormat):
     """This class can be used as a base class for file formats
     described by a mexscript file.
     """
-    mexfilename = None #: Override.
-    mexfilepath = None #: Override.
+    mexfilename = None  #: Override.
+    mexfilepath = None  #: Override.
     logger = logging.getLogger("pyffi.object_models.mex")
 
     class FileInfo:
@@ -76,7 +92,7 @@ class MexFileFormat(pyffi.object_models.FileFormat):
 
         fileformat = None
         """Potentially, the format of the file."""
-        
+
         offset = None
         """Offset in the archive."""
 

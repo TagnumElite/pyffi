@@ -1,54 +1,62 @@
-"""Implements common basic types in XML file format descriptions."""
+"""
+:mod:`pyffi.object_models.common` --- Common Types
+==================================================
 
-# ***** BEGIN LICENSE BLOCK *****
-#
-# Copyright (c) 2007-2012, Python File Format Interface.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials provided
-#      with the distribution.
-#
-#    * Neither the name of the Python File Format Interface
-#      project nor the names of its contributors may be used to endorse
-#      or promote products derived from this software without specific
-#      prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# ***** END LICENSE BLOCK *****
+Implements common basic types in XML file format descriptions.
+"""
 
-import struct
+# ------------------------------------------------------------------------
+#  ***** BEGIN LICENSE BLOCK *****
+#
+#  Copyright © 2007-2019, Python File Format Interface.
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
+#
+#     * Neither the name of the Python File Format Interface
+#       project nor the names of its contributors may be used to endorse
+#       or promote products derived from this software without specific
+#       prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
+#
+#  ***** END LICENSE BLOCK *****
+# ------------------------------------------------------------------------
+
 import logging
+import struct
 
-from pyffi.object_models.xml.basic import BasicBase
-from pyffi.object_models.editable import EditableSpinBox
+from pyffi.object_models.editable import EditableBoolComboBox
 from pyffi.object_models.editable import EditableFloatSpinBox
 from pyffi.object_models.editable import EditableLineEdit
-from pyffi.object_models.editable import EditableBoolComboBox
+from pyffi.object_models.editable import EditableSpinBox
+from pyffi.object_models.xml.basic import BasicBase
 
 # TODO get rid of these
 _b = b''
 _b00 = b'\x00'
+
 
 def _as_bytes(value):
     """Helper function which converts a string to bytes (this is useful for
@@ -72,6 +80,7 @@ def _as_bytes(value):
     else:
         raise TypeError("expected str")
 
+
 def _as_str(value):
     """Helper function to convert bytes back to str. This is used in
     the __str__ functions for simple string types. If you want a custom
@@ -83,6 +92,7 @@ def _as_str(value):
         return value
     else:
         raise TypeError("expected bytes")
+
 
 class Int(BasicBase, EditableSpinBox):
     """Basic implementation of a 32-bit signed integer type. Also serves as a
@@ -119,10 +129,10 @@ class Int(BasicBase, EditableSpinBox):
     '0x44332211'
     """
 
-    _min = -0x80000000 #: Minimum value.
+    _min = -0x80000000  #: Minimum value.
     _max = 0x7fffffff  #: Maximum value.
-    _struct = 'i'      #: Character used to represent type in struct.
-    _size = 4          #: Number of bytes.
+    _struct = 'i'  #: Character used to represent type in struct.
+    _size = 4  #: Number of bytes.
 
     def __init__(self, **kwargs):
         """Initialize the integer."""
@@ -146,13 +156,13 @@ class Int(BasicBase, EditableSpinBox):
             val = int(value)
         except ValueError:
             try:
-                val = int(value, 16) # for '0x...' strings
+                val = int(value, 16)  # for '0x...' strings
             except ValueError:
                 try:
-                    val = getattr(self, value) # for enums
+                    val = getattr(self, value)  # for enums
                 except AttributeError:
                     raise ValueError(
-                        "cannot convert value '%s' to integer"%value)
+                        "cannot convert value '%s' to integer" % value)
         if val < self._min or val > self._max:
             raise ValueError('value out of range (%i)' % val)
         self._value = val
@@ -206,12 +216,14 @@ class Int(BasicBase, EditableSpinBox):
         """
         return self._max
 
+
 class UInt(Int):
     """Implementation of a 32-bit unsigned integer type."""
     _min = 0
     _max = 0xffffffff
     _struct = 'I'
     _size = 4
+
 
 class Int64(Int):
     """Implementation of a 64-bit signed integer type."""
@@ -220,12 +232,14 @@ class Int64(Int):
     _struct = 'q'
     _size = 8
 
+
 class UInt64(Int):
     """Implementation of a 64-bit unsigned integer type."""
     _min = 0
     _max = 0xffffffffffffffff
     _struct = 'Q'
     _size = 8
+
 
 class Byte(Int):
     """Implementation of a 8-bit signed integer type."""
@@ -234,12 +248,14 @@ class Byte(Int):
     _struct = 'b'
     _size = 1
 
+
 class UByte(Int):
     """Implementation of a 8-bit unsigned integer type."""
     _min = 0
     _max = 0xff
     _struct = 'B'
     _size = 1
+
 
 class Short(Int):
     """Implementation of a 16-bit signed integer type."""
@@ -248,6 +264,7 @@ class Short(Int):
     _struct = 'h'
     _size = 2
 
+
 class UShort(UInt):
     """Implementation of a 16-bit unsigned integer type."""
     _min = 0
@@ -255,10 +272,12 @@ class UShort(UInt):
     _struct = 'H'
     _size = 2
 
+
 class ULittle32(UInt):
     """Little endian 32 bit unsigned integer (ignores specified data
     byte order).
     """
+
     def read(self, stream, data):
         """Read value from stream.
 
@@ -275,6 +294,7 @@ class ULittle32(UInt):
         :type stream: file
         """
         stream.write(struct.pack('<' + self._struct, self._value))
+
 
 class Bool(UByte, EditableBoolComboBox):
     """Simple bool implementation."""
@@ -293,6 +313,7 @@ class Bool(UByte, EditableBoolComboBox):
         :type value: bool
         """
         self._value = 1 if value else 0
+
 
 class Char(BasicBase, EditableLineEdit):
     """Implementation of an (unencoded) 8-bit character."""
@@ -315,8 +336,8 @@ class Char(BasicBase, EditableLineEdit):
         :param value: The value to assign (bytes of length 1).
         :type value: bytes
         """
-        assert(isinstance(value, bytes))
-        assert(len(value) == 1)
+        assert (isinstance(value, bytes))
+        assert (len(value) == 1)
         self._value = value
 
     def read(self, stream, data):
@@ -351,6 +372,7 @@ class Char(BasicBase, EditableLineEdit):
         :return: An immutable object that can be used as a hash.
         """
         self.get_value()
+
 
 class Float(BasicBase, EditableFloatSpinBox):
     """Implementation of a 32-bit float."""
@@ -412,7 +434,7 @@ class Float(BasicBase, EditableFloatSpinBox):
 
         :return: An immutable object that can be used as a hash.
         """
-        return int(self.get_value()*200)
+        return int(self.get_value() * 200)
 
 
 class HFloat(Float, EditableFloatSpinBox):
@@ -430,166 +452,166 @@ class HFloat(Float, EditableFloatSpinBox):
         if not exponent: return float()
         bits = ((value & 32768) << 16) | \
                ((exponent + 0x0001C000) | mantissa) << 13
-        return struct.unpack(bom+"f", struct.pack(bom+"I", bits))[0]
+        return struct.unpack(bom + "f", struct.pack(bom + "I", bits))[0]
 
     @staticmethod
     def fromFloatFast(bom, value):
         if value > 131008.000:
             bits = 0x47FFE000
         else:
-            bits = struct.unpack(bom+"I", struct.pack(bom+"f", value))[0]
+            bits = struct.unpack(bom + "I", struct.pack(bom + "f", value))[0]
         if (bits & 0x7FFFFFFF) < 0x38800000: return int()
         result = ((bits + 0x48000000) & ~0x3ff) | (bits & 0x3ff)
         return ((result >> 13) & 0xFFFF) | ((bits & 0x80000000) >> 16)
 
     @staticmethod
-    def half_sub( ha, hb ):
-        return half_add( ha, hb ^ 0x8000 );
+    def half_sub(ha, hb):
+        return half_add(ha, hb ^ 0x8000);
 
     @staticmethod
-    def h_sels( test, a, b ):
+    def h_sels(test, a, b):
         mask = test >> 31
         return (a & mask) | (b & ~mask)
 
     @staticmethod
-    def h_selb( mask, a, b ):
+    def h_selb(mask, a, b):
         return (a & b) | (b & ~mask)
 
     @staticmethod
-    def h_cntlz( x ):
-        x1  =   x  | (x >> 1)
-        x2  =   x1 >> 2
-        x3  =   x1 | x2
-        x4  =   x3 >> 4
-        x5  =   x3 | x4
-        x6  =   x5 >> 8
-        x7  =   x5 | x6
-        x8  =   x7 >> 16
-        x9  =    x7 | x8
-        xA  =  ~x9
-        xB  =   xA >> 1
-        xC  =   xB & 0x55555555
-        xD  =   xA - xC
-        xE  =   xD & 0x33333333
-        xF  =   xD >> 2
-        x10 =   xF & 0x33333333
-        x11 =   xE + x10
-        x12 =   x11 >> 4
-        x13 =   x11 + x12
-        x14 =   x13 & 0x0f0f0f0f
-        x15 =   x14 >> 8
-        x16 =   x14 + x15
-        x19 =   (x16 + (x16 >> 16)) & 0x0000003f
-        return ( x19 )
+    def h_cntlz(x):
+        x1 = x | (x >> 1)
+        x2 = x1 >> 2
+        x3 = x1 | x2
+        x4 = x3 >> 4
+        x5 = x3 | x4
+        x6 = x5 >> 8
+        x7 = x5 | x6
+        x8 = x7 >> 16
+        x9 = x7 | x8
+        xA = ~x9
+        xB = xA >> 1
+        xC = xB & 0x55555555
+        xD = xA - xC
+        xE = xD & 0x33333333
+        xF = xD >> 2
+        x10 = xF & 0x33333333
+        x11 = xE + x10
+        x12 = x11 >> 4
+        x13 = x11 + x12
+        x14 = x13 & 0x0f0f0f0f
+        x15 = x14 >> 8
+        x16 = x14 + x15
+        x19 = (x16 + (x16 >> 16)) & 0x0000003f
+        return (x19)
 
     @staticmethod
     def toFloatAccurate(bom, value):
-        h                     = int(value)
-        h_e_mask              = 0x00007c00
-        h_m_mask              = 0x000003ff
-        h_s_mask              = 0x00008000
-        h_f_s_pos_offset      = 0x00000010
-        h_f_e_pos_offset      = 0x0000000d
-        h_f_bias_offset       = 0x0001c000
-        f_e_mask              = 0x7f800000
-        f_m_mask              = 0x007fffff
-        h_f_e_denorm_bias     = 0x0000007e
-        h_f_m_denorm_sa_bias  = 0x00000008
-        f_e_pos               = 0x00000017
-        h_e_mask_minus_one    = 0x00007bff
-        h_e                   = h & h_e_mask;
-        h_m                   = h & h_m_mask
-        h_s                   = h & h_s_mask
-        h_e_f_bias            = h_e + h_f_bias_offset
-        h_m_nlz               = HFloat.h_cntlz( h_m )
-        f_s                   = h_s << h_f_s_pos_offset
-        f_e                   = h_e_f_bias << h_f_e_pos_offset
-        f_m                   = h_m << h_f_e_pos_offset
-        f_em                  = f_e | f_m
-        h_f_m_sa              = h_m_nlz - h_f_m_denorm_sa_bias
-        f_e_denorm_unpacked   = h_f_e_denorm_bias -   h_f_m_sa
-        h_f_m                 = h_m << h_f_m_sa if h_m else 0
-        f_m_denorm            = h_f_m & f_m_mask
-        f_e_denorm            = f_e_denorm_unpacked << f_e_pos
-        f_em_denorm           = f_e_denorm | f_m_denorm
-        f_em_nan              = f_e_mask | f_m
-        is_e_eqz_msb          = h_e - 1
-        is_m_nez_msb          = -h_m
-        is_e_flagged_msb      = h_e_mask_minus_one - h_e
-        is_zero_msb           = is_e_eqz_msb & ~is_m_nez_msb
-        is_inf_msb            = is_e_flagged_msb & ~is_m_nez_msb
-        is_denorm_msb         = is_m_nez_msb & is_e_eqz_msb
-        is_nan_msb            = is_e_flagged_msb & is_m_nez_msb
-        is_zero               = is_zero_msb >> 31
-        f_zero_result         = f_em & ~is_zero
-        f_denorm_result       = HFloat.h_sels( is_denorm_msb, f_em_denorm, f_zero_result  )
-        f_inf_result          = HFloat.h_sels( is_inf_msb,    f_e_mask,    f_denorm_result)
-        f_nan_result          = HFloat.h_sels( is_nan_msb,    f_em_nan,    f_inf_result   )
-        f_result              = f_s | f_nan_result
-        return struct.unpack(bom+"f", struct.pack(bom+"I", f_result))[0]
+        h = int(value)
+        h_e_mask = 0x00007c00
+        h_m_mask = 0x000003ff
+        h_s_mask = 0x00008000
+        h_f_s_pos_offset = 0x00000010
+        h_f_e_pos_offset = 0x0000000d
+        h_f_bias_offset = 0x0001c000
+        f_e_mask = 0x7f800000
+        f_m_mask = 0x007fffff
+        h_f_e_denorm_bias = 0x0000007e
+        h_f_m_denorm_sa_bias = 0x00000008
+        f_e_pos = 0x00000017
+        h_e_mask_minus_one = 0x00007bff
+        h_e = h & h_e_mask;
+        h_m = h & h_m_mask
+        h_s = h & h_s_mask
+        h_e_f_bias = h_e + h_f_bias_offset
+        h_m_nlz = HFloat.h_cntlz(h_m)
+        f_s = h_s << h_f_s_pos_offset
+        f_e = h_e_f_bias << h_f_e_pos_offset
+        f_m = h_m << h_f_e_pos_offset
+        f_em = f_e | f_m
+        h_f_m_sa = h_m_nlz - h_f_m_denorm_sa_bias
+        f_e_denorm_unpacked = h_f_e_denorm_bias - h_f_m_sa
+        h_f_m = h_m << h_f_m_sa if h_m else 0
+        f_m_denorm = h_f_m & f_m_mask
+        f_e_denorm = f_e_denorm_unpacked << f_e_pos
+        f_em_denorm = f_e_denorm | f_m_denorm
+        f_em_nan = f_e_mask | f_m
+        is_e_eqz_msb = h_e - 1
+        is_m_nez_msb = -h_m
+        is_e_flagged_msb = h_e_mask_minus_one - h_e
+        is_zero_msb = is_e_eqz_msb & ~is_m_nez_msb
+        is_inf_msb = is_e_flagged_msb & ~is_m_nez_msb
+        is_denorm_msb = is_m_nez_msb & is_e_eqz_msb
+        is_nan_msb = is_e_flagged_msb & is_m_nez_msb
+        is_zero = is_zero_msb >> 31
+        f_zero_result = f_em & ~is_zero
+        f_denorm_result = HFloat.h_sels(is_denorm_msb, f_em_denorm, f_zero_result)
+        f_inf_result = HFloat.h_sels(is_inf_msb, f_e_mask, f_denorm_result)
+        f_nan_result = HFloat.h_sels(is_nan_msb, f_em_nan, f_inf_result)
+        f_result = f_s | f_nan_result
+        return struct.unpack(bom + "f", struct.pack(bom + "I", f_result))[0]
 
     @staticmethod
     def fromFloatAccurate(bom, value):
-        f                          = struct.unpack(bom+"I", struct.pack(bom+"f", value))[0]
-        one                        = 0x00000001
-        f_s_mask                   = 0x80000000
-        f_e_mask                   = 0x7f800000
-        f_m_mask                   = 0x007fffff
-        f_m_hidden_bit             = 0x00800000
-        f_m_round_bit              = 0x00001000
-        f_snan_mask                = 0x7fc00000
-        f_e_pos                    = 0x00000017
-        h_e_pos                    = 0x0000000a
-        h_e_mask                   = 0x00007c00
-        h_snan_mask                = 0x00007e00
-        h_e_mask_value             = 0x0000001f
-        f_h_s_pos_offset           = 0x00000010
-        f_h_bias_offset            = 0x00000070
-        f_h_m_pos_offset           = 0x0000000d
-        h_nan_min                  = 0x00007c01
-        f_h_e_biased_flag          = 0x0000008f
-        f_s                        =  f & f_s_mask
-        f_e                        =  f & f_e_mask
-        h_s                        =  f_s >> f_h_s_pos_offset
-        f_m                        =  f & f_m_mask
-        f_e_amount                 =  f_e >> f_e_pos
-        f_e_half_bias              =  f_e_amount - f_h_bias_offset
-        f_snan                     =  f & f_snan_mask
-        f_m_round_mask             =  f_m & f_m_round_bit
-        f_m_round_offset           =  f_m_round_mask <<  one
-        f_m_rounded                =  f_m + f_m_round_offset
-        f_m_denorm_sa              =  one - f_e_half_bias
-        f_m_with_hidden            =  f_m_rounded | f_m_hidden_bit
-        f_m_denorm                 =  f_m_with_hidden >> f_m_denorm_sa if f_m_denorm_sa >= 0 else 0
-        h_m_denorm                 =  f_m_denorm >> f_h_m_pos_offset
-        f_m_rounded_overflow       =  f_m_rounded & f_m_hidden_bit
-        m_nan                      =  f_m >> f_h_m_pos_offset
-        h_em_nan                   =  h_e_mask | m_nan
-        h_e_norm_overflow_offset   =  f_e_half_bias + 1
-        h_e_norm_overflow          =  h_e_norm_overflow_offset << h_e_pos
-        h_e_norm                   =  f_e_half_bias << h_e_pos
-        h_m_norm                   =  f_m_rounded >> f_h_m_pos_offset
-        h_em_norm                  =  h_e_norm | h_m_norm
-        is_h_ndenorm_msb           =  f_h_bias_offset - f_e_amount
-        is_f_e_flagged_msb         =  f_h_e_biased_flag - f_e_half_bias
-        is_h_denorm_msb            = ~is_h_ndenorm_msb
-        is_f_m_eqz_msb             =  f_m   - 1
-        is_h_nan_eqz_msb           =  m_nan - 1
-        is_f_inf_msb               =  is_f_e_flagged_msb & is_f_m_eqz_msb
-        is_f_nan_underflow_msb     =  is_f_e_flagged_msb & is_h_nan_eqz_msb
-        is_e_overflow_msb          =  h_e_mask_value - f_e_half_bias
-        is_h_inf_msb               =  is_e_overflow_msb |  is_f_inf_msb
-        is_f_nsnan_msb             =  f_snan - f_snan_mask
-        is_m_norm_overflow_msb     = -f_m_rounded_overflow
-        is_f_snan_msb              = ~is_f_nsnan_msb
-        h_em_overflow_result       = HFloat.h_sels( is_m_norm_overflow_msb, h_e_norm_overflow, h_em_norm                 )
-        h_em_nan_result            = HFloat.h_sels( is_f_e_flagged_msb,     h_em_nan,          h_em_overflow_result      )
-        h_em_nan_underflow_result  = HFloat.h_sels( is_f_nan_underflow_msb, h_nan_min,         h_em_nan_result           )
-        h_em_inf_result            = HFloat.h_sels( is_h_inf_msb,           h_e_mask,          h_em_nan_underflow_result )
-        h_em_denorm_result         = HFloat.h_sels( is_h_denorm_msb,        h_m_denorm,        h_em_inf_result           )
-        h_em_snan_result           = HFloat.h_sels( is_f_snan_msb,          h_snan_mask,       h_em_denorm_result        )
-        h_result                   =  h_s | h_em_snan_result
-        return  h_result
+        f = struct.unpack(bom + "I", struct.pack(bom + "f", value))[0]
+        one = 0x00000001
+        f_s_mask = 0x80000000
+        f_e_mask = 0x7f800000
+        f_m_mask = 0x007fffff
+        f_m_hidden_bit = 0x00800000
+        f_m_round_bit = 0x00001000
+        f_snan_mask = 0x7fc00000
+        f_e_pos = 0x00000017
+        h_e_pos = 0x0000000a
+        h_e_mask = 0x00007c00
+        h_snan_mask = 0x00007e00
+        h_e_mask_value = 0x0000001f
+        f_h_s_pos_offset = 0x00000010
+        f_h_bias_offset = 0x00000070
+        f_h_m_pos_offset = 0x0000000d
+        h_nan_min = 0x00007c01
+        f_h_e_biased_flag = 0x0000008f
+        f_s = f & f_s_mask
+        f_e = f & f_e_mask
+        h_s = f_s >> f_h_s_pos_offset
+        f_m = f & f_m_mask
+        f_e_amount = f_e >> f_e_pos
+        f_e_half_bias = f_e_amount - f_h_bias_offset
+        f_snan = f & f_snan_mask
+        f_m_round_mask = f_m & f_m_round_bit
+        f_m_round_offset = f_m_round_mask << one
+        f_m_rounded = f_m + f_m_round_offset
+        f_m_denorm_sa = one - f_e_half_bias
+        f_m_with_hidden = f_m_rounded | f_m_hidden_bit
+        f_m_denorm = f_m_with_hidden >> f_m_denorm_sa if f_m_denorm_sa >= 0 else 0
+        h_m_denorm = f_m_denorm >> f_h_m_pos_offset
+        f_m_rounded_overflow = f_m_rounded & f_m_hidden_bit
+        m_nan = f_m >> f_h_m_pos_offset
+        h_em_nan = h_e_mask | m_nan
+        h_e_norm_overflow_offset = f_e_half_bias + 1
+        h_e_norm_overflow = h_e_norm_overflow_offset << h_e_pos
+        h_e_norm = f_e_half_bias << h_e_pos
+        h_m_norm = f_m_rounded >> f_h_m_pos_offset
+        h_em_norm = h_e_norm | h_m_norm
+        is_h_ndenorm_msb = f_h_bias_offset - f_e_amount
+        is_f_e_flagged_msb = f_h_e_biased_flag - f_e_half_bias
+        is_h_denorm_msb = ~is_h_ndenorm_msb
+        is_f_m_eqz_msb = f_m - 1
+        is_h_nan_eqz_msb = m_nan - 1
+        is_f_inf_msb = is_f_e_flagged_msb & is_f_m_eqz_msb
+        is_f_nan_underflow_msb = is_f_e_flagged_msb & is_h_nan_eqz_msb
+        is_e_overflow_msb = h_e_mask_value - f_e_half_bias
+        is_h_inf_msb = is_e_overflow_msb | is_f_inf_msb
+        is_f_nsnan_msb = f_snan - f_snan_mask
+        is_m_norm_overflow_msb = -f_m_rounded_overflow
+        is_f_snan_msb = ~is_f_nsnan_msb
+        h_em_overflow_result = HFloat.h_sels(is_m_norm_overflow_msb, h_e_norm_overflow, h_em_norm)
+        h_em_nan_result = HFloat.h_sels(is_f_e_flagged_msb, h_em_nan, h_em_overflow_result)
+        h_em_nan_underflow_result = HFloat.h_sels(is_f_nan_underflow_msb, h_nan_min, h_em_nan_result)
+        h_em_inf_result = HFloat.h_sels(is_h_inf_msb, h_e_mask, h_em_nan_underflow_result)
+        h_em_denorm_result = HFloat.h_sels(is_h_denorm_msb, h_m_denorm, h_em_inf_result)
+        h_em_snan_result = HFloat.h_sels(is_f_snan_msb, h_snan_mask, h_em_denorm_result)
+        h_result = h_s | h_em_snan_result
+        return h_result
 
     toFloat = toFloatAccurate
 
@@ -603,7 +625,7 @@ class HFloat(Float, EditableFloatSpinBox):
         """
         bom = data._byte_order
         boi = bom + "H"
-        self._value = HFloat.toFloat(bom, struct.unpack(boi,stream.read(2))[0])
+        self._value = HFloat.toFloat(bom, struct.unpack(boi, stream.read(2))[0])
 
     def write(self, stream, data):
         """Write value to stream.
@@ -635,6 +657,7 @@ class HFloat(Float, EditableFloatSpinBox):
         """
         return HFloat.fromFloat(self.get_value())
 
+
 class ZString(BasicBase, EditableLineEdit):
     """String of variable length (null terminated).
 
@@ -655,7 +678,7 @@ class ZString(BasicBase, EditableLineEdit):
     >>> str(m)
     'Hi There!'
     """
-    _maxlen = 1000 #: The maximum length.
+    _maxlen = 1000  #: The maximum length.
 
     def __init__(self, **kwargs):
         """Initialize the string."""
@@ -726,6 +749,7 @@ class ZString(BasicBase, EditableLineEdit):
         :return: An immutable object that can be used as a hash.
         """
         return self._value
+
 
 class FixedString(BasicBase, EditableLineEdit):
     """String of fixed length. Default length is 0, so you must override
@@ -811,6 +835,7 @@ class FixedString(BasicBase, EditableLineEdit):
         :return: An immutable object that can be used as a hash.
         """
         return self._value
+
 
 class SizedString(BasicBase, EditableLineEdit):
     """Basic type for strings. The type starts with an unsigned int which
@@ -899,8 +924,10 @@ class SizedString(BasicBase, EditableLineEdit):
                                  len(self._value)))
         stream.write(self._value)
 
+
 class UndecodedData(BasicBase):
     """Basic type for undecoded data trailing at the end of a file."""
+
     def __init__(self, **kwargs):
         BasicBase.__init__(self, **kwargs)
         self._value = b''
@@ -955,4 +982,3 @@ class UndecodedData(BasicBase):
         :type stream: file
         """
         stream.write(self._value)
-
