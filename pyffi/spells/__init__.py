@@ -135,12 +135,9 @@ the file format class of the files it can toast.
 # ------------------------------------------------------------------------
 
 
-from configparser import ConfigParser
-from copy import deepcopy
-import gc
-
-import logging  # Logger
 import concurrent.futures  # ProcessPoolExecutor
+import gc
+import logging  # Logger
 import multiprocessing  # current_process, cpu_count
 import optparse
 import os  # remove
@@ -149,9 +146,12 @@ import re  # for regex parsing (--skip, --only)
 import shlex  # shlex.split for parsing option lists in ini files
 import subprocess
 import tempfile
+from configparser import ConfigParser
+from copy import deepcopy
 
 import pyffi  # for pyffi.__version__
-import pyffi.object_models  # pyffi.object_models.FileFormat
+import pyffi.engines  # pyffi.engines.FileFormat
+import pyffi.object_models
 
 
 class Spell(object):
@@ -162,7 +162,7 @@ class Spell(object):
     """
 
     data = None
-    """The :class:`~pyffi.object_models.FileFormat.Data` instance
+    """The :class:`~pyffi.engines.FileFormat.Data` instance
     this spell acts on."""
 
     stream = None
@@ -209,8 +209,8 @@ class Spell(object):
         self.toaster = toaster if toaster else Toaster()
 
     def _datainspect(self):
-        """This is called after :meth:`pyffi.object_models.FileFormat.Data.inspect` has
-        been called, and before :meth:`pyffi.object_models.FileFormat.Data.read` is
+        """This is called after :meth:`pyffi.engines.FileFormat.Data.inspect` has
+        been called, and before :meth:`pyffi.engines.FileFormat.Data.read` is
         called.
 
         :return: ``True`` if the file must be processed, ``False`` otherwise.
@@ -220,8 +220,8 @@ class Spell(object):
         return True
 
     def datainspect(self):
-        """This is called after :meth:`pyffi.object_models.FileFormat.Data.inspect` has
-        been called, and before :meth:`pyffi.object_models.FileFormat.Data.read` is
+        """This is called after :meth:`pyffi.engines.FileFormat.Data.inspect` has
+        been called, and before :meth:`pyffi.engines.FileFormat.Data.read` is
         called. Override this function for customization.
 
         :return: ``True`` if the file must be processed, ``False`` otherwise.
@@ -458,6 +458,7 @@ class SpellGroupBase(Spell):
 
 class SpellGroupSeriesBase(SpellGroupBase):
     """Base class for running spells in series."""
+
     def recurse(self, branch=None):
         """Recurse spells in series."""
         for spell in self.spells:
@@ -490,6 +491,7 @@ class SpellGroupParallelBase(SpellGroupBase):
     """Base class for running spells in parallel (that is, with only
     a single recursion in the tree).
     """
+
     def branchinspect(self, branch):
         """Inspect spells with :meth:`Spell.branchinspect` (not all checks are
         executed, only keeps going until a spell inspection returns ``True``).
@@ -503,7 +505,7 @@ class SpellGroupParallelBase(SpellGroupBase):
 
     def branchexit(self, branch):
         for spell in self.spells:
-             spell.branchexit(branch)
+            spell.branchexit(branch)
 
     def dataentry(self):
         """Look into every spell with :meth:`Spell.dataentry`."""
@@ -528,8 +530,8 @@ def SpellGroupSeries(*args):
                 {"SPELLCLASSES": args,
                  "SPELLNAME":
                      " | ".join(spellclass.SPELLNAME for spellclass in args),
-                 "READONLY": 
-                      all(spellclass.READONLY for spellclass in args)})
+                 "READONLY":
+                     all(spellclass.READONLY for spellclass in args)})
 
 
 def SpellGroupParallel(*args):
@@ -539,8 +541,9 @@ def SpellGroupParallel(*args):
                 {"SPELLCLASSES": args,
                  "SPELLNAME":
                      " & ".join(spellclass.SPELLNAME for spellclass in args),
-                 "READONLY": 
-                      all(spellclass.READONLY for spellclass in args)})
+                 "READONLY":
+                     all(spellclass.READONLY for spellclass in args)})
+
 
 class SpellApplyPatch(Spell):
     """A spell for applying a patch on files."""
@@ -611,6 +614,7 @@ def _toaster_job(args):
 
     class multiprocessing_fake_logger(fake_logger):
         """Simple logger which works well along with multiprocessing on all platforms."""
+
         @classmethod
         def _log(cls, level, level_str, msg):
             # do not actually log, just print
@@ -635,6 +639,7 @@ def _toaster_job(args):
     # toast exit code
     toaster.spellclass.toastexit(toaster)
 
+
 # CPU_COUNT is used for default number of jobs
 if multiprocessing:
     try:
@@ -652,7 +657,7 @@ class Toaster(object):
 
     FILEFORMAT = pyffi.object_models.FileFormat
     """The file format class (a subclass of
-    :class:`~pyffi.object_models.FileFormat`)."""
+    :class:`~pyffi.engines.FileFormat`)."""
 
     SPELLS = []
     """List of all available :class:`~pyffi.spells.Spell` classes."""
@@ -754,10 +759,10 @@ class Toaster(object):
         if self.options["createpatch"] and self.options["applypatch"]:
             raise ValueError(
                 "options --diff and --patch are mutually exclusive")
-        if self.options["diffcmd"] and not(self.options["createpatch"]):
+        if self.options["diffcmd"] and not (self.options["createpatch"]):
             raise ValueError(
                 "option --diff-cmd can only be used with --diff")
-        if self.options["patchcmd"] and not(self.options["applypatch"]):
+        if self.options["patchcmd"] and not (self.options["applypatch"]):
             raise ValueError(
                 "option --patch-cmd can only be used with --patch")
         # multiprocessing available?
@@ -832,7 +837,7 @@ class Toaster(object):
         message, but if the message argument is ``None``, then no message is
         printed."""
         self.indent -= 1
-        if not(message is None):
+        if not (message is None):
             self.msg(message)
 
     def is_admissible_branch_class(self, branchtype):
@@ -928,9 +933,9 @@ class Toaster(object):
             type="string",
             metavar="DESTDIR",
             help="write files to DESTDIR"
-            " instead of overwriting the original;"
-            " this is done by replacing SOURCEDIR by DESTDIR"
-            " in all source file paths")
+                 " instead of overwriting the original;"
+                 " this is done by replacing SOURCEDIR by DESTDIR"
+                 " in all source file paths")
         parser.add_option(
             "--diff", dest="createpatch",
             action="store_true",
@@ -942,7 +947,7 @@ class Toaster(object):
             type="string",
             metavar="CMD",
             help="use CMD as diff command; this command must accept precisely"
-            " 3 arguments: 'CMD oldfile newfile patchfile'.")
+                 " 3 arguments: 'CMD oldfile newfile patchfile'.")
         parser.add_option(
             "--dry-run", dest="dryrun",
             action="store_true",
@@ -1122,11 +1127,11 @@ class Toaster(object):
                 return
             if not args:
                 # no args: error if no top or no spells
-                if not(self.top and self.spellnames):
+                if not (self.top and self.spellnames):
                     parser.error(errormessage_numargs)
             elif len(args) == 1:
                 # single argument is top, error if no spells
-                if not(self.spellnames):
+                if not (self.spellnames):
                     parser.error(errormessage_numargs)
                 self.top = args[-1]
             else:
@@ -1205,7 +1210,7 @@ class Toaster(object):
         # is much more verbose by default
 
         pause = self.options.get("pause", False)
-        
+
         # do not ask for confirmation (!= cli default)
         interactive = self.options.get("interactive", False)
 
@@ -1238,7 +1243,8 @@ class Toaster(object):
         if ((not self.spellclass.READONLY) and (not dryrun)
                 and (not prefix) and (not createpatch)
                 and interactive and (not suffix) and (not destdir)):
-            self.logger.warn("This script will modify your files, in particular if something goes wrong it may destroy them.")
+            self.logger.warn(
+                "This script will modify your files, in particular if something goes wrong it may destroy them.")
             self.logger.warn("Make a backup of your files before running this script.")
             if not input("Are you sure that you want to proceed? [n/y] ") in ("y", "Y"):
                 self.logger.info("Script aborted by user.")
@@ -1326,12 +1332,12 @@ class Toaster(object):
 
             # create spell instance
             spell = self.spellclass(toaster=self, data=data, stream=stream)
-            
+
             # inspect the spell instance
             if spell._datainspect() and spell.datainspect():
                 # read the full file
                 data.read(stream)
-                
+
                 # cast the spell on the data tree
                 spell.recurse()
 
@@ -1465,13 +1471,12 @@ class Toaster(object):
         if not diffcmd:
             raise ValueError("must specify a diff command")
 
-
         # create a temporary file that won't get deleted when closed
         self.options["suffix"] = ".tmp"
         newfile = self.spellclass.get_toast_stream(self, stream.name)
         try:
             data.write(newfile)
-        except: # not just Exception, also CTRL-C
+        except:  # not just Exception, also CTRL-C
             self.msg("write failed!!!")
             raise
         # use external diff command
@@ -1486,6 +1491,8 @@ class Toaster(object):
         # delete temporary file
         os.remove(newfilename)
 
+
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod(optionflags=doctest.ELLIPSIS)

@@ -41,27 +41,28 @@
 
 import codecs
 import http.server
-import ntpath # explicit windows style path manipulations
+import ntpath  # explicit windows style path manipulations
 import os
 import tempfile
-import types
 import webbrowser
-from xml.sax.saxutils import escape # for htmlreport
+from xml.sax.saxutils import escape  # for htmlreport
 
+import pyffi.engines.xml.array
+import pyffi.engines.xml.struct_
 from pyffi.formats.nif import NifFormat
 from pyffi.spells.nif import NifSpell
-import pyffi.object_models.xml.array
-import pyffi.object_models.xml.struct_
+
 
 def tohex(value, nbytes=4):
     """Improved version of hex."""
-    return ("0x%%0%dX" % (2*nbytes)) % (int(str(value)) & (2**(nbytes*8)-1))
+    return ("0x%%0%dX" % (2 * nbytes)) % (int(str(value)) & (2 ** (nbytes * 8) - 1))
+
 
 def dumpArray(arr):
     """Format an array.
 
     :param arr: An array.
-    :type arr: L{pyffi.object_models.xml.array.Array}
+    :type arr: L{pyffi.engines.xml.array.Array}
     :return: String describing the array.
     """
     text = ""
@@ -84,6 +85,7 @@ def dumpArray(arr):
                 break
     return text if text else "None"
 
+
 def dumpBlock(block):
     """Return formatted string for block without following references.
 
@@ -105,6 +107,7 @@ def dumpBlock(block):
             text = '* %s : <None>\n' % attr.name
     return text
 
+
 def dumpAttr(attr):
     """Format an attribute.
 
@@ -119,7 +122,7 @@ def dumpAttr(attr):
                 return "<%s:%s:0x%08X>" % (ref.__class__.__name__,
                                            ref.name, id(attr))
             else:
-                return "<%s:0x%08X>" % (ref.__class__.__name__,id(attr))
+                return "<%s:0x%08X>" % (ref.__class__.__name__, id(attr))
         else:
             return "<None>"
     elif isinstance(attr, list):
@@ -136,7 +139,8 @@ def dumpAttr(attr):
         return tohex(attr, 4)
     else:
         return str(attr)
-    
+
+
 class SpellDumpAll(NifSpell):
     """Dump the whole NIF file."""
 
@@ -147,6 +151,7 @@ class SpellDumpAll(NifSpell):
         self.toaster.msg(dumpBlock(branch))
         # continue recursion
         return True
+
 
 class SpellDumpTex(NifSpell):
     """Dump the texture and material info of all geometries."""
@@ -194,20 +199,21 @@ class SpellDumpTex(NifSpell):
         elif isinstance(branch, NifFormat.BSShaderTextureSet):
             textures = [path.decode() for path in branch.textures if path.decode() != '']
             if len(textures) > 0:
-                for n, tex in enumerate (textures):
+                for n, tex in enumerate(textures):
                     self.toaster.msg('%i: %s' % (n, tex))
-            else: 
+            else:
                 self.toaster.msg('BSShaderTextureSet has no Textures')
             return False
         else:
             # keep looking for blocks of interest
             return True
 
+
 class SpellHtmlReport(NifSpell):
     """Make a html report of selected blocks."""
 
     SPELLNAME = "dump_htmlreport"
-    ENTITIES = { "\n": "<br/>" }
+    ENTITIES = {"\n": "<br/>"}
 
     @classmethod
     def toastentry(cls, toaster):
@@ -220,7 +226,7 @@ class SpellHtmlReport(NifSpell):
         # enter every branch
         # (the base method is called in branch entry)
         return True
-        
+
     def branchentry(self, branch):
         # check if this branch must be checked, if not, recurse further
         if not NifSpell._branchinspect(self, branch):
@@ -230,15 +236,15 @@ class SpellHtmlReport(NifSpell):
         if not reports:
             # start a new report for this block type
             row = "<tr>"
-            row += "<th>%s</th>" % "file" 
-            row +=  "<th>%s</th>" % "id" 
+            row += "<th>%s</th>" % "file"
+            row += "<th>%s</th>" % "id"
             for attr in branch._get_filtered_attribute_list(data=self.data):
                 row += ("<th>%s</th>"
                         % escape(attr.displayname, self.ENTITIES))
             row += "</tr>"
             reports = [row]
             self.toaster.reports_per_blocktype[blocktype] = reports
-        
+
         row = "<tr>"
         row += "<td>%s</td>" % escape(self.stream.name)
         row += "<td>%s</td>" % escape("0x%08X" % id(branch), self.ENTITIES)
@@ -256,12 +262,12 @@ class SpellHtmlReport(NifSpell):
     def toastexit(cls, toaster):
         if toaster.reports_per_blocktype:
             rows = []
-            rows.append( "<!DOCTYPE html>" )
-            rows.append( "<html>" )
-            rows.append( "<head>" )
-            rows.append( "<title>Report</title>" )
-            rows.append( "</head>" )
-            rows.append( "<body>" )
+            rows.append("<!DOCTYPE html>")
+            rows.append("<html>")
+            rows.append("<head>")
+            rows.append("<title>Report</title>")
+            rows.append("</head>")
+            rows.append("<body>")
 
             for blocktype, reports in toaster.reports_per_blocktype.items():
                 rows.append("<h1>%s</h1>" % blocktype)
@@ -277,27 +283,30 @@ class SpellHtmlReport(NifSpell):
 
     @classmethod
     def browser(cls, htmlstr):
-        htmlbytes = bytes(htmlstr,'UTF-8')
+        htmlbytes = bytes(htmlstr, 'UTF-8')
         """Display html in the default web browser without creating a
         temp file.
         
         Instantiates a trivial http server and calls webbrowser.open
         with a URL to retrieve html from that server.
-        """    
+        """
+
         class RequestHandler(http.server.BaseHTTPRequestHandler):
             def do_HEAD(self):
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
+
             def do_GET(self):
                 self.do_HEAD()
-                bufferSize = 1024*1024
+                bufferSize = 1024 * 1024
                 for i in range(0, len(htmlbytes), bufferSize):
-                    self.wfile.write(htmlbytes[i:i+bufferSize])
+                    self.wfile.write(htmlbytes[i:i + bufferSize])
 
         server = http.server.HTTPServer(('127.0.0.1', 0), RequestHandler)
         webbrowser.open('http://127.0.0.1:%s' % server.server_port)
-        server.handle_request()           
+        server.handle_request()
+
 
 class SpellExportPixelData(NifSpell):
     """Export embedded images as DDS files. If the toaster's
@@ -334,7 +343,7 @@ class SpellExportPixelData(NifSpell):
     def branchentry(self, branch):
 
         if (isinstance(branch, NifFormat.NiSourceTexture)
-            and branch.pixel_data and branch.file_name):
+                and branch.pixel_data and branch.file_name):
             self.save_as_dds(branch.pixel_data, branch.file_name)
             return False
         elif isinstance(branch, NifFormat.ATextureRenderData):
@@ -380,8 +389,8 @@ class SpellExportPixelData(NifSpell):
         # XXX following is disabled because not all textures in Bully
         # XXX actually have this form; use "-a textures" for this game
         # make relative path for Bully SE
-        #tmp1, tmp2, tmp3 = head.partition("\\bully\\temp\\export\\")
-        #if tmp2:
+        # tmp1, tmp2, tmp3 = head.partition("\\bully\\temp\\export\\")
+        # if tmp2:
         #    head = tmp3
         # for linux: convert backslash to forward slash
         head = head.replace("\\", "/")
@@ -424,6 +433,7 @@ class SpellExportPixelData(NifSpell):
             if stream:
                 stream.close()
 
+
 class SpellDumpPython(NifSpell):
     """Convert a nif into python code."""
 
@@ -446,25 +456,23 @@ class SpellDumpPython(NifSpell):
                 return True
             else:
                 return False
-        elif isinstance(_value, pyffi.object_models.xml.array.Array):
+        elif isinstance(_value, pyffi.engines.xml.array.Array):
             result = False
             if _value:
                 self.print_("%s.update_size()" % name)
                 if _value._count2 is None:
                     for i, elem in enumerate(list.__iter__(_value)):
                         if self.print_instance(
-                            "%s[%i]" % (name, i), elem):
-
+                                "%s[%i]" % (name, i), elem):
                             result = True
                 else:
                     for i, elemlist in enumerate(list.__iter__(_value)):
                         for j, elem in enumerate(list.__iter__(elemlist)):
                             if self.print_instance(
-                                "%s[%i][%i]" % (name, i, j), elem):
-
+                                    "%s[%i][%i]" % (name, i, j), elem):
                                 result = True
             return result
-        elif isinstance(_value, pyffi.object_models.xml.basic.BasicBase):
+        elif isinstance(_value, pyffi.types.basic.BasicBase):
             value = _value.get_value()
             if default is None:
                 default = type(_value)().get_value()
@@ -477,7 +485,7 @@ class SpellDumpPython(NifSpell):
                 return True
             else:
                 return False
-        elif isinstance(_value, pyffi.object_models.xml.struct_.StructBase):
+        elif isinstance(_value, pyffi.engines.xml.struct_.StructBase):
             result = False
             # store with statement's line number
             # we need to remove it later if it contains no code
@@ -494,7 +502,7 @@ class SpellDumpPython(NifSpell):
             if not result:
                 self.lines.pop(with_line_number)
             return result
-        elif(isinstance(_value, pyffi.object_models.xml.BitStructBase)):
+        elif (isinstance(_value, pyffi.engines.xml.BitStructBase)):
             name_alias = "n_%s" % _value.__class__.__name__.lower()
             self.print_("with ref(%s) as %s:" % (name, name_alias))
             self.level += 1

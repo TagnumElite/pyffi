@@ -12,8 +12,8 @@ with open("pyffi/VERSION", "rt") as f:
 PACKAGES = [
     'pyffi',
     'pyffi.object_models',
-    'pyffi.object_models.xml',
-    'pyffi.object_models.xsd',
+    'pyffi.engines.xml',
+    'pyffi.engines.xsd',
     'pyffi.utils',
     'pyffi.formats',
     'pyffi.formats.nif',

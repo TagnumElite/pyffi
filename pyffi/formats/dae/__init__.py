@@ -110,13 +110,13 @@ NotImplementedError
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-import struct
 import os
 import re
 
-import pyffi.object_models.xsd
+import pyffi.engines.xsd
 
-class DaeFormat(pyffi.object_models.xsd.FileFormat):
+
+class DaeFormat(pyffi.engines.xsd.FileFormat):
     """This class implements the DAE format."""
     xsdFileName = 'COLLADASchema.xsd'
     # where to look for the xsd file and in what order:
@@ -127,7 +127,7 @@ class DaeFormat(pyffi.object_models.xsd.FileFormat):
     # used for comparing floats
     _EPSILON = 0.0001
 
-    class Data(pyffi.object_models.xsd.FileFormat.Data):
+    class Data(pyffi.engines.xsd.FileFormat.Data):
         """A class to contain the actual collada data."""
 
         def __init__(self, version=0x01040100):
@@ -149,7 +149,7 @@ class DaeFormat(pyffi.object_models.xsd.FileFormat):
             """
             return 0x01040100
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks whether the stream appears to contain
@@ -187,4 +187,3 @@ class DaeFormat(pyffi.object_models.xsd.FileFormat):
 
     # implementation of dae-specific basic types
     # TODO
-

@@ -96,18 +96,18 @@ Create an EGT file from scratch and write to file
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-from itertools import chain
-import struct
 import os
 import re
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
+import pyffi.types.common
+import pyffi.engines.xml
+from pyffi.types.basic import BasicBase
 from pyffi.utils.graph import EdgeFilter
 
-class EgtFormat(pyffi.object_models.xml.FileFormat):
+
+class EgtFormat(pyffi.engines.xml.FileFormat):
     """This class implements the EGT format."""
     xml_file_name = 'egt.xml'
     # where to look for egt.xml and in what order:
@@ -117,19 +117,20 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
     RE_FILENAME = re.compile(r'^.*\.egt$', re.IGNORECASE)
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.Byte
-    ubyte = pyffi.object_models.common.UByte
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.Byte
+    ubyte = pyffi.types.common.UByte
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
 
     # implementation of egt-specific basic types
 
     class FileSignature(BasicBase):
         """Basic type which implements the header of a EGT file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
@@ -239,7 +240,7 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains EGT data, and reads
@@ -260,7 +261,6 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-
         def read(self, stream):
             """Read a egt file.
 
@@ -268,7 +268,7 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             self.inspect_quick(stream)
-            pyffi.object_models.xml.struct_.StructBase.read(
+            pyffi.engines.xml.struct_.StructBase.read(
                 self, stream, self)
 
             # check if we are at the end of the file
@@ -283,7 +283,7 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             # write the data
-            pyffi.object_models.xml.struct_.StructBase.write(
+            pyffi.engines.xml.struct_.StructBase.write(
                 self, stream, self)
 
         # GlobalNode
@@ -291,6 +291,8 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
         def get_global_child_nodes(self, edge_filter=EdgeFilter()):
             return (texture for texture in self.textures)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

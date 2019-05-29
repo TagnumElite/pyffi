@@ -1,4 +1,8 @@
-"""Base classes for organizing data (for instance to visualize data
+"""
+Graph
+=====
+
+Base classes for organizing data (for instance to visualize data
 with Qt, or to run hierarchical checks) in a global graph, and a
 detail tree at each node of the global graph.
 
@@ -72,6 +76,7 @@ http://doc.trolltech.com/4.4/itemviews-simpletreemodel.html
 from itertools import repeat
 from operator import itemgetter
 
+
 class EdgeType(tuple):
     """Represents all possible edge types. By default, there are four
     types: any edge can be part of the acyclic graph or not, and can
@@ -86,23 +91,26 @@ class EdgeType(tuple):
     active = property(itemgetter(0))
     acyclic = property(itemgetter(1))
 
+
 class EdgeFilter(tuple):
     """A simple filter for edges. The default filter only checks the edge's
     active and acyclic attributes, and accepts them if both are ``True``.
     """
+
     def __new__(cls, active_filter=True, acyclic_filter=True):
         return tuple.__new__(cls, (active_filter, acyclic_filter))
-    
+
     active_filter = property(itemgetter(0))
     acyclic_filter = property(itemgetter(1))
 
     def accept(self, edge_type):
-        if not(self.active_filter is None):
+        if not (self.active_filter is None):
             if edge_type.active != self.active_filter:
                 return False
-        if not(self.acyclic_filter is None):
+        if not (self.acyclic_filter is None):
             if edge_type.acyclic != self.acyclic_filter:
                 return False
+
 
 class DetailNode(object):
     """A node of the detail tree which can have children.
@@ -168,6 +176,7 @@ class DetailNode(object):
         """Replace a particular branch in the graph."""
         raise NotImplementedError
 
+
 class GlobalNode(DetailNode):
     """A node of the global graph."""
 
@@ -179,7 +188,7 @@ class GlobalNode(DetailNode):
         """
         return ""
         # possible implementation:
-        #return self.name if hasattr(self, "name") else ""
+        # return self.name if hasattr(self, "name") else ""
 
     def get_global_child_nodes(self, edge_filter=EdgeFilter()):
         """Generator which yields all children of this item in the

@@ -1,6 +1,6 @@
 """
-:mod:`pyffi.formats.bsa` --- Bethesda Archive (.bsa)
-====================================================
+BSA Format --- Bethesda Archive (.bsa/b2a)
+==========================================
 
 .. warning::
 
@@ -113,33 +113,33 @@ Create an BSA file from scratch and write to file
 
 
 import logging
-import struct
 import os
 import re
+import struct
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
-from pyffi.utils.graph import EdgeFilter
+import pyffi.types.common
+import pyffi.engines.xml
+from pyffi.types.basic import BasicBase
 
 
-class BsaFormat(pyffi.object_models.xml.FileFormat):
+class BsaFormat(pyffi.engines.xml.FileFormat):
     """This class implements the BSA format."""
     xml_file_name = 'bsa.xml'
     # where to look for bsa.xml and in what order:
     # BSAXMLPATH env var, or BsaFormat module directory
     xml_file_path = [os.getenv('BSAXMLPATH'), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.bsa$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r'^.*\.(bsa|b2a)$', re.IGNORECASE)
 
     # basic types
-    UInt32 = pyffi.object_models.common.UInt
-    ZString = pyffi.object_models.common.ZString
+    UInt32 = pyffi.types.common.UInt
+    ZString = pyffi.types.common.ZString
 
     # implementation of bsa-specific basic types
 
-    class Hash(pyffi.object_models.common.UInt64):
+    class Hash(pyffi.types.common.UInt64):
 
         def __str__(self):
             return "0x%016X" % self._value
@@ -147,21 +147,21 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
         def get_detail_display(self):
             return self.__str__()
 
-    class BZString(pyffi.object_models.common.SizedString):
+    class BZString(pyffi.types.common.SizedString):
 
         def get_size(self, data=None):
             return 2 + len(self._value)
 
         def read(self, stream, data=None):
             length, = struct.unpack('<B', stream.read(1))
-            self._value = stream.read(length)[:-1] # strip trailing null byte
+            self._value = stream.read(length)[:-1]  # strip trailing null byte
 
         def write(self, stream, data=None):
             stream.write(struct.pack('<B', len(self._value)))
             stream.write(self._value)
             stream.write(struct.pack('<B', 0))
 
-    class FileVersion(pyffi.object_models.common.UInt):
+    class FileVersion(pyffi.types.common.UInt):
         """Basic type which implements the header of a BSA file."""
 
         def __init__(self, **kwargs):
@@ -225,8 +225,11 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
             # not supported
             return -1
 
-    class Header(pyffi.object_models.FileFormat.Data):
+    class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual bsa data."""
+
+        def __init__(self):
+            self.header = BsaFormat.Header()
 
         def inspect_quick(self, stream):
             """Quickly checks if stream contains BSA data, and gets the
@@ -241,7 +244,7 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains BSA data, and reads the
@@ -253,7 +256,7 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
             pos = stream.tell()
             try:
                 self.inspect_quick(stream)
-                BsaFormat._Header.read(self, stream, data=self)
+                self.header.read(stream, data=self)
             finally:
                 stream.seek(pos)
 
@@ -330,6 +333,8 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
             # write the file
             raise NotImplementedError
 
+
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

@@ -377,18 +377,19 @@ import math  # math.pi
 
 import pyffi.formats.bsa
 import pyffi.formats.dds
+import pyffi.engines
 import pyffi.object_models
-import pyffi.object_models.common
+import pyffi.types.common
 import pyffi.utils.inertia
 import pyffi.utils.mopp
 import pyffi.utils.quickhull
 import pyffi.utils.tristrip
 import pyffi.utils.vertex_cache
 # XXX convert the following to absolute imports
-from pyffi.object_models.editable import EditableBoolComboBox
-from pyffi.object_models.niftools_xml import FileFormat
-from pyffi.object_models.xml.basic import BasicBase
-from pyffi.object_models.niftools_xml.struct_ import StructBase
+from pyffi.types.editable import EditableBoolComboBox
+from pyffi.types.basic import BasicBase
+from pyffi.engines.xml.niftools import FileFormat
+from pyffi.engines.xml.struct_ import StructBase
 from pyffi.utils.graph import EdgeFilter
 from pyffi.utils.mathutils import *  # XXX todo get rid of from XXX import *
 
@@ -416,28 +417,28 @@ class NifFormat(FileFormat):
     EPSILON = 0.0001
 
     # basic types
-    ulittle32 = pyffi.object_models.common.ULittle32
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.UByte  # not a typo
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    hfloat = pyffi.object_models.common.HFloat
-    float = pyffi.object_models.common.Float
-    uint64 = pyffi.object_models.common.UInt64
-    int64 = pyffi.object_models.common.Int64
-    BlockTypeIndex = pyffi.object_models.common.UShort
-    StringIndex = pyffi.object_models.common.UInt
-    SizedString = pyffi.object_models.common.SizedString
+    ulittle32 = pyffi.types.common.ULittle32
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.UByte  # not a typo
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    hfloat = pyffi.types.common.HFloat
+    float = pyffi.types.common.Float
+    uint64 = pyffi.types.common.UInt64
+    int64 = pyffi.types.common.Int64
+    SizedString = pyffi.types.common.SizedString
+    NiFixedString = pyffi.types.common.UInt
+    BlockTypeIndex = pyffi.types.common.UShort
 
     # implementation of nif-specific basic types
 
-    class StringOffset(pyffi.object_models.common.Int):
+    class StringOffset(pyffi.types.common.Int):
         """This is just an integer with -1 as default value."""
 
         def __init__(self, **kwargs):
-            pyffi.object_models.common.Int.__init__(self, **kwargs)
+            pyffi.types.common.Int.__init__(self, **kwargs)
             self.set_value(-1)
 
     class bool(BasicBase, EditableBoolComboBox):
@@ -500,7 +501,7 @@ class NifFormat(FileFormat):
                 stream.write(struct.pack(data._byte_order + 'I',
                                          int(self._value)))
 
-    class Flags(pyffi.object_models.common.UShort):
+    class Flags(pyffi.types.common.UShort):
         def __str__(self):
             return hex(self.get_value())
 
@@ -540,6 +541,7 @@ class NifFormat(FileFormat):
 
         def read(self, stream, data):
             self.set_value(None)  # fix_links will set this field
+            print("Position:", stream.tell())
             block_index, = struct.unpack(data._byte_order + 'i',
                                          stream.read(4))
             data._link_stack.append(block_index)
@@ -705,10 +707,10 @@ class NifFormat(FileFormat):
             return self._value
 
         def set_value(self, value):
-            self._value = pyffi.object_models.common._as_bytes(value).rstrip('\x0a'.encode("ascii"))
+            self._value = pyffi.types.common._as_bytes(value).rstrip('\x0a'.encode("ascii"))
 
         def __str__(self):
-            return pyffi.object_models.common._as_str(self._value)
+            return pyffi.types.common._as_str(self._value)
 
         def get_size(self, data=None):
             return len(self._value) + 1  # +1 for trailing endline
@@ -804,7 +806,7 @@ class NifFormat(FileFormat):
             else:
                 return "%s File Format, Version %s" % (s, v)
 
-    class FileVersion(pyffi.object_models.common.UInt):
+    class FileVersion(pyffi.types.common.UInt):
         def set_value(self):
             raise NotImplementedError("file version is specified via data")
 
@@ -873,13 +875,13 @@ class NifFormat(FileFormat):
             return self._value
 
         def set_value(self, value):
-            val = pyffi.object_models.common._as_bytes(value)
+            val = pyffi.types.common._as_bytes(value)
             if len(val) > 254:
                 raise ValueError('string too long')
             self._value = val
 
         def __str__(self):
-            return pyffi.object_models.common._as_str(self._value)
+            return pyffi.types.common._as_str(self._value)
 
         def get_size(self, data=None):
             # length byte + string chars + zero byte
@@ -973,7 +975,7 @@ class NifFormat(FileFormat):
             return self._value
 
         def set_value(self, value):
-            self._value = pyffi.object_models.common._as_bytes(value)
+            self._value = pyffi.types.common._as_bytes(value)
 
         def get_size(self, data=None):
             return len(self._value) + 4
@@ -1120,12 +1122,12 @@ class NifFormat(FileFormat):
         _string_list = None
         _block_index_dct = None
 
-        class VersionUInt(pyffi.object_models.common.UInt):
+        class VersionUInt(pyffi.types.common.UInt):
             def set_value(self, value):
                 if value is None:
                     self._value = None
                 else:
-                    pyffi.object_models.common.UInt.set_value(self, value)
+                    pyffi.types.common.UInt.set_value(self, value)
 
             def __str__(self):
                 if self._value is None:
@@ -1300,7 +1302,7 @@ class NifFormat(FileFormat):
             yield "User Version 2"
             yield "Header"
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks whether the stream appears to contain
@@ -1586,7 +1588,8 @@ class NifFormat(FileFormat):
                 """Determine whether block comes before its parent or not, depending
                 on the block type.
 
-                @todo: Move to the L{NifFormat.Data} class.
+                .. todo::
+                    Move to the L{NifFormat.Data} class.
 
                 :param block: The block to test.
                 :type block: L{NifFormat.NiObject}
@@ -4294,9 +4297,10 @@ class NifFormat(FileFormat):
         def get_times(self):
             """Return an iterator over all key times.
 
-            @todo: When code for calculating the bsplines is ready, this function
-            will return exactly self.basis_data.num_control_points - 1 time points, and
-            not self.basis_data.num_control_points as it is now.
+            .. todo::
+                When code for calculating the bsplines is ready, this function
+                will return exactly self.basis_data.num_control_points - 1 time points, and
+                not self.basis_data.num_control_points as it is now.
             """
             # is there basis data?
             if not self.basis_data:
@@ -5792,7 +5796,8 @@ class NifFormat(FileFormat):
         def is_interchangeable(self, other):
             """Are the two blocks interchangeable?
 
-            @todo: Rely on AnyType, SimpleType, ComplexType, etc. implementation.
+            .. todo::
+                Rely on AnyType, SimpleType, ComplexType, etc. implementation.
             """
             if isinstance(self, (NifFormat.NiProperty, NifFormat.NiSourceTexture)):
                 # use hash for properties and source textures
@@ -6797,7 +6802,7 @@ class NifFormat(FileFormat):
                 else:
                     skinpartblock.num_strips = 0
                 # maxbones would be enough as num_weights_per_vertex but the Gamebryo
-                # engine doesn't like that, it seems to want exactly 4 even if there
+                # engines doesn't like that, it seems to want exactly 4 even if there
                 # are fewer
                 skinpartblock.num_weights_per_vertex = maxbonespervertex
                 skinpartblock.bones.update_size()
@@ -7104,7 +7109,7 @@ class NifFormat(FileFormat):
                 ...
             ValueError: ...
             """
-            _b00 = pyffi.object_models.common._b00  # shortcut
+            _b00 = pyffi.types.common._b00  # shortcut
             # check that offset isn't too large
             if offset >= len(self.palette):
                 raise ValueError(
@@ -7141,7 +7146,7 @@ class NifFormat(FileFormat):
             >>> print(repr(pal.palette.decode("ascii")).lstrip("u"))
             'abc\\x00def\\x00'
             """
-            _b00 = pyffi.object_models.common._b00  # shortcut
+            _b00 = pyffi.types.common._b00  # shortcut
             return self.palette[:-1].split(_b00)
 
         def add_string(self, text):
@@ -7164,9 +7169,9 @@ class NifFormat(FileFormat):
             # empty text
             if not text:
                 return -1
-            _b00 = pyffi.object_models.common._b00  # shortcut
+            _b00 = pyffi.types.common._b00  # shortcut
             # convert text to bytes if necessary
-            text = pyffi.object_models.common._as_bytes(text)
+            text = pyffi.types.common._as_bytes(text)
             # check if string is already in the palette
             # ... at the start
             if text + _b00 == self.palette[:len(text) + 1]:
@@ -7200,7 +7205,7 @@ class NifFormat(FileFormat):
             >>> print(repr(pal.palette.decode("ascii")).lstrip("u"))
             ''
             """
-            self.palette = pyffi.object_models.common._b  # empty bytes object
+            self.palette = pyffi.types.common._b  # empty bytes object
             self.length = 0
 
     class TexCoord:

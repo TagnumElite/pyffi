@@ -103,18 +103,18 @@ Create an DIR file from scratch and write to file
 #
 # ***** END LICENSE BLOCK *****
 
-from itertools import chain
-import struct
 import os
 import re
+import struct
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
+import pyffi.types.common
+import pyffi.engines.xml
 from pyffi.utils.graph import EdgeFilter
 
-class DirFormat(pyffi.object_models.xml.FileFormat):
+
+class DirFormat(pyffi.engines.xml.FileFormat):
     """This class implements the DIR format."""
     xml_file_name = 'dir.xml'
     # where to look for dir.xml
@@ -123,8 +123,9 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
     RE_FILENAME = re.compile(r'^.*\.dir$', re.IGNORECASE)
 
     # basic types
-    UInt = pyffi.object_models.common.UInt
-    class String(pyffi.object_models.common.FixedString):
+    UInt = pyffi.types.common.UInt
+
+    class String(pyffi.types.common.FixedString):
         _len = 24
 
     class Data(pyffi.object_models.FileFormat.Data):
@@ -165,15 +166,15 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
                 except struct.error:
                     # this happens if .dir only contains one file record
                     off2 = size1
-                if not(off1 == 0
-                       #and size1 < 1000 # heuristic
-                       and off2 == size1
-                       and file1[-1] == 0):
+                if not (off1 == 0
+                        # and size1 < 1000 # heuristic
+                        and off2 == size1
+                        and file1[-1] == 0):
                     raise ValueError('Not a Rockstar DIR file.')
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains DIR data.
@@ -186,7 +187,6 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
                 self.inspect_quick(stream)
             finally:
                 stream.seek(pos)
-
 
         def read(self, stream):
             """Read a dir file.
@@ -243,6 +243,8 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
                     if len(allbytes) < size:
                         image.write('\x00' * (size - len(allbytes)))
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

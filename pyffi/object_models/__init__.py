@@ -1,114 +1,8 @@
-"""
-:mod:`pyffi.object_models` --- File Formats and Types
-=====================================================
-
-.. warning::
-
-   The documentation of this module is very incomplete.
-
-This module bundles all file format object models. An object model
-is a group of classes whose instances can hold the information
-contained in a file whose format is described in a particular way
-(xml, xsd, and possibly others).
-
-.. note::
-  There is a strong distinction between types that contain very specific
-  simple data (SimpleType) and more complex types that contain groups of
-  simple data (ComplexType, with its descendants StructType for named
-  lists of objects of different type and ArrayType for indexed lists of
-  objects of the same type).
-  
-  The complex types are generic in that they can be instantiated using
-  metadata (i.e. data describing the structure of the actual file data)
-  from xml, xsd, or any other file format description.
-  
-  For the simple types there are specific classes implementing access to
-  these data types. Typical implementations are present for integers,
-  floats, strings, and so on. Some simple types may also be derived from
-  already implemented simple types, if the metadata description allows
-  this.
-
-Implemented Formats
--------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   formats/mex
-   formats/xml/index
-   formats/xml/niftools
-   formats/xsd
-
-Implemented Types
------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   types/any
-   types/array
-   types/binary
-   types/common
-   types/editable
-   types/simple
-
-Base Formats
-------------
-
-.. autoclass:: MetaFileFormat
-   :show-inheritance:
-   :members:
-
-.. autoclass:: FileFormat
-   :show-inheritance:
-   :members:
-"""
-
-# ------------------------------------------------------------------------
-#  ***** BEGIN LICENSE BLOCK *****
-#
-#  Copyright © 2007-2019, Python File Format Interface.
-#  All rights reserved.
-#
-#  Redistribution and use in source and binary forms, with or without
-#  modification, are permitted provided that the following conditions
-#  are met:
-#
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#
-#     * Redistributions in binary form must reproduce the above
-#       copyright notice, this list of conditions and the following
-#       disclaimer in the documentation and/or other materials provided
-#       with the distribution.
-#
-#     * Neither the name of the Python File Format Interface
-#       project nor the names of its contributors may be used to endorse
-#       or promote products derived from this software without specific
-#       prior written permission.
-#
-#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-#  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-#  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-#  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-#  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-#  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-#  POSSIBILITY OF SUCH DAMAGE.
-#
-#  ***** END LICENSE BLOCK *****
-# ------------------------------------------------------------------------
-
 import codecs
-import os.path  # os.path.altsep
-import re  # compile
-
-import pyffi.utils
-import pyffi.utils.graph
+import os.path
+import re
+import pyffi
+from pyffi.abc import FileFormatData
 
 
 class MetaFileFormat(type):
@@ -192,7 +86,7 @@ class FileFormat(object):
     """Matches an upper case character."""
 
     # override this with the data instance for this format
-    class Data(pyffi.utils.graph.GlobalNode):
+    class Data(pyffi.utils.graph.GlobalNode, FileFormatData):
         """Base class for representing data in a particular format.
         Override this class to implement reading and writing.
         """
@@ -404,54 +298,3 @@ class FileFormat(object):
                 yield stream
             finally:
                 stream.close()
-
-
-class ArchiveFileFormat(FileFormat):
-    """This class is the base class for all archive file formats. It
-    implements incremental reading and writing of archive files.
-    """
-
-    class Data(FileFormat.Data):
-        """Base class for representing archive data.
-        Override this class to implement incremental reading and writing.
-        """
-
-        _stream = None
-        """The file stream associated with the archive."""
-
-        def __init__(self, name=None, mode=None, fileobj=None):
-            """Sets _stream and _mode."""
-            # at least:
-            # self._stream = fileobj if fileobj else open(name, mode)
-            raise NotImplementedError
-
-        def get_members(self):
-            raise NotImplementedError
-
-        def set_members(self, members):
-            raise NotImplementedError
-
-        def close(self):
-            # at least:
-            # self._stream.close()
-            raise NotImplementedError
-
-        def read(self, stream):
-            self.__init__(mode='r', stream=stream)
-
-        def write(self, stream):
-            if self._stream == stream:
-                raise ValueError("cannot write back to the same stream")
-            # get all members from the old stream
-            members = list(self.get_members())
-            self.__init__(mode='w', fileobj=stream)
-            # set all members to the new stream
-            self.set_members(members)
-
-
-class ArchiveMember(object):
-    stream = None
-    """Temporary file stream which contains the extracted data."""
-
-    name = None
-    """Name of the file as recorded in the archive."""

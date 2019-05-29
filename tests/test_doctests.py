@@ -1,24 +1,22 @@
-import os.path
-from os.path import dirname
 import doctest
 import logging
 import sys
 import unittest
 
 import pyffi
-import pyffi.object_models.common
-import pyffi.object_models
-import pyffi.object_models.xml
-import pyffi.object_models.mex
-import pyffi.object_models.any_type
-import pyffi.object_models.simple_type
-import pyffi.object_models.array_type
-import pyffi.object_models.binary_type
-import pyffi.object_models.xml.basic
-import pyffi.object_models.xml.bit_struct
-import pyffi.object_models.xml.enum
-import pyffi.object_models.xml.expression
-import pyffi.object_models.xml.struct_
+import pyffi.types.common
+import pyffi.engines
+import pyffi.engines.xml
+import pyffi.engines.mex
+import pyffi.types.any
+import pyffi.types.simple
+import pyffi.types.array
+import pyffi.types.binary
+import pyffi.types.basic
+import pyffi.engines.xml.bit_struct
+import pyffi.engines.xml.enum
+import pyffi.engines.xml.expression
+import pyffi.engines.xml.struct_
 import pyffi.utils
 import pyffi.utils.tristrip
 import pyffi.utils.vertex_cache
@@ -27,7 +25,8 @@ import pyffi.utils.quickhull
 import pyffi.utils.inertia
 import pyffi.utils.tangentspace
 import pyffi.utils.mopp
-import pyffi.formats.nif
+# import pyffi.formats.nif
+"""
 import pyffi.formats.cgf
 import pyffi.formats.kfm
 import pyffi.formats.dds
@@ -40,17 +39,17 @@ import pyffi.formats.egt
 import pyffi.formats.psk
 import pyffi.formats.rockstar.dir_
 import pyffi.spells
-import pyffi.spells.nif
-import pyffi.spells.nif.fix
-import pyffi.spells.nif.modify
-import pyffi.spells.nif.check
-import pyffi.spells.nif.dump
+# import pyffi.spells.nif
+# import pyffi.spells.nif.fix
+# import pyffi.spells.nif.modify
+# import pyffi.spells.nif.check
+# import pyffi.spells.nif.dump"""
 
 # these two do not yet work on py3k
 from tests import test_logger
 
 if sys.version_info[0] < 3:
-    import pyffi.object_models.xsd
+    import pyffi.engines.xsd
     import pyffi.formats.dae
 
 

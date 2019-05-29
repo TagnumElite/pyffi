@@ -95,18 +95,17 @@ Create an ESP file from scratch and write to file
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-import struct
 import os
 import re
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
+import pyffi.types.common
+import pyffi.engines.xml
 from pyffi.utils.graph import EdgeFilter
 
 
-class EspFormat(pyffi.object_models.xml.FileFormat):
+class EspFormat(pyffi.engines.xml.FileFormat):
     """This class implements the ESP format."""
     xml_file_name = 'esp.xml'
     # where to look for esp.xml and in what order:
@@ -120,17 +119,18 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
     _EPSILON = 0.0001
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.Byte
-    ubyte = pyffi.object_models.common.UByte
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
-    uint64 = pyffi.object_models.common.UInt64
-    ZString = pyffi.object_models.common.ZString
-    class RecordType(pyffi.object_models.common.FixedString):
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.Byte
+    ubyte = pyffi.types.common.UByte
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
+    uint64 = pyffi.types.common.UInt64
+    ZString = pyffi.types.common.ZString
+
+    class RecordType(pyffi.types.common.FixedString):
         _len = 4
 
     # implementation of esp-specific basic types
@@ -170,13 +170,14 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
             records.append(record)
             record.read(stream, data)
             if size is not None:
-                size -= stream.tell() - pos #slower: record.get_size()
+                size -= stream.tell() - pos  # slower: record.get_size()
             else:
                 num_records -= 1
         return records
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual esp data."""
+
         def __init__(self):
             self.tes4 = EspFormat.TES4()
             self.records = []
@@ -196,7 +197,7 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains ESP data, and reads the
@@ -211,7 +212,6 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
                 # XXX read header
             finally:
                 stream.seek(pos)
-
 
         def read(self, stream):
             """Read a esp file.
@@ -231,10 +231,10 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
 
             # check if we are at the end of the file
             if stream.read(1):
-                #raise ValueError(
+                # raise ValueError(
                 print(
                     'end of file not reached: corrupt esp file?')
-            
+
         def write(self, stream):
             """Write a esp file.
 
@@ -258,12 +258,12 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
 
     class Record:
         def __init__(self):
-            pyffi.object_models.xml.struct_.StructBase.__init__(self)
+            pyffi.engines.xml.struct_.StructBase.__init__(self)
             self.sub_records = []
 
         def read(self, stream, data):
             # read all fields
-            pyffi.object_models.xml.struct_.StructBase.read(
+            pyffi.engines.xml.struct_.StructBase.read(
                 self, stream, data)
             # read all subrecords
             self.sub_records = EspFormat._read_records(
@@ -289,12 +289,12 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
 
     class GRUP:
         def __init__(self):
-            pyffi.object_models.xml.struct_.StructBase.__init__(self)
+            pyffi.engines.xml.struct_.StructBase.__init__(self)
             self.records = []
 
         def read(self, stream, data):
             # read all fields
-            pyffi.object_models.xml.struct_.StructBase.read(
+            pyffi.engines.xml.struct_.StructBase.read(
                 self, stream, data)
             # read all subrecords
             self.records = EspFormat._read_records(

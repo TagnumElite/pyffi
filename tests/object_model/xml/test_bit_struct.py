@@ -1,9 +1,9 @@
 import unittest
 
-from nose.tools import assert_equals, assert_false, assert_true, raises
+from nose.tools import assert_equals, assert_true
 
-from pyffi.object_models.xml.bit_struct import BitStructBase
-from pyffi.object_models.xml import BitStructAttribute as Attr
+from pyffi.engines.xml import BitStructBase
+from pyffi.engines.xml import BitStructAttribute as Attr
 
 
 class SimpleFormat(object):

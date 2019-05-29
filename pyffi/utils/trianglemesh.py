@@ -1,3 +1,10 @@
+"""
+Triangle Mesh
+=============
+
+
+"""
+
 # ------------------------------------------------------------------------
 #  ***** BEGIN LICENSE BLOCK *****
 #
@@ -44,30 +51,10 @@
 # original license:
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ~ License
-# ~
-# - The RuneBlade Foundation library is intended to ease some
-# - aspects of writing intricate Jabber, XML, and User Interface (wxPython, etc.)
-# - applications, while providing the flexibility to modularly change the
-# - architecture. Enjoy.
-# ~
-# ~ Copyright (C) 2002  TechGame Networks, LLC.
-# ~
-# ~ This library is free software; you can redistribute it and/or
-# ~ modify it under the terms of the BSD style License as found in the
-# ~ LICENSE file included with this distribution.
-# ~
-# ~ TechGame Networks, LLC can be reached at:
-# ~ 3578 E. Hartsel Drive #211
-# ~ Colorado Springs, Colorado, USA, 80920
-# ~
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~ Imports
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import operator # itemgetter
+import operator  # itemgetter
 from weakref import WeakSet
 
 
@@ -81,7 +68,7 @@ class Edge:
         >>> edge.verts
         (6, 9)
         """
-        
+
         if ev0 == ev1:
             raise ValueError("Degenerate edge.")
 
@@ -98,6 +85,7 @@ class Edge:
         Edge(1, 2)
         """
         return "Edge(%s, %s)" % self.verts
+
 
 class Face:
     """An oriented face which keeps track its adjacent faces."""
@@ -168,6 +156,7 @@ class Mesh:
 
     :ivar faces: List of faces of the mesh.
     :type faces: ``list`` of :class:`Face`"""
+
     def __init__(self, faces=None, lock=True):
         """Initialize a mesh, and optionally assign its faces and lock.
 
@@ -309,7 +298,7 @@ class Mesh:
         # store faces and set their index
         self.faces = []
         for i, (verts, face) in enumerate(sorted(iter(self._faces.items()),
-                                          key=operator.itemgetter(0))):
+                                                 key=operator.itemgetter(0))):
             face.index = i
             self.faces.append(face)
         # remove helper structures
@@ -338,9 +327,11 @@ class Mesh:
                 for adj_adj_faces in adj_face.adjacent_faces:
                     adj_adj_faces.discard(face)
                     # faster (but breaks py3k!!):
-                    #if id(face) in adj_adj_faces.data:
+                    # if id(face) in adj_adj_faces.data:
                     #    del adj_adj_faces.data[id(face)]
+
 
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

@@ -1,2 +1,0 @@
-.. automodule:: pyffi.errors
-    :members:

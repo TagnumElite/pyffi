@@ -25,8 +25,8 @@ author = 'Amorilia'
 # The full version, including alpha/beta/rc tags
 with open("../pyffi/VERSION", "rt") as f:
     release = f.read().strip()
-# The short X.Y version.
-version = '.'.join(release.split('.')[:2])
+# The short X.Y.Z version.
+version = '.'.join(release.split('.')[:3])
 
 
 # -- General configuration ---------------------------------------------------
@@ -37,13 +37,13 @@ version = '.'.join(release.split('.')[:2])
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
     'sphinx.ext.imgmath',
     'sphinx.ext.githubpages',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
+    'sphinx.ext.todo',
 ]
 
 intersphinx_mapping = {

@@ -97,18 +97,17 @@ Create an PSK file from scratch and write to file
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-from itertools import chain
-import struct
 import os
 import re
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
+import pyffi.types.common
+import pyffi.engines.xml
 from pyffi.utils.graph import EdgeFilter
 
-class PskFormat(pyffi.object_models.xml.FileFormat):
+
+class PskFormat(pyffi.engines.xml.FileFormat):
     """This class implements the PSK format."""
     xml_file_name = 'psk.xml'
     # where to look for psk.xml and in what order:
@@ -118,19 +117,19 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
     RE_FILENAME = re.compile(r'^.*\.psk$', re.IGNORECASE)
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.Byte
-    ubyte = pyffi.object_models.common.UByte
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.Byte
+    ubyte = pyffi.types.common.UByte
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
 
-    class ZString20(pyffi.object_models.common.FixedString):
+    class ZString20(pyffi.types.common.FixedString):
         _len = 20
 
-    class ZString64(pyffi.object_models.common.FixedString):
+    class ZString64(pyffi.types.common.FixedString):
         _len = 64
 
     @staticmethod
@@ -145,7 +144,7 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual psk data."""
-        version = 0 # no versioning, so far
+        version = 0  # no versioning, so far
         user_version = 0
 
         def inspect_quick(self, stream):
@@ -169,7 +168,7 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains PSK data, and reads
@@ -192,7 +191,7 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             self.inspect_quick(stream)
-            pyffi.object_models.xml.struct_.StructBase.read(
+            pyffi.engines.xml.struct_.StructBase.read(
                 self, stream, self)
 
             # check if we are at the end of the file
@@ -207,7 +206,7 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             # write the data
-            pyffi.object_models.xml.struct_.StructBase.write(
+            pyffi.engines.xml.struct_.StructBase.write(
                 self, stream, self)
 
         # DetailNode
@@ -237,6 +236,8 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
         def get_global_display(self):
             return self.chunk_id.decode("utf8", "ignore")
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

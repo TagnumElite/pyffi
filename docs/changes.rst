@@ -1,6 +1,6 @@
 :tocdepth: 1
 
-ChangeLog
+Changelog
 *********
 
 .. include:: ../CHANGELOG.rst

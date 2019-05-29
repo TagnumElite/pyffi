@@ -1,18 +1,19 @@
 import os
-import pyffi.object_models.xml
-import pyffi.object_models.common
+import pyffi.engines.xml
+import pyffi.types.common
 
-class SimpleFormat(pyffi.object_models.xml.FileFormat):
+
+class SimpleFormat(pyffi.engines.xml.FileFormat):
     xml_file_name = 'simple.xml'
     xml_file_path = [ os.path.dirname(__file__) ]
 
     # basic types
 
-    Int = pyffi.object_models.common.Int
+    Int = pyffi.types.common.Int
 
     # extensions of generated types
 
-    class Data(pyffi.object_models.xml.FileFormat.Data):
+    class Data(pyffi.engines.xml.FileFormat.Data):
         def __init__(self):
             self.example = SimpleFormat.Example()
 

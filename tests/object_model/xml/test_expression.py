@@ -1,6 +1,6 @@
 import unittest
 
-from pyffi.object_models.xml.expression import Expression
+from pyffi.engines.xml import Expression
 from nose.tools import assert_equals, assert_false, assert_true, raises
 
 

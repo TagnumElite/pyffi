@@ -100,17 +100,19 @@ Create a TGA file from scratch and write to file
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-import struct, os, re
+import os
+import re
+import struct
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-import pyffi.object_models.xml.basic
-import pyffi.object_models.xml.struct_
+import pyffi.engines.xml
 import pyffi.object_models
+import pyffi.types.basic
+import pyffi.types.common
 import pyffi.utils.graph
 from pyffi.utils.graph import EdgeFilter
 
-class TgaFormat(pyffi.object_models.xml.FileFormat):
+
+class TgaFormat(pyffi.engines.xml.FileFormat):
     """This class implements the TGA format."""
     xml_file_name = 'tga.xml'
     # where to look for tga.xml and in what order:
@@ -120,18 +122,19 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
     RE_FILENAME = re.compile(r'^.*\.tga$', re.IGNORECASE)
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.Byte
-    ubyte = pyffi.object_models.common.UByte
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
-    PixelData = pyffi.object_models.common.UndecodedData
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.Byte
+    ubyte = pyffi.types.common.UByte
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
+    PixelData = pyffi.types.common.UndecodedData
 
-    class FooterString(pyffi.object_models.xml.basic.BasicBase):
+    class FooterString(pyffi.types.basic.BasicBase):
         """The Targa footer signature."""
+
         def __str__(self):
             return 'TRUEVISION-XFILE.\x00'
 
@@ -145,7 +148,7 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             if signat != self.__str__().encode("ascii"):
                 raise ValueError(
                     "invalid Targa signature: expected '%s' but got '%s'"
-                    %(self.__str__(), signat))
+                    % (self.__str__(), signat))
 
         def write(self, stream, data):
             """Write signature to stream.
@@ -171,7 +174,7 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             if value != self.__str__():
                 raise ValueError(
                     "invalid Targa signature: expected '%s' but got '%s'"
-                    %(self.__str__(), value))
+                    % (self.__str__(), value))
 
         def get_size(self, data=None):
             """Return number of bytes that the signature occupies in a file.
@@ -200,7 +203,7 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
                 self.children = [
                     TgaFormat.Pixel(argument=data.header.pixel_size)
                     for i in range(data.header.width
-                                    * data.header.height)]
+                                   * data.header.height)]
                 for pixel in self.children:
                     pixel.read(stream, data)
             else:
@@ -232,7 +235,7 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
         def __init__(self):
             self.header = TgaFormat.Header()
             self.image = TgaFormat.Image()
-            self.footer = None # TgaFormat.Footer() is optional
+            self.footer = None  # TgaFormat.Footer() is optional
 
         def inspect(self, stream):
             """Quick heuristic check if stream contains Targa data,
@@ -260,10 +263,10 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             # check if tga type is valid
             # check pixel size
             # check width and height
-            if not(image_type in (1, 2, 3, 9, 10, 11)
-                   and pixel_size in (8, 24, 32)
-                   and width <= 100000
-                   and height <= 100000):
+            if not (image_type in (1, 2, 3, 9, 10, 11)
+                    and pixel_size in (8, 24, 32)
+                    and width <= 100000
+                    and height <= 100000):
                 raise ValueError("Not a Targa file.")
             # this looks like a tga file!
 
@@ -274,14 +277,14 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             # read the file
-            self.inspect(stream) # quick check
+            self.inspect(stream)  # quick check
 
             # header
             self.header.read(stream, self)
 
             # image
             self.image.read(stream, self)
-            
+
             # check if we are at the end of the file
             if not stream.read(1):
                 self.footer = None
@@ -315,6 +318,8 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             if self.footer:
                 yield "Footer"
 
+
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

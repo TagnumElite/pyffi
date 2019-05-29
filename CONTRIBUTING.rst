@@ -1,10 +1,10 @@
-How to contribute
-*****************
+Contributing
+============
 
 Do you want to fix a bug, improve documentation, or add a new feature?
 
 Get git/msysgit
-===============
+---------------
 
 If you are on windows, you need `msysgit
 <http://code.google.com/p/msysgit/downloads/list>`_.  If you are already familiar
@@ -16,7 +16,7 @@ For more information about git and github, the `github help site
 <http://help.github.com>`_ is a great start.
 
 Track the source
-================
+----------------
 
 If you simply want to keep track of the latest source code, start a
 shell (or, the Git Bash on windows), and type (this is like "svn checkout")::
@@ -28,10 +28,10 @@ To synchronize your code, type (this is like "svn update")::
   git pull
 
 Development
-===========
+-----------
 
 Create a fork
--------------
+^^^^^^^^^^^^^
 
 * Get a `github account <https://github.com/signup/free>`_.
 
@@ -40,7 +40,7 @@ Create a fork
   (yes! merging with git is easy so forking is encouraged!).
 
 Use the source
---------------
+^^^^^^^^^^^^^^
 
 PyFFI is entirely written in pure Python, hence the source code runs
 as such on any system that runs Python. Edit the code with your
@@ -76,7 +76,7 @@ system which has both wine and nsis installed)::
   makezip.sh
 
 Submit your updates
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 Simply do a `pull request <http://help.github.com/pull-requests>`_
 if you want your fork to be merged, and your contributions may be

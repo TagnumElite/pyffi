@@ -31,6 +31,10 @@ Previous Developers
 Contributors
 ------------
 
+.. image:: https://img.shields.io/github/contributors-anon/niftools/pyffi.svg?logo=github&logoColor=fff
+   :target: https://github.com/niftools/pyffi/graphs/contributors
+   :alt: GitHub contributors
+
 * PacificMorrowind (pacmorrowind@sourceforge.net)
 
   - some nif/kf modifying spells

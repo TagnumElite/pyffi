@@ -1,6 +1,6 @@
-from pyffi.object_models.array_type import ValidatedList
-from pyffi.object_models.array_type import UniformArray
-from pyffi.object_models.simple_type import SimpleType
+from pyffi.types.array import ValidatedList
+from pyffi.types.array import UniformArray
+from pyffi.types.simple import SimpleType
 from tests.utils import assert_tuple_values
 
 import nose

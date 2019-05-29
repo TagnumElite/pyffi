@@ -121,17 +121,18 @@ Create an EGM file from scratch and write to file
 # ------------------------------------------------------------------------
 
 
-import struct
 import os
 import re
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
+import pyffi.types.common
+import pyffi.engines.xml
+from pyffi.types.basic import BasicBase
 from pyffi.utils.graph import EdgeFilter
 
-class EgmFormat(pyffi.object_models.xml.FileFormat):
+
+class EgmFormat(pyffi.engines.xml.FileFormat):
     """This class implements the EGM format."""
     xml_file_name = 'egm.xml'
     # where to look for egm.xml and in what order:
@@ -141,19 +142,20 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
     RE_FILENAME = re.compile(r'^.*\.egm$', re.IGNORECASE)
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.Byte
-    ubyte = pyffi.object_models.common.UByte
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.Byte
+    ubyte = pyffi.types.common.UByte
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
 
     # implementation of egm-specific basic types
 
     class FileSignature(BasicBase):
         """Basic type which implements the header of a EGM file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
@@ -249,6 +251,7 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual egm data."""
+
         def __init__(self, version=2, num_vertices=0):
             self.header = EgmFormat.Header()
             self.header.num_vertices = num_vertices
@@ -272,7 +275,7 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains EGM data, and reads the
@@ -287,7 +290,6 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
                 self.header.read(stream, self)
             finally:
                 stream.seek(pos)
-
 
         def read(self, stream):
             """Read a egm file.
@@ -311,7 +313,7 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
             if stream.read(1):
                 raise ValueError(
                     'end of file not reached: corrupt egm file?')
-            
+
         def write(self, stream):
             """Write a egm file.
 
@@ -383,6 +385,7 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
         [1000, 3000, 2000]
         [-8999, 3000, -999]
         """
+
         def get_relative_vertices(self):
             for vert in self.vertices:
                 yield (vert.x * self.scale,

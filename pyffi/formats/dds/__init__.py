@@ -106,17 +106,19 @@ Get list of versions
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-import struct
 import os
 import re
+import struct
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
+import pyffi.types.common
+import pyffi.engines.xml
+from pyffi.types.basic import BasicBase
 from pyffi.utils.graph import EdgeFilter
 
-class DdsFormat(pyffi.object_models.xml.FileFormat):
+
+class DdsFormat(pyffi.engines.xml.FileFormat):
     """This class implements the DDS format."""
     xml_file_name = 'dds.xml'
     # where to look for dds.xml and in what order:
@@ -128,20 +130,21 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
     _EPSILON = 0.0001
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.Byte
-    ubyte = pyffi.object_models.common.UByte
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
-    PixelData = pyffi.object_models.common.UndecodedData
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.Byte
+    ubyte = pyffi.types.common.UByte
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
+    PixelData = pyffi.types.common.UndecodedData
 
     # implementation of dds-specific basic types
 
     class HeaderString(BasicBase):
         """Basic type which implements the header of a DDS file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
@@ -200,6 +203,7 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual dds data."""
+
         def __init__(self, version=0x09000000):
             self.version = version
             self.header = DdsFormat.Header()
@@ -223,13 +227,13 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
                     raise ValueError("Not a DDS file.")
                 size = struct.unpack("<I", stream.read(4))
                 if size == 124:
-                    self.version = 0x09000000 # DX9
+                    self.version = 0x09000000  # DX9
                 elif size == 144:
-                    self.version = 0x0A000000 # DX10
+                    self.version = 0x0A000000  # DX10
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains DDS data, and reads the
@@ -244,7 +248,6 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
                 self.header.read(stream, data=self)
             finally:
                 stream.seek(pos)
-
 
         def read(self, stream, verbose=0):
             """Read a dds file.
@@ -263,7 +266,7 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
             if stream.read(1):
                 raise ValueError(
                     'end of file not reached: corrupt dds file?')
-            
+
         def write(self, stream, verbose=0):
             """Write a dds file.
 

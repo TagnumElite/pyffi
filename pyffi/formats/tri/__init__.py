@@ -109,18 +109,19 @@ Create an TRI file from scratch and write to file
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-from itertools import chain
-import struct
 import os
 import re
+from itertools import chain
 
-import pyffi.object_models.xml
-import pyffi.object_models.common
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.engines
 import pyffi.object_models
+import pyffi.types.common
+import pyffi.engines.xml
+from pyffi.types.basic import BasicBase
 from pyffi.utils.graph import EdgeFilter
 
-class TriFormat(pyffi.object_models.xml.FileFormat):
+
+class TriFormat(pyffi.engines.xml.FileFormat):
     """This class implements the TRI format."""
     xml_file_name = 'tri.xml'
     # where to look for tri.xml and in what order:
@@ -130,18 +131,18 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
     RE_FILENAME = re.compile(r'^.*\.tri$', re.IGNORECASE)
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.Byte
-    ubyte = pyffi.object_models.common.UByte
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.Byte
+    ubyte = pyffi.types.common.UByte
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
 
     # implementation of tri-specific basic types
 
-    class SizedStringZ(pyffi.object_models.common.SizedString):
+    class SizedStringZ(pyffi.types.common.SizedString):
 
         def get_size(self, data=None):
             """Return number of bytes this type occupies in a file.
@@ -149,9 +150,9 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             :return: Number of bytes.
             """
             return (
-                1 +
-                pyffi.object_models.common.SizedString.get_size(self, data)
-                )
+                    1 +
+                    pyffi.types.common.SizedString.get_size(self, data)
+            )
 
         def read(self, stream, data):
             """Read string from stream.
@@ -159,8 +160,8 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             :param stream: The stream to read from.
             :type stream: file
             """
-            pyffi.object_models.common.SizedString.read(self, stream, data)
-            self._value = self._value.rstrip(pyffi.object_models.common._b00)
+            pyffi.types.common.SizedString.read(self, stream, data)
+            self._value = self._value.rstrip(pyffi.types.common._b00)
 
         def write(self, stream, data):
             """Write string to stream.
@@ -168,12 +169,13 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             :param stream: The stream to write to.
             :type stream: file
             """
-            self._value += pyffi.object_models.common._b00
-            pyffi.object_models.common.SizedString.write(self, stream, data)
-            self._value = self._value.rstrip(pyffi.object_models.common._b00)
+            self._value += pyffi.types.common._b00
+            pyffi.types.common.SizedString.write(self, stream, data)
+            self._value = self._value.rstrip(pyffi.types.common._b00)
 
     class FileSignature(BasicBase):
         """Basic type which implements the header of a TRI file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
@@ -283,7 +285,7 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-        # overriding pyffi.object_models.FileFormat.Data methods
+        # overriding pyffi.engines.FileFormat.Data methods
 
         def inspect(self, stream):
             """Quickly checks if stream contains TRI data, and reads
@@ -310,7 +312,6 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-
         def read(self, stream):
             """Read a tri file.
 
@@ -318,7 +319,7 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             self.inspect_quick(stream)
-            pyffi.object_models.xml.struct_.StructBase.read(
+            pyffi.engines.xml.struct_.StructBase.read(
                 self, stream, self)
 
             # check if we are at the end of the file
@@ -331,10 +332,10 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             for modifier in self.modifiers:
                 modifier.modifier_vertices.update_size()
                 for src_vert, dst_vert in zip(
-                    self.modifier_vertices[
+                        self.modifier_vertices[
                         start_index:start_index
-                        + modifier.num_vertices_to_modify],
-                    modifier.modifier_vertices):
+                                    + modifier.num_vertices_to_modify],
+                        modifier.modifier_vertices):
                     dst_vert.x = src_vert.x
                     dst_vert.y = src_vert.y
                     dst_vert.z = src_vert.z
@@ -353,9 +354,9 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
                     for modifier in self.modifiers)
                 self.modifier_vertices.update_size()
                 for self_vert, vert in zip(
-                    self.modifier_vertices,
-                    chain(*(modifier.modifier_vertices
-                            for modifier in self.modifiers))):
+                        self.modifier_vertices,
+                        chain(*(modifier.modifier_vertices
+                                for modifier in self.modifiers))):
                     self_vert.x = vert.x
                     self_vert.y = vert.y
                     self_vert.z = vert.z
@@ -363,7 +364,7 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
                 self.num_modifier_vertices = 0
                 self.modifier_vertices.update_size()
             # write the data
-            pyffi.object_models.xml.struct_.StructBase.write(
+            pyffi.engines.xml.struct_.StructBase.write(
                 self, stream, self)
 
         def add_morph(self, name=None, relative_vertices=None):
@@ -400,6 +401,7 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
         [1000, 3000, 2000]
         [-8999, 3000, -999]
         """
+
         def get_relative_vertices(self):
             for vert in self.vertices:
                 yield (vert.x * self.scale,
@@ -441,6 +443,8 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             """
             self.scale *= scale
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

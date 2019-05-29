@@ -140,15 +140,15 @@ The Guild 2 0x01024B00
 import os
 import re
 
+import pyffi.engines
 import pyffi.object_models
-import pyffi.object_models.common
-import pyffi.object_models.xml
-import pyffi.object_models.xml.struct_
-from pyffi.object_models.xml.basic import BasicBase
+import pyffi.types.common
+import pyffi.engines.xml.struct_
+from pyffi.types.basic import BasicBase
 from pyffi.utils.graph import EdgeFilter
 
 
-class KfmFormat(pyffi.object_models.xml.FileFormat):
+class KfmFormat(pyffi.engines.xml.FileFormat):
     """This class implements the kfm file format."""
     xml_file_name = 'kfm.xml'
     # where to look for kfm.xml and in what order:
@@ -161,15 +161,15 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
     _EPSILON = 0.0001
 
     # basic types
-    int = pyffi.object_models.common.Int
-    uint = pyffi.object_models.common.UInt
-    byte = pyffi.object_models.common.UByte  # not a typo
-    char = pyffi.object_models.common.Char
-    short = pyffi.object_models.common.Short
-    ushort = pyffi.object_models.common.UShort
-    float = pyffi.object_models.common.Float
-    SizedString = pyffi.object_models.common.SizedString
-    TextString = pyffi.object_models.common.UndecodedData  # for text (used by older kfm versions)
+    int = pyffi.types.common.Int
+    uint = pyffi.types.common.UInt
+    byte = pyffi.types.common.UByte  # not a typo
+    char = pyffi.types.common.Char
+    short = pyffi.types.common.Short
+    ushort = pyffi.types.common.UShort
+    float = pyffi.types.common.Float
+    SizedString = pyffi.types.common.SizedString
+    TextString = pyffi.types.common.UndecodedData  # for text (used by older kfm versions)
 
     # implementation of kfm-specific basic types
 
