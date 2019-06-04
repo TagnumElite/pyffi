@@ -45,11 +45,11 @@ Implements base class for basic types."""
 
 import abc
 
+from pyffi.types.base import BinarySimpleType
 from pyffi.abc import DerivedMeta
-from pyffi.utils.graph import DetailNode
 
 
-class BasicBase(DetailNode, metaclass=DerivedMeta):
+class BasicBase(BinarySimpleType, metaclass=DerivedMeta):
     """Base class from which all basic types are derived.
 
     The BasicBase class implements the interface for basic types.
@@ -79,14 +79,11 @@ class BasicBase(DetailNode, metaclass=DerivedMeta):
     >>> class Test(BasicBase): # bad: read, write, get_value, and set_value are
     ...                        # not implemented
     ...     pass
-    >>> x = Test() # doctest: +ELLIPSIS
-    >>> x.set_value('123') # doctest: +ELLIPSIS
+    >>> Test() # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
-    NotImplementedError
+    TypeError: ...
     """
-
-    __slots__ = ('__value',)
 
     _is_template = False  # is it a template type?
     _has_links = False  # does the type contain a Ref or a Ptr?
@@ -106,27 +103,6 @@ class BasicBase(DetailNode, metaclass=DerivedMeta):
         # self._parent = weakref.ref(parent) if parent else None
         pass
 
-    # string representation
-    def __str__(self):
-        """Return string representation."""
-        return str(self.get_value())
-
-    @abc.abstractmethod
-    def read(self, stream, context):
-        """Read object from file.
-
-        :arg BinaryIO stream: The binary stream to read from
-        :arg pyffi.context.FileContext context: The data to read from"""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def write(self, stream, context):
-        """Write object to file.
-
-        :arg BinaryIO stream: The binary stream to write to
-        :arg pyffi.context.FileContext context: The data to read from"""
-        raise NotImplementedError
-
     def fix_links(self, context):
         """Fix links. Called when all objects have been read, and converts
         block indices into blocks.
@@ -140,7 +116,7 @@ class BasicBase(DetailNode, metaclass=DerivedMeta):
         :arg pyffi.context.FileContext context:"""
         return []
 
-    def get_strings(self, context):
+    def get_strings(self, context=None):
         """Return all strings used by this object.
 
         :arg pyffi.context.FileContext context:"""
@@ -150,57 +126,17 @@ class BasicBase(DetailNode, metaclass=DerivedMeta):
         """Return all references (excluding weak pointers) used by this
         object.
 
-        :arg pyffi.context.FileContext context: """
+        :arg pyffi.context.Context context: """
         return []
-
-    @abc.abstractmethod
-    def get_value(self):
-        """Return object value."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def set_value(self, value):
-        """Set object value."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def get_size(self, context=None):
-        """Returns size of the object in bytes.
-
-        :arg pyffi.context.FileContext context: """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def get_hash(self, context=None):
         """Returns a hash value (an immutable object) that can be used to
         identify the object uniquely.
 
-        :arg pyffi.context.FileContext context: """
+        :arg pyffi.context.Context context: """
         raise NotImplementedError
 
     def replace_global_node(self, oldbranch, newbranch, **kwargs):
         """Replace a given branch."""
         pass
-
-    #
-    # user interface functions come next
-    # these functions are named after similar ones in the TreeItem example
-    # at http://doc.trolltech.com/4.3/itemviews-simpletreemodel.html
-    #
-
-    # DetailNode
-
-    def get_detail_display(self):
-        """Return an object that can be used to display the instance."""
-        return str(self)
-
-    # editor functions: default implementation assumes that the value is
-    # also suitable for an editor; override if not
-
-    def get_editor_value(self):
-        """Return value suitable for editor."""
-        return self.get_value()
-
-    def set_editor_value(self, editorvalue):
-        """Set value from editor value."""
-        return self.set_value(editorvalue)

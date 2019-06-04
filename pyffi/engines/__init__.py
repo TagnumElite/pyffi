@@ -1,6 +1,6 @@
 """
-:mod:`pyffi.engines` --- File Formats and Types
-===============================================
+Engines
+=======
 
 .. warning::
 

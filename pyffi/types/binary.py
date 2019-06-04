@@ -44,120 +44,23 @@ Implements common basic types in XML file format descriptions.
 #  ***** END LICENSE BLOCK *****
 # ------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------
-#  ***** BEGIN LICENSE BLOCK *****
-#
-#
-#  Redistribution and use in source and binary forms, with or without
-#  modification, are permitted provided that the following conditions
-#  are met:
-#
-#
-#
-#     * Neither the name of the Python File Format Interface
-#       project nor the names of its contributors may be used to endorse
-#       or promote products derived from this software without specific
-#       prior written permission.
-#
-#
-#  ***** END LICENSE BLOCK *****
-# ------------------------------------------------------------------------
 
 import abc
 import struct
 
-from pyffi.types.any import AnyType
+from pyffi.types.base import SimpleType, BinaryType, BinarySimpleType, NumericalType, _b, _b00, _as_bytes, \
+    _as_str
 from pyffi.types.editable import EditableBoolComboBox
 from pyffi.types.editable import EditableFloatSpinBox
 from pyffi.types.editable import EditableLineEdit
-from pyffi.types.editable import EditableSpinBox
-from pyffi.types.simple import SimpleType
-
-
-# Base classes
-
-class BinaryType(AnyType):
-    """Abstract base class for binary data types."""
-
-    @abc.abstractmethod
-    def get_size(self):
-        raise NotImplementedError
-
-
-class BinarySimpleType(SimpleType, BinaryType):
-    """Abstract base class for binary data types."""
-    pass
 
 
 # Helper objects and helper functions (private)
 
-_b = "".encode("ascii")  # py3k's b""
-_b00 = "\x00".encode("ascii")  # py3k's b"\x00"
-
-# supports the bytes object for < py26
-try:
-    bytes
-except NameError:
-    bytes = str  # for py25 backwards compatibility
-
-if bytes is str:
-    # < py3k: str for byte strings, unicode for text strings
-    _bytes = str
-    _str = str
-else:
-    # >= py3k: bytes for byte strings, str for text strings
-    _bytes = bytes
-    _str = str
-
-
-def _as_bytes(value):
-    """Helper function which converts a string to _bytes (this is useful for
-    set_value in all string classes, which use bytes for representation).
-
-    :return: The bytes representing the value.
-    :rtype: C{_bytes}
-
-    >>> # following doctest fails on py3k, hence disabled
-    >>> _as_bytes(u"\\u00e9defa") == u"\\u00e9defa".encode("utf-8") # doctest: +SKIP
-    True
-
-    >>> _as_bytes(123) # doctest: +ELLIPSIS
-    Traceback (most recent call last):
-        ...
-    TypeError: ...
-    """
-    if isinstance(value, _bytes):
-        return value
-    elif isinstance(value, _str):
-        return value.encode("utf-8", "replace")
-    else:
-        raise TypeError("expected %s or %s" % (_bytes.__name__, _str.__name__))
-
-
-def _as_str(value):
-    """Helper function to convert bytes back to str. This is used in
-    the __str__ functions for simple string types. If you want a custom
-    encoding, use an explicit decode call on the value.
-    """
-    if not isinstance(value, (_str, _bytes)):
-        raise TypeError("expected %s or %s" % (_bytes.__name__, _str.__name__))
-    elif not value:
-        return ''
-    elif isinstance(value, str):
-        # this always works regardless of the python version
-        return value
-    elif isinstance(value, _bytes):
-        # >= py3k: simply decode
-        return value.decode("utf-8", "replace")
-    elif isinstance(value, str):
-        # < py3k: use ascii encoding to produce a str
-        # (this avoids unicode errors)
-        return value.encode("ascii", "replace")
-
 
 # SimpleType implementations for common binary types
 
-class IntType(BinarySimpleType, EditableSpinBox):
+class IntType(NumericalType):
     """Basic implementation of a 32-bit signed integer type. Also serves as a
     base class for all other integer types.
 
@@ -195,21 +98,8 @@ class IntType(BinarySimpleType, EditableSpinBox):
     _struct = 'i'  #: Character used to represent type in struct.
     _size = 4  #: Number of bytes.
 
-    # SimpleType
-
-    def __init__(self):
-        """Initialize the integer."""
-        self._value = 0
-
-    def get_value(self):
-        """Return stored value.
-
-        :return: The stored value.
-        """
-        return self._value
-
     def set_value(self, value):
-        """Set value to C{value}. Calls C{int(value)} to convert to integer.
+        """Set value to ``value``. Calls ``int(value)`` to convert to integer.
 
         :param value: The value to assign.
         :type value: int
@@ -229,57 +119,27 @@ class IntType(BinarySimpleType, EditableSpinBox):
             raise ValueError('value out of range (%i)' % val)
         self._value = val
 
-    # AnyType
-
-    def read(self, stream):
-        """Read value from stream.
-
-        :param stream: The stream to read from.
-        :type stream: ``file``
-        """
-        self._value = struct.unpack('<' + self._struct,
-                                    stream.read(self._size))[0]
-
-    def write(self, stream):
-        """Write value to stream.
-
-        :param stream: The stream to write to.
-        :type stream: ``file``
-        """
-        stream.write(struct.pack('<' + self._struct, self._value))
-
-    # BinaryType
-
-    def get_size(self):
-        """Return number of bytes this type occupies in a file.
-
-        :return: Number of bytes.
-        """
-        return self._size
-
-    # EditableSpinBox
-
-    def get_editor_minimum(self):
-        """Minimum possible value.
-
-        :return: Minimum possible value.
-        """
-        return self._min
-
-    def get_editor_maximum(self):
-        """Maximum possible value.
-
-        :return: Maximum possible value.
-        """
-        return self._max
-
 
 class UIntType(IntType):
     """Implementation of a 32-bit unsigned integer type."""
     _min = 0
     _max = 0xffffffff
     _struct = 'I'
-    _size = 4
+
+
+class Int64Type(IntType):
+    """Implementation of a 64-bit signed integer type."""
+    _min = -0x8000000000000000
+    _max = 0x7fffffffffffffff
+    _struct = 'q'
+    _size = 8
+
+
+class UInt64Type(Int64Type):
+    """Implementation of a 64-bit unsigned integer type."""
+    _min = 0
+    _max = 0xffffffffffffffff
+    _struct = 'Q'
 
 
 class ByteType(IntType):
@@ -290,12 +150,11 @@ class ByteType(IntType):
     _size = 1
 
 
-class UByteType(IntType):
+class UByteType(ByteType):
     """Implementation of a 8-bit unsigned integer type."""
     _min = 0
     _max = 0xff
     _struct = 'B'
-    _size = 1
 
 
 class ShortType(IntType):
@@ -306,12 +165,11 @@ class ShortType(IntType):
     _size = 2
 
 
-class UShortType(UIntType):
+class UShortType(ShortType):
     """Implementation of a 16-bit unsigned integer type."""
     _min = 0
     _max = 0xffff
     _struct = 'H'
-    _size = 2
 
 
 class BoolType(UByteType, EditableBoolComboBox):
@@ -330,7 +188,9 @@ class BoolType(UByteType, EditableBoolComboBox):
         :param value: The value to assign.
         :type value: bool
         """
-        if not isinstance(value, bool):
+        if isinstance(value, int):
+            value = bool(value)
+        elif not isinstance(value, bool):
             raise TypeError("expected a bool")
         self._value = 1 if value else 0
 
@@ -348,77 +208,44 @@ class CharType(BinarySimpleType, EditableLineEdit):
         :param value: The value to assign (bytes of length 1).
         :type value: bytes
         """
-        assert (isinstance(value, _bytes))
+        assert (isinstance(value, bytes))
         assert (len(value) == 1)
         self._value = value
 
-    def read(self, stream):
-        """Read value from stream.
-
-        :param stream: The stream to read from.
-        :type stream: file
-        """
+    def read(self, stream, context=None):
         self._value = stream.read(1)
 
-    def write(self, stream):
-        """Write value to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
+    def write(self, stream, context=None):
         stream.write(self._value)
 
     def __str__(self):
         return _as_str(self._value)
 
-    def get_size(self):
-        """Return number of bytes this type occupies in a file.
-
-        :return: Number of bytes.
-        """
+    def get_size(self, context=None):
         return 1
 
 
-class Float(BinarySimpleType, EditableFloatSpinBox):
+class Float(NumericalType, EditableFloatSpinBox):
     """Implementation of a 32-bit float."""
 
-    def __init__(self):
-        """Initialize the float."""
-        self._value = 0.0
-
-    def set_value(self, value):
-        """Set value to C{value}.
-
-        :param value: The value to assign.
-        :type value: float
-        """
-        self._value = float(value)
-
-    def read(self, stream):
-        """Read value from stream.
-
-        :param stream: The stream to read from.
-        :type stream: file
-        """
-        self._value = struct.unpack('<f', stream.read(4))[0]
-
-    def write(self, stream):
-        """Write value to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
-        stream.write(struct.pack('<f', self._value))
-
-    def get_size(self):
-        """Return number of bytes this type occupies in a file.
-
-        :return: Number of bytes.
-        """
-        return 4
+    _min = None
+    _max = None
+    _size = 4
+    _struct = 'f'
 
 
-# class HFloat
+class HFloat(Float):
+    """Implementation of a 16-bit float."""
+
+    _size = 2
+    _struct = 'e'
+
+
+class Double(Float):
+    """Implementation of a 64-bit float."""
+
+    _size = 8
+    _struct = 'd'
 
 
 class ZString(BinarySimpleType, EditableLineEdit):
@@ -464,12 +291,7 @@ class ZString(BinarySimpleType, EditableLineEdit):
             raise ValueError('string too long')
         self._value = val
 
-    def read(self, stream):
-        """Read string from stream.
-
-        :param stream: The stream to read from.
-        :type stream: file
-        """
+    def read(self, stream, context=None):
         i = 0
         val = _b
         char = _b
@@ -481,26 +303,19 @@ class ZString(BinarySimpleType, EditableLineEdit):
             char = stream.read(1)
         self._value = val
 
-    def write(self, stream):
-        """Write string to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
+    def write(self, stream, context=None):
         stream.write(self._value)
         stream.write(_b00)
 
-    def get_size(self):
-        """Return number of bytes this type occupies in a file.
-
-        :return: Number of bytes.
-        """
+    def get_size(self, context=None):
         return len(self._value) + 1
 
 
 class FixedString(BinarySimpleType, EditableLineEdit):
     """String of fixed length. Default length is 0, so you must override
     this class and set the _len class variable.
+
+    :var int _len: Size of the string, must be overridden
 
     >>> from tempfile import TemporaryFile
     >>> f = TemporaryFile()
@@ -534,12 +349,12 @@ class FixedString(BinarySimpleType, EditableLineEdit):
         """Return the string.
 
         :return: The stored string.
-        :rtype: C{bytes}
+        :rtype: ``bytes``
         """
         return self._value
 
     def set_value(self, value):
-        """Set string to C{value}.
+        """Set string to ``value``.
 
         :param value: The value to assign.
         :type value: ``str`` (encoded as default) or C{bytes}
@@ -549,30 +364,16 @@ class FixedString(BinarySimpleType, EditableLineEdit):
             raise ValueError("string '%s' too long" % val)
         self._value = val
 
-    def read(self, stream):
-        """Read string from stream.
-
-        :param stream: The stream to read from.
-        :type stream: file
-        """
+    def read(self, stream, context=None):
         self._value = stream.read(self._len)
         i = self._value.find(_b00)
         if i != -1:
             self._value = self._value[:i]
 
-    def write(self, stream):
-        """Write string to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
+    def write(self, stream, context=None):
         stream.write(self._value.ljust(self._len, _b00))
 
-    def get_size(self):
-        """Return number of bytes this type occupies in a file.
-
-        :return: Number of bytes.
-        """
+    def get_size(self, context=None):
         return self._len
 
 
@@ -623,31 +424,19 @@ class SizedString(BinarySimpleType, EditableLineEdit):
     def __str__(self):
         return _as_str(self._value)
 
-    def get_size(self):
-        """Return number of bytes this type occupies in a file.
-
-        :return: Number of bytes.
-        """
+    def get_size(self, context=None):
         return 4 + len(self._value)
 
-    def read(self, stream):
-        """Read string from stream.
-
-        :param stream: The stream to read from.
-        :type stream: file
-        """
+    def read(self, stream, context=None):
+        """Read string from stream."""
         length, = struct.unpack('<I', stream.read(4))
         if length > 10000:
             raise ValueError('string too long (0x%08X at 0x%08X)'
                              % (length, stream.tell()))
         self._value = stream.read(length)
 
-    def write(self, stream):
-        """Write string to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
+    def write(self, stream, context=None):
+        """Write string to stream."""
         stream.write(struct.pack('<I', len(self._value)))
         stream.write(self._value)
 
@@ -678,26 +467,11 @@ class UndecodedData(SimpleType, BinaryType):
     def __str__(self):
         return '<UNDECODED DATA>'
 
-    def get_size(self):
-        """Return number of bytes the data occupies in a file.
-
-        :return: Number of bytes.
-        """
+    def get_size(self, context=None):
         return len(self._value)
 
-    def read(self, stream):
-        """Read data from stream. Note that this function simply
-        reads until the end of the stream.
-
-        :param stream: The stream to read from.
-        :type stream: file
-        """
+    def read(self, stream, context=None):
         self._value = stream.read(-1)
 
-    def write(self, stream):
-        """Write data to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
+    def write(self, stream, context=None):
         stream.write(self._value)

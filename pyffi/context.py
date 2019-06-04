@@ -1,4 +1,10 @@
-""""""
+"""
+Context
+=======
+
+Various contexts used by by Types, Engines and Formats.
+"""
+
 
 # ------------------------------------------------------------------------
 #  ***** BEGIN LICENSE BLOCK *****
@@ -40,5 +46,40 @@
 # ------------------------------------------------------------------------
 
 
-class TypeContext:
+class Context(object):
+    """Base Context class
+
+    :var pyffi.object_models.FileFormat.Data data: Data"""
+
+    __slots__ = ('data',)
+
+    def __init__(self, format_data=None):
+        """
+
+        :param format_data: FileFormat.Data
+        :type format_data: pyffi.object_models.FileFormat.Data
+        """
+
+        self.data = format_data
+
+    @property
+    def byte_order(self):
+        """Gets the byte order for structs
+
+        :rtype: ``str``"""
+
+        if self.data:
+            return getattr(self.data, '_byte_order', '<')
+        return '<'
+
+    def get_type(self, name):
+        if self.data:
+            return getattr(self.data, name, None)
+
+
+class TypeContext(Context):
     """This is context used during read and write of context-based types."""
+
+
+class FileContext(Context):
+    """File Context"""

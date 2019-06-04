@@ -5,9 +5,9 @@ PyFFI API
 .. toctree::
    :maxdepth: 3
 
+   context
    engines/index
    internal/index
-   types/index
    utils/index
 
 ..

@@ -48,68 +48,34 @@ Implements common basic types in XML file format descriptions.
 import logging
 import struct
 
+from pyffi.context import Context
+from pyffi.types.base import _as_str
 from pyffi.types.basic import BasicBase
 from pyffi.types.binary import BoolType
 from pyffi.types.binary import ByteType
 from pyffi.types.binary import CharType
+from pyffi.types.binary import Double as DoubleType
 from pyffi.types.binary import FixedString as FStringType
 from pyffi.types.binary import Float as FloatType
+from pyffi.types.binary import Int64Type
 from pyffi.types.binary import IntType
 from pyffi.types.binary import ShortType
 from pyffi.types.binary import SizedString as SStringType
 from pyffi.types.binary import UByteType
+from pyffi.types.binary import UInt64Type
 from pyffi.types.binary import UIntType
 from pyffi.types.binary import UShortType
 from pyffi.types.binary import UndecodedData as UDataType
 from pyffi.types.binary import ZString as ZStringType
 from pyffi.types.editable import EditableFloatSpinBox
 
-# TODO get rid of these
-_b = b''
-_b00 = b'\x00'
-
-
-def _as_bytes(value):
-    """Helper function which converts a string to bytes (this is useful for
-    set_value in all string classes, which use bytes for representation).
-
-    :return: The bytes representing the value.
-    :rtype: C{bytes}
-
-    >>> _as_bytes("\\u00e9defa") == "\\u00e9defa".encode("utf-8")
-    True
-
-    >>> _as_bytes(123) # doctest: +ELLIPSIS
-    Traceback (most recent call last):
-        ...
-    TypeError: ...
-    """
-    if isinstance(value, str):
-        return value.encode("utf-8", "replace")
-    elif isinstance(value, bytes):
-        return value
-    else:
-        raise TypeError("expected str")
-
-
-def _as_str(value):
-    """Helper function to convert bytes back to str. This is used in
-    the __str__ functions for simple string types. If you want a custom
-    encoding, use an explicit decode call on the value.
-    """
-    if isinstance(value, bytes):
-        return value.decode("utf-8", "replace")
-    elif isinstance(value, str):
-        return value
-    else:
-        raise TypeError("expected bytes")
-
 
 class Int(IntType, BasicBase):
     """Basic implementation of a 32-bit signed integer type. Also serves as a
     base class for all other integer types. Follows specified byte order.
 
-    >>> from pyffi.object_models import FileFormat    >>> from tempfile import TemporaryFile
+    >>> from pyffi.object_models import FileFormat
+    >>> from tempfile import TemporaryFile
     >>> tmp = TemporaryFile()
     >>> data = FileFormat.Data()
     >>> i = Int()
@@ -143,37 +109,18 @@ class Int(IntType, BasicBase):
         """Initialize the integer."""
         super(Int, self).__init__()
 
-    def read(self, stream, data):
-        """Read value from stream.
-
-        :param stream: The stream to read from.
-        :type stream: stream
-        :param data:
-        :type data: pyffi.engines.FileFormat.Data
-        """
-        self._value = struct.unpack(data._byte_order + self._struct,
-                                    stream.read(self._size))[0]
-
-    def write(self, stream, data):
-        """Write value to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
-        stream.write(struct.pack(data._byte_order + self._struct, self._value))
-
     def __str__(self):
         return str(self.get_value())
 
     @classmethod
-    def get_size(cls, data=None):
+    def get_size(cls, context=None):
         """Return number of bytes this type occupies in a file.
 
         :return: Number of bytes.
         """
         return cls._size
 
-    def get_hash(self, data=None):
+    def get_hash(self, context=None):
         """Return a hash value for this value.
 
         :return: An immutable object that can be used as a hash.
@@ -185,20 +132,12 @@ class UInt(UIntType, Int):
     """Implementation of a 32-bit unsigned integer type."""
 
 
-class Int64(Int):
+class Int64(Int64Type, Int):
     """Implementation of a 64-bit signed integer type."""
-    _min = -0x8000000000000000
-    _max = 0x7fffffffffffffff
-    _struct = 'q'
-    _size = 8
 
 
-class UInt64(Int):
+class UInt64(UInt64Type, Int):
     """Implementation of a 64-bit unsigned integer type."""
-    _min = 0
-    _max = 0xffffffffffffffff
-    _struct = 'Q'
-    _size = 8
 
 
 class Byte(ByteType, Int):
@@ -218,24 +157,20 @@ class UShort(UShortType, UInt):
 
 
 class ULittle32(UInt):
-    """Little endian 32 bit unsigned integer (ignores specified data
+    """Little endian 32 bit unsigned integer (ignores specified context
     byte order).
     """
 
-    def read(self, stream, data):
+    def read(self, stream, context=Context()):
         """Read value from stream.
 
-        :param stream: The stream to read from.
-        :type stream: file
         """
         self._value = struct.unpack('<' + self._struct,
                                     stream.read(self._size))[0]
 
-    def write(self, stream, data):
+    def write(self, stream, context=None):
         """Write value to stream.
 
-        :param stream: The stream to write to.
-        :type stream: file
         """
         stream.write(struct.pack('<' + self._struct, self._value))
 
@@ -262,7 +197,7 @@ class Char(CharType, BasicBase):
         assert (len(value) == 1)
         self._value = value
 
-    def read(self, stream, data):
+    def read(self, stream, context=Context()):
         """Read value from stream.
 
         :param stream: The stream to read from.
@@ -270,7 +205,7 @@ class Char(CharType, BasicBase):
         """
         self._value = stream.read(1)
 
-    def write(self, stream, data):
+    def write(self, stream, context=None):
         """Write value to stream.
 
         :param stream: The stream to write to.
@@ -278,11 +213,7 @@ class Char(CharType, BasicBase):
         """
         stream.write(self._value)
 
-    def get_hash(self, data=None):
-        """Return a hash value for this value.
-
-        :return: An immutable object that can be used as a hash.
-        """
+    def get_hash(self, context=None):
         self.get_value()
 
 
@@ -294,38 +225,24 @@ class Float(FloatType, BasicBase):
         super(BasicBase, self).__init__(**kwargs)
         self._value = 0.0
 
-    def read(self, stream, data):
-        """Read value from stream.
-
-        :param stream: The stream to read from.
-        :type stream: file
-        """
-        self._value = struct.unpack(data._byte_order + 'f',
+    def read(self, stream, context=Context()):
+        self._value = struct.unpack(context._byte_order + 'f',
                                     stream.read(4))[0]
 
-    def write(self, stream, data):
-        """Write value to stream.
-
-        :param stream: The stream to write to.
-        :type stream: file
-        """
+    def write(self, stream, context=None):
         try:
-            stream.write(struct.pack(data._byte_order + 'f',
+            stream.write(struct.pack(context._byte_order + 'f',
                                      self._value))
         except OverflowError:
             logger = logging.getLogger("pyffi.object_models")
             logger.warn("float value overflow, writing NaN")
-            stream.write(struct.pack(data._byte_order + 'I',
+            stream.write(struct.pack(context._byte_order + 'I',
                                      0x7fc00000))
 
-    def get_size(self, data=None):
-        """Return number of bytes this type occupies in a file.
-
-        :return: Number of bytes.
-        """
+    def get_size(self, context=None):
         return 4
 
-    def get_hash(self, data=None):
+    def get_hash(self, context=None):
         """Return a hash value for this value. Currently implemented
         with precision 1/200.
 
@@ -362,9 +279,9 @@ class HFloat(Float, EditableFloatSpinBox):
         result = ((bits + 0x48000000) & ~0x3ff) | (bits & 0x3ff)
         return ((result >> 13) & 0xFFFF) | ((bits & 0x80000000) >> 16)
 
-    @staticmethod
-    def half_sub(ha, hb):
-        return half_add(ha, hb ^ 0x8000);
+    # @staticmethod
+    # def half_sub(ha, hb):
+    #     return half_add(ha, hb ^ 0x8000);
 
     @staticmethod
     def h_sels(test, a, b):
@@ -515,23 +432,23 @@ class HFloat(Float, EditableFloatSpinBox):
 
     fromFloat = fromFloatAccurate
 
-    def read(self, stream, data):
+    def read(self, stream, context=Context()):
         """Read value from stream.
 
         :param stream: The stream to read from.
         :type stream: file
         """
-        bom = data._byte_order
+        bom = context._byte_order
         boi = bom + "H"
         self._value = HFloat.toFloat(bom, struct.unpack(boi, stream.read(2))[0])
 
-    def write(self, stream, data):
+    def write(self, stream, context=None):
         """Write value to stream.
 
         :param stream: The stream to write to.
         :type stream: file
         """
-        bom = data._byte_order
+        bom = context._byte_order
         boi = bom + "H"
         try:
             stream.write(struct.pack(boi, HFloat.fromFloat(bom, self._value)))
@@ -540,20 +457,24 @@ class HFloat(Float, EditableFloatSpinBox):
             logger.warn("float value overflow, writing NaN")
             stream.write(struct.pack(boi, 0x7fff))
 
-    def get_size(self, data=None):
+    def get_size(self, context=None):
         """Return number of bytes this type occupies in a file.
 
         :return: Number of bytes.
         """
         return 2
 
-    def get_hash(self, data=None):
+    def get_hash(self, context=None):
         """Return a hash value for this value. Currently implemented
         with the short form.
 
         :return: An immutable object that can be used as a hash.
         """
         return HFloat.fromFloat(self.get_value())
+
+
+class Double(Float, DoubleType):
+    """Implementation of an 64-bit float"""
 
 
 class ZString(ZStringType, BasicBase):
@@ -565,7 +486,7 @@ class ZString(ZStringType, BasicBase):
         """Return the string.
 
         :return: The stored string.
-        :rtype: C{bytes}
+        :rtype: ``bytes``
         """
         return _as_str(self._value)
 
@@ -577,7 +498,7 @@ class ZString(ZStringType, BasicBase):
         """
         super(ZStringType, self).set_value(value)
 
-    def read(self, stream, data=None):
+    def read(self, stream, context=Context()):
         """Read string from stream.
 
         :param stream: The stream to read from.
@@ -585,7 +506,7 @@ class ZString(ZStringType, BasicBase):
         """
         super(ZStringType, self).read(stream)
 
-    def write(self, stream, data=None):
+    def write(self, stream, context=None):
         """Write string to stream.
 
         :param stream: The stream to write to.
@@ -593,14 +514,14 @@ class ZString(ZStringType, BasicBase):
         """
         super(ZStringType, self).write(stream)
 
-    def get_size(self, data=None):
+    def get_size(self, context=None):
         """Return number of bytes this type occupies in a file.
 
         :return: Number of bytes.
         """
         return len(self._value) + 1
 
-    def get_hash(self, data=None):
+    def get_hash(self, context=None):
         """Return a hash value for this string.
 
         :return: An immutable object that can be used as a hash.
@@ -614,16 +535,16 @@ class FixedString(FStringType, BasicBase):
         super(BasicBase, self).__init__(**kwargs)
         self._value = b''
 
-    def read(self, stream, data=None):
+    def read(self, stream, context=Context()):
         super(FStringType, self).read(stream)
 
-    def write(self, stream, data=None):
+    def write(self, stream, context=None):
         super(FStringType, self).write(stream)
 
-    def get_size(self, data=None):
+    def get_size(self, context=None):
         return self._len
 
-    def get_hash(self, data=None):
+    def get_hash(self, context=None):
         """Return a hash value for this string.
 
         :return: An immutable object that can be used as a hash.
@@ -638,19 +559,19 @@ class SizedString(SStringType, BasicBase):
     >>> from tempfile import TemporaryFile
     >>> f = TemporaryFile()
     >>> from pyffi.engines import FileFormat
-    >>> data = FileFormat.Data()
+    >>> context = FileFormat.Data()
     >>> s = SizedString()
     >>> if f.write('\\x07\\x00\\x00\\x00abcdefg'.encode("ascii")): pass # ignore result for py3k
     >>> if f.seek(0): pass # ignore result for py3k
-    >>> s.read(f, data)
+    >>> s.read(f,context)
     >>> str(s)
     'abcdefg'
     >>> if f.seek(0): pass # ignore result for py3k
     >>> s.set_value('Hi There')
-    >>> s.write(f, data)
+    >>> s.write(f,context)
     >>> if f.seek(0): pass # ignore result for py3k
     >>> m = SizedString()
-    >>> m.read(f, data)
+    >>> m.read(f,context)
     >>> str(m)
     'Hi There'
     """
@@ -660,36 +581,36 @@ class SizedString(SStringType, BasicBase):
         super(BasicBase, self).__init__(**kwargs)
         self._value = b''
 
-    def get_size(self, data=None):
+    def get_size(self, context=None):
         return 4 + len(self._value)
 
-    def get_hash(self, data=None):
+    def get_hash(self, context=None):
         """Return a hash value for this string.
 
         :return: An immutable object that can be used as a hash.
         """
         return self.get_value()
 
-    def read(self, stream, data):
+    def read(self, stream, context=Context()):
         """Read string from stream.
 
         :param stream: The stream to read from.
         :type stream: file
         """
-        length, = struct.unpack(data._byte_order + 'I',
+        length, = struct.unpack(context._byte_order + 'I',
                                 stream.read(4))
         if length > 10000:
             raise ValueError('string too long (0x%08X at 0x%08X)'
                              % (length, stream.tell()))
         self._value = stream.read(length)
 
-    def write(self, stream, data):
+    def write(self, stream, context=None):
         """Write string to stream.
 
         :param stream: The stream to write to.
         :type stream: file
         """
-        stream.write(struct.pack(data._byte_order + 'I',
+        stream.write(struct.pack(context._byte_order + 'I',
                                  len(self._value)))
         stream.write(self._value)
 
@@ -699,18 +620,18 @@ class UndecodedData(UDataType, BasicBase):
         super(BasicBase, self).__init__(**kwargs)
         self._value = b''
 
-    def get_size(self, data=None):
+    def get_size(self, context=None):
         return len(self._value)
 
-    def get_hash(self, data=None):
+    def get_hash(self, context=None):
         """Return a hash value for this value.
 
         :return: An immutable object that can be used as a hash.
         """
         return self.get_value()
 
-    def read(self, stream, data):
+    def read(self, stream, context=Context()):
         self._value = stream.read(-1)
 
-    def write(self, stream, data):
+    def write(self, stream, context=None):
         stream.write(self._value)

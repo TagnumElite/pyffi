@@ -47,8 +47,10 @@ Abstract classes for PyFFI
 import abc
 import typing
 
+from pyffi.context import Context
 
-class DerivedMeta(abc.ABCMeta, type):
+
+class DerivedMeta(abc.ABCMeta, object):
     """Derived Meta, used for classes with custom meta classes"""
 
 
@@ -56,7 +58,13 @@ class Readable(metaclass=DerivedMeta):
     """Abstract Readable class"""
 
     @abc.abstractmethod
-    def read(self, data: typing.BinaryIO):
+    def read(self, stream, context=Context()):
+        """Read value from ``stream``, context may be required
+
+        :arg stream: The bytes buffer to work with
+        :type stream: typing.BinaryIO
+        :arg context: The context the function has to work with
+        :type context: typing.Optional[pyffi.context.Context]"""
         raise NotImplementedError
 
 
@@ -64,7 +72,13 @@ class Writeable(metaclass=DerivedMeta):
     """Abstract Writable class"""
 
     @abc.abstractmethod
-    def write(self, data: typing.BinaryIO):
+    def write(self, stream, context=Context()):
+        """Write value to ``stream``, context may be required
+
+        :arg stream: the bytes to write to
+        :type stream: typing.BinaryIO
+        :arg context: The context to work with
+        :type context: typing.Optional[pyffi.context.Context]"""
         raise NotImplementedError
 
 
@@ -73,9 +87,19 @@ class Duplex(Readable, Writeable):
     pass
 
 
-class FileFormatData(Duplex):
-    """Abstract FileFormat Data class"""
+class Inspectable(metaclass=DerivedMeta):
+    """Abstract Inspectable class"""
 
     @abc.abstractmethod
-    def inspect(self, stream: typing.BinaryIO):
+    def inspect(self, stream, context=Context()):
+        """An inspect method used to quickly check if the buffer is correct
+
+        :var stream: The stream to read from
+        :type stream: typing.BinaryIO
+        :var context: The context to work with
+        :type context: typing.Optional[pyffi.context.Context]"""
         raise NotImplementedError
+
+
+class FileFormatData(Duplex, Inspectable):
+    """Abstract FileFormat Data class"""

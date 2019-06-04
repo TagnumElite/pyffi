@@ -27,3 +27,9 @@ Glossary
    toaster
      Applies one or more spells to all files of all subdirectories of
      a given directory.
+
+   bit
+     A bit is a basic unit of information in computing. It is either an 0 or 1.
+
+   byte
+     A byte is unit of information that consists of 8 bits

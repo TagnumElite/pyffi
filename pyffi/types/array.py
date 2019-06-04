@@ -1,6 +1,6 @@
 """
-:mod:`pyffi.types.array` --- Array Types
-========================================
+Array Types
+===========
 
 Defines base class for arrays of data.
 """
@@ -47,9 +47,10 @@ Defines base class for arrays of data.
 import abc
 
 import pyffi.types.simple
+
+import pyffi.types.base
 from pyffi.abc import DerivedMeta
-from pyffi.types.any import AnyType
-from pyffi.utils.graph import EdgeFilter
+from pyffi.types.base import AnyType
 
 
 class ValidatedList(list, metaclass=DerivedMeta):
@@ -139,10 +140,10 @@ class AnyArray(ValidatedList, AnyType):
                        % (len(self) - self._MAXSTR))
         return result
 
-    def get_detail_child_nodes(self, edge_filter=EdgeFilter()):
+    def get_detail_child_nodes(self, edge_filter=None):
         return list.__iter__(self)
 
-    def get_detail_child_names(self, edge_filter=EdgeFilter()):
+    def get_detail_child_names(self, edge_filter=None):
         return ("[%i]" % i for i in range(list.__len__(self)))
 
 
@@ -213,13 +214,13 @@ class MetaUniformSimpleArray(DerivedMeta):
         super(MetaUniformSimpleArray, cls).__init__(name, bases, dct)
         # check type of elements
         if not issubclass(cls.ItemType,
-                          pyffi.types.simple.SimpleType):
+                          pyffi.types.base.SimpleType):
             raise TypeError("array ItemType must be a SimpleType subclass")
 
 
 class UniformSimpleArray(AnyArray, metaclass=MetaUniformSimpleArray):
     """Base class for array's with direct access to values of simple items."""
-    ItemType = pyffi.types.simple.SimpleType
+    ItemType = pyffi.types.base.SimpleType
 
     def __getitem__(self, index):
         # using list base method for speed

@@ -1,21 +1,21 @@
 """
-Types --- Interal Types used by the engines
-===========================================
-
-Implemented Types
------------------
+Types
+=====
 
 .. toctree::
    :maxdepth: 1
 
-   any
    array
+   base
    basic
    binary
+   bitfield
    common
    editable
    enum
-   simple
+   struct
+   union
+
 """
 
 # ------------------------------------------------------------------------

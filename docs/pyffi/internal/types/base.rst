@@ -1,3 +1,3 @@
-.. automodule:: pyffi.types.basic
+.. automodule:: pyffi.types.base
    :show-inheritance:
    :members:

@@ -5,6 +5,9 @@
 PyFFI |release| --- Interfacing block structured files!
 =======================================================
 
+.. warning::
+   The documentation is missing many details and features and is not up to date with the code.
+
 Documentation
 -------------
 
