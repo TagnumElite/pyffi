@@ -88,3 +88,9 @@ html_theme_options = {
 html_logo = "_static/logo.png"
 
 html_favicon = "_static/favicon.ico"
+
+# -- Options for AutoDoc ---------------------------------------------------
+
+autodoc_default_options = {
+    'special-members': '__init__',
+}
