@@ -6,6 +6,7 @@ PyFFI API
    :maxdepth: 3
 
    context
+   object_models/index
    engines/index
    internal/index
    utils/index
@@ -13,7 +14,6 @@ PyFFI API
 ..
    formats/index
    spells/index
-   object_models/index
 
 """
 

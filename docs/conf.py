@@ -53,6 +53,8 @@ intersphinx_mapping = {
 todo_include_todos = True
 autosummary_generate = []
 
+default_role = 'any'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -60,6 +62,50 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+# A string of reStructuredText that will be included at the beginning of
+# every source file that is read. This is a possible place to add
+# substitutions that should be available in every file.
+rst_prolog = """
+"""
+
+# A string of reStructuredText that will be included at the end of
+# every source file that is read. This is a possible place to add
+# substitutions that should be available in every file.
+rst_epilog = """
+.. |BUILD_WINDOWS| image:: https://img.shields.io/appveyor/ci/neomonkeus/pyffi/develop.svg?label=Windows%20Build&logo=appveyor&logoColor=fff
+   :target: https://ci.appveyor.com/project/neomonkeus/pyffi
+   :alt: Windows build status
+
+.. |BUILD_DOCS| image:: https://img.shields.io/readthedocs/pyffi/develop.svg?label=Docs%20Build&logo=read-the-docs&logoColor=fff
+   :target: https://pyffi.readthedocs.io
+   :alt: Document build status
+
+.. |BUILD_LINUX| image:: https://img.shields.io/travis/com/niftools/pyffi/develop.svg?label=Linux%20Build&logo=travis
+   :target: https://travis-ci.org/niftools/pyffi
+   :alt: Linux/MacOS build status
+
+.. |COVERAGE| image:: https://img.shields.io/coveralls/github/niftools/pyffi/develop.svg?label=Coverage
+   :target: https://coveralls.io/r/niftools/pyffi?branch=develop
+   :alt: Current code coverage
+
+.. |VERSION_PYPI| image:: https://img.shields.io/pypi/v/pyffi.svg?logo=python&logoColor=fff
+   :target: https://pypi.org/project/PyFFI/
+   :alt: Current Released Version
+
+.. |VERSION_PYTHON| image:: https://img.shields.io/pypi/pyversions/pyffi.svg?logo=python&logoColor=fff
+   :alt: Supported Python versions
+
+.. |ISSUE_GITHUB| image:: https://img.shields.io/github/issues/niftools/pyffi.svg?logo=github&logoColor=fff
+   :target: https://github.com/niftools/pyffi/issues
+   :alt: Current open github issues
+
+.. |PULL_GITHUB| image:: https://img.shields.io/github/issues-pr/niftools/pyffi.svg?logo=github&logoColor=fff
+   :target: https://github.com/niftools/pyffi/pulls
+   :alt: GitHub pull requests
+"""
+
+keep_warnings = True
 
 
 # -- Options for HTML output -------------------------------------------------
