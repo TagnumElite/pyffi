@@ -6,4 +6,4 @@ pyflakes
 pytest==3.6
 pytest-cov
 wheel
-black
+black; python_version > '3.5'
