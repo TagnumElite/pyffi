@@ -105,14 +105,16 @@ from pyffi.object_models.xml.basic import BasicBase
 import pyffi.object_models
 from pyffi.utils.graph import EdgeFilter
 
+
 class EgtFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the EGT format."""
-    xml_file_name = 'egt.xml'
+
+    xml_file_name = "egt.xml"
     # where to look for egt.xml and in what order:
     # EGTXMLPATH env var, or EgtFormat module directory
-    xml_file_path = [os.getenv('EGTXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("EGTXMLPATH"), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.egt$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.egt$", re.IGNORECASE)
 
     # basic types
     int = pyffi.object_models.common.Int
@@ -128,11 +130,12 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
 
     class FileSignature(BasicBase):
         """Basic type which implements the header of a EGT file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
         def __str__(self):
-            return 'FREGT'
+            return "FREGT"
 
         def get_detail_display(self):
             return self.__str__()
@@ -154,8 +157,8 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             # check if the segtng is correct
             if hdrstr != "FREGT".encode("ascii"):
                 raise ValueError(
-                    "invalid EGT header: expected 'FREGT' but got '%s'"
-                    % hdrstr)
+                    "invalid EGT header: expected 'FREGT' but got '%s'" % hdrstr
+                )
 
         def write(self, stream, data):
             """Write the header segtng to stream.
@@ -182,7 +185,7 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             self._value = int(value)
 
         def __str__(self):
-            return '%03i' % self._value
+            return "%03i" % self._value
 
         def get_size(self, data=None):
             return 3
@@ -191,11 +194,10 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             return self._value
 
         def read(self, stream, data):
-            self._value = EgtFormat.version_number(
-                stream.read(3).decode("ascii"))
+            self._value = EgtFormat.version_number(stream.read(3).decode("ascii"))
 
         def write(self, stream, data):
-            stream.write(('%03i' % self._value).encode("ascii"))
+            stream.write(("%03i" % self._value).encode("ascii"))
 
         def get_detail_display(self):
             return self.__str__()
@@ -258,7 +260,6 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-
         def read(self, stream):
             """Read a egt file.
 
@@ -266,13 +267,11 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             self.inspect_quick(stream)
-            pyffi.object_models.xml.struct_.StructBase.read(
-                self, stream, self)
+            pyffi.object_models.xml.struct_.StructBase.read(self, stream, self)
 
             # check if we are at the end of the file
             if stream.read(1):
-                raise ValueError(
-                    'end of file not reached: corrupt egt file?')
+                raise ValueError("end of file not reached: corrupt egt file?")
 
         def write(self, stream):
             """Write a egt file.
@@ -281,14 +280,15 @@ class EgtFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             # write the data
-            pyffi.object_models.xml.struct_.StructBase.write(
-                self, stream, self)
+            pyffi.object_models.xml.struct_.StructBase.write(self, stream, self)
 
         # GlobalNode
 
         def get_global_child_nodes(self, edge_filter=EdgeFilter()):
             return (texture for texture in self.textures)
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

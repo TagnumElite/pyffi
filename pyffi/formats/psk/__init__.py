@@ -106,14 +106,16 @@ from pyffi.object_models.xml.basic import BasicBase
 import pyffi.object_models
 from pyffi.utils.graph import EdgeFilter
 
+
 class PskFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the PSK format."""
-    xml_file_name = 'psk.xml'
+
+    xml_file_name = "psk.xml"
     # where to look for psk.xml and in what order:
     # PSKXMLPATH env var, or PskFormat module directory
-    xml_file_path = [os.getenv('PSKXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("PSKXMLPATH"), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.psk$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.psk$", re.IGNORECASE)
 
     # basic types
     int = pyffi.object_models.common.Int
@@ -143,7 +145,8 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual psk data."""
-        version = 0 # no versioning, so far
+
+        version = 0  # no versioning, so far
         user_version = 0
 
         def inspect_quick(self, stream):
@@ -156,14 +159,15 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
             pos = stream.tell()
             try:
                 signat = stream.read(8)
-                if signat == b'ACTRHEAD':
+                if signat == b"ACTRHEAD":
                     self.file_type = PskFormat.FileType.ACTRHEAD
-                elif signat == b'ANIMHEAD':
+                elif signat == b"ANIMHEAD":
                     self.file_type = PskFormat.FileType.ANIMHEAD
                 else:
                     raise ValueError(
                         "Invalid signature (got '%s' instead of"
-                        " b'ANIMHEAD' or b'ACTRHEAD'" % signat)
+                        " b'ANIMHEAD' or b'ACTRHEAD'" % signat
+                    )
             finally:
                 stream.seek(pos)
 
@@ -190,13 +194,11 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             self.inspect_quick(stream)
-            pyffi.object_models.xml.struct_.StructBase.read(
-                self, stream, self)
+            pyffi.object_models.xml.struct_.StructBase.read(self, stream, self)
 
             # check if we are at the end of the file
             if stream.read(1):
-                raise ValueError(
-                    'end of file not reached: corrupt psk file?')
+                raise ValueError("end of file not reached: corrupt psk file?")
 
         def write(self, stream):
             """Write a psk file.
@@ -205,14 +207,12 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             # write the data
-            pyffi.object_models.xml.struct_.StructBase.write(
-                self, stream, self)
+            pyffi.object_models.xml.struct_.StructBase.write(self, stream, self)
 
         # DetailNode
 
         def get_detail_child_nodes(self, edge_filter=EdgeFilter()):
-            return self._header_value_.get_detail_child_nodes(
-                edge_filter=edge_filter)
+            return self._header_value_.get_detail_child_nodes(edge_filter=edge_filter)
 
         # GlobalNode
 
@@ -235,6 +235,8 @@ class PskFormat(pyffi.object_models.xml.FileFormat):
         def get_global_display(self):
             return self.chunk_id.decode("utf8", "ignore")
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

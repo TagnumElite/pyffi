@@ -118,14 +118,16 @@ from pyffi.object_models.xml.basic import BasicBase
 import pyffi.object_models
 from pyffi.utils.graph import EdgeFilter
 
+
 class TriFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the TRI format."""
-    xml_file_name = 'tri.xml'
+
+    xml_file_name = "tri.xml"
     # where to look for tri.xml and in what order:
     # TRIXMLPATH env var, or TriFormat module directory
-    xml_file_path = [os.getenv('TRIXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("TRIXMLPATH"), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.tri$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.tri$", re.IGNORECASE)
 
     # basic types
     int = pyffi.object_models.common.Int
@@ -140,16 +142,12 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
     # implementation of tri-specific basic types
 
     class SizedStringZ(pyffi.object_models.common.SizedString):
-
         def get_size(self, data=None):
             """Return number of bytes this type occupies in a file.
 
             :return: Number of bytes.
             """
-            return (
-                1 +
-                pyffi.object_models.common.SizedString.get_size(self, data)
-                )
+            return 1 + pyffi.object_models.common.SizedString.get_size(self, data)
 
         def read(self, stream, data):
             """Read string from stream.
@@ -172,11 +170,12 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
 
     class FileSignature(BasicBase):
         """Basic type which implements the header of a TRI file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
         def __str__(self):
-            return 'FRTRI'
+            return "FRTRI"
 
         def get_detail_display(self):
             return self.__str__()
@@ -198,8 +197,8 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             # check if the string is correct
             if hdrstr != "FRTRI".encode("ascii"):
                 raise ValueError(
-                    "invalid TRI header: expected 'FRTRI' but got '%s'"
-                    % hdrstr)
+                    "invalid TRI header: expected 'FRTRI' but got '%s'" % hdrstr
+                )
 
         def write(self, stream, data):
             """Write the header string to stream.
@@ -226,7 +225,7 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             self._value = int(value)
 
         def __str__(self):
-            return '%03i' % self._value
+            return "%03i" % self._value
 
         def get_size(self, data=None):
             return 3
@@ -235,11 +234,10 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             return self._value
 
         def read(self, stream, data):
-            self._value = TriFormat.version_number(
-                stream.read(3).decode("ascii"))
+            self._value = TriFormat.version_number(stream.read(3).decode("ascii"))
 
         def write(self, stream, data):
-            stream.write(('%03i' % self._value).encode("ascii"))
+            stream.write(("%03i" % self._value).encode("ascii"))
 
         def get_detail_display(self):
             return self.__str__()
@@ -308,7 +306,6 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-
         def read(self, stream):
             """Read a tri file.
 
@@ -316,13 +313,11 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             self.inspect_quick(stream)
-            pyffi.object_models.xml.struct_.StructBase.read(
-                self, stream, self)
+            pyffi.object_models.xml.struct_.StructBase.read(self, stream, self)
 
             # check if we are at the end of the file
             if stream.read(1):
-                raise ValueError(
-                    'end of file not reached: corrupt tri file?')
+                raise ValueError("end of file not reached: corrupt tri file?")
 
             # copy modifier vertices into modifier records
             start_index = 0
@@ -330,9 +325,10 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
                 modifier.modifier_vertices.update_size()
                 for src_vert, dst_vert in zip(
                     self.modifier_vertices[
-                        start_index:start_index
-                        + modifier.num_vertices_to_modify],
-                    modifier.modifier_vertices):
+                        start_index : start_index + modifier.num_vertices_to_modify
+                    ],
+                    modifier.modifier_vertices,
+                ):
                     dst_vert.x = src_vert.x
                     dst_vert.y = src_vert.y
                     dst_vert.z = src_vert.z
@@ -347,13 +343,13 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             # copy modifier vertices from modifier records to header
             if self.modifiers:
                 self.num_modifier_vertices = sum(
-                    modifier.num_vertices_to_modify
-                    for modifier in self.modifiers)
+                    modifier.num_vertices_to_modify for modifier in self.modifiers
+                )
                 self.modifier_vertices.update_size()
                 for self_vert, vert in zip(
                     self.modifier_vertices,
-                    chain(*(modifier.modifier_vertices
-                            for modifier in self.modifiers))):
+                    chain(*(modifier.modifier_vertices for modifier in self.modifiers)),
+                ):
                     self_vert.x = vert.x
                     self_vert.y = vert.y
                     self_vert.z = vert.z
@@ -361,8 +357,7 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
                 self.num_modifier_vertices = 0
                 self.modifier_vertices.update_size()
             # write the data
-            pyffi.object_models.xml.struct_.StructBase.write(
-                self, stream, self)
+            pyffi.object_models.xml.struct_.StructBase.write(self, stream, self)
 
         def add_morph(self, name=None, relative_vertices=None):
             """Add a morph."""
@@ -379,8 +374,9 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
         # GlobalNode
 
         def get_global_child_nodes(self, edge_filter=EdgeFilter()):
-            return ([morph for morph in self.morphs]
-                    + [morph for morph in self.modifiers])
+            return [morph for morph in self.morphs] + [
+                morph for morph in self.modifiers
+            ]
 
     # XXX copied from pyffi.formats.egm.EgmFormat.MorphRecord
     class MorphRecord:
@@ -398,22 +394,21 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
         [1000, 3000, 2000]
         [-8999, 3000, -999]
         """
+
         def get_relative_vertices(self):
             for vert in self.vertices:
-                yield (vert.x * self.scale,
-                       vert.y * self.scale,
-                       vert.z * self.scale)
+                yield (vert.x * self.scale, vert.y * self.scale, vert.z * self.scale)
 
         def set_relative_vertices(self, vertices):
             # copy to list
             vertices = list(vertices)
             # check length
             if len(vertices) != self.arg:
-                raise ValueError("expected %i vertices, but got %i"
-                                 % (self.arg, len(vertices)))
+                raise ValueError(
+                    "expected %i vertices, but got %i" % (self.arg, len(vertices))
+                )
             # get extreme values of morph
-            max_value = max(max(abs(value) for value in vert)
-                            for vert in vertices)
+            max_value = max(max(abs(value) for value in vert) for vert in vertices)
             # calculate scale
             self.scale = max_value / 32767.0
             inv_scale = 1 / self.scale
@@ -439,6 +434,8 @@ class TriFormat(pyffi.object_models.xml.FileFormat):
             """
             self.scale *= scale
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

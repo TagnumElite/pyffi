@@ -124,12 +124,13 @@ from pyffi.utils.graph import EdgeFilter
 
 class BsaFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the BSA format."""
-    xml_file_name = 'bsa.xml'
+
+    xml_file_name = "bsa.xml"
     # where to look for bsa.xml and in what order:
     # BSAXMLPATH env var, or BsaFormat module directory
-    xml_file_path = [os.getenv('BSAXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("BSAXMLPATH"), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.bsa$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.bsa$", re.IGNORECASE)
 
     # basic types
     UInt32 = pyffi.object_models.common.UInt
@@ -138,7 +139,6 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
     # implementation of bsa-specific basic types
 
     class Hash(pyffi.object_models.common.UInt64):
-
         def __str__(self):
             return "0x%016X" % self._value
 
@@ -146,18 +146,17 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
             return self.__str__()
 
     class BZString(pyffi.object_models.common.SizedString):
-
         def get_size(self, data=None):
             return 2 + len(self._value)
 
         def read(self, stream, data=None):
-            length, = struct.unpack('<B', stream.read(1))
-            self._value = stream.read(length)[:-1] # strip trailing null byte
+            length, = struct.unpack("<B", stream.read(1))
+            self._value = stream.read(length)[:-1]  # strip trailing null byte
 
         def write(self, stream, data=None):
-            stream.write(struct.pack('<B', len(self._value)))
+            stream.write(struct.pack("<B", len(self._value)))
             stream.write(self._value)
-            stream.write(struct.pack('<B', 0))
+            stream.write(struct.pack("<B", 0))
 
     class FileVersion(pyffi.object_models.common.UInt):
         """Basic type which implements the header of a BSA file."""
@@ -183,7 +182,8 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
                 raise ValueError(
                     "invalid BSA header:"
                     " expected '\\x00\\x01\\x00\\x00' or 'BSA\\x00'"
-                    " but got '%s'" % hdrstr)
+                    " but got '%s'" % hdrstr
+                )
 
         def write(self, stream, data):
             """Write the header string to stream.
@@ -273,8 +273,7 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
                 # morrowind
                 logger.debug("Reading file records at 0x%08X." % stream.tell())
                 self.old_files.read(stream, data=self)
-                logger.debug(
-                    "Reading file name offsets at 0x%08X." % stream.tell())
+                logger.debug("Reading file name offsets at 0x%08X." % stream.tell())
                 for old_file in self.old_files:
                     old_file._name_offset_value_.read(stream, data=self)
                 logger.debug("Reading file names at 0x%08X." % stream.tell())
@@ -284,20 +283,18 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
                 for old_file in self.old_files:
                     old_file._name_hash_value_.read(stream, data=self)
                 # "read" the files
-                logger.debug(
-                    "Seeking end of raw file data at 0x%08X." % stream.tell())
+                logger.debug("Seeking end of raw file data at 0x%08X." % stream.tell())
                 total_num_bytes = 0
                 for old_file in self.old_files:
                     total_num_bytes += old_file.data_size
                 stream.seek(total_num_bytes, os.SEEK_CUR)
             else:
                 # oblivion and up
-                logger.debug(
-                    "Reading folder records at 0x%08X." % stream.tell())
+                logger.debug("Reading folder records at 0x%08X." % stream.tell())
                 self.folders.read(stream, data=self)
                 logger.debug(
-                    "Reading folder names and file records at 0x%08X."
-                    % stream.tell())
+                    "Reading folder names and file records at 0x%08X." % stream.tell()
+                )
                 for folder in self.folders:
                     folder._name_value_.read(stream, data=self)
                     folder._files_value_.read(stream, data=self)
@@ -306,8 +303,7 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
                     for file_ in folder.files:
                         file_._name_value_.read(stream, data=self)
                 # "read" the files
-                logger.debug(
-                    "Seeking end of raw file data at 0x%08X." % stream.tell())
+                logger.debug("Seeking end of raw file data at 0x%08X." % stream.tell())
                 total_num_bytes = 0
                 for folder in self.folders:
                     for file_ in folder.files:
@@ -316,8 +312,7 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
 
             # check if we are at the end of the file
             if stream.read(1):
-                raise ValueError(
-                    'end of file not reached: corrupt bsa file?')
+                raise ValueError("end of file not reached: corrupt bsa file?")
 
         def write(self, stream):
             """Write a bsa file.
@@ -328,6 +323,8 @@ class BsaFormat(pyffi.object_models.xml.FileFormat):
             # write the file
             raise NotImplementedError
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

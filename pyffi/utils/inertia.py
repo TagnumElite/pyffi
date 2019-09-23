@@ -60,9 +60,9 @@ def getMassInertiaSphere(radius, density=1, solid=True):
         mass = density * 4 * math.pi * (radius ** 2)
         inertia = (2 * mass * (radius ** 2)) / 3
 
-    return mass, tuple(
-        tuple((inertia if i == j else 0) for i in range(3))
-        for j in range(3)
+    return (
+        mass,
+        tuple(tuple((inertia if i == j else 0) for i in range(3)) for j in range(3)),
     )
 
 
@@ -74,25 +74,28 @@ def getMassInertiaBox(size, density=1, solid=True):
     24.0
     >>> inertia
     ((26.0, 0, 0), (0, 20.0, 0), (0, 0, 10.0))"""
-    assert(len(size) == 3)  # debug
+    assert len(size) == 3  # debug
     if solid:
         mass = density * size[0] * size[1] * size[2]
         tmp = tuple(mass * (length ** 2) / 12.0 for length in size)
     else:
         mass = density * sum(x * x for x in size)
-        tmp = tuple(mass * (length ** 2) / 6.0 for length in size)  # just guessing here, todo calculate it
-    return mass, ((tmp[1] + tmp[2], 0, 0),
-                  (0, tmp[2] + tmp[0], 0),
-                  (0, 0, tmp[0] + tmp[1])
-                  )
+        tmp = tuple(
+            mass * (length ** 2) / 6.0 for length in size
+        )  # just guessing here, todo calculate it
+    return (
+        mass,
+        ((tmp[1] + tmp[2], 0, 0), (0, tmp[2] + tmp[0], 0), (0, 0, tmp[0] + tmp[1])),
+    )
 
 
 def getMassInertiaCapsule(length, radius, density=1, solid=True):
     """Return mass and inertia matrix for a capsule of given length, radius and density."""
     # cylinder + caps, and caps have volume of a sphere
     if solid:
-        mass = density * (length * math.pi * (radius ** 2)
-                          + (4 * math.pi * (radius ** 3)) / 3)
+        mass = density * (
+            length * math.pi * (radius ** 2) + (4 * math.pi * (radius ** 3)) / 3
+        )
 
         # approximate by cylinder
         # TODO: also include the caps into the inertia matrix
@@ -100,15 +103,12 @@ def getMassInertiaCapsule(length, radius, density=1, solid=True):
         inertia_yy = inertia_xx
         inertia_zz = 0.5 * mass * (radius ** 2)
     else:
-        mass = density * (length * 2 * math.pi * radius
-                          + 2 * math.pi * (radius ** 2))
+        mass = density * (length * 2 * math.pi * radius + 2 * math.pi * (radius ** 2))
         inertia_xx = mass * (6 * (radius ** 2) + (length ** 2)) / 12.0
         inertia_yy = inertia_xx
         inertia_zz = mass * (radius ** 2)
 
-    return mass, ((inertia_xx, 0, 0),
-                  (0, inertia_yy, 0),
-                  (0, 0, inertia_zz))
+    return mass, ((inertia_xx, 0, 0), (0, inertia_yy, 0), (0, 0, inertia_zz))
 
 
 #
@@ -133,10 +133,8 @@ def get_mass_center_inertia_polyhedron(vertices, triangles, density=1, solid=Tru
     # (0,0,0),(1,0,0),(0,1,0),(0,0,1)
     # integrate(integrate(integrate(z*z, x=0..1-y-z), y=0..1-z), z=0..1) = 1/120
     # integrate(integrate(integrate(y*z, x=0..1-y-z), y=0..1-z), z=0..1) = 1/60
-    covariance_canonical = ((2, 1, 1),
-                            (1, 2, 1),
-                            (1, 1, 2))
-    covariance_correction = 1.0/120
+    covariance_canonical = ((2, 1, 1), (1, 2, 1), (1, 1, 2))
+    covariance_correction = 1.0 / 120
 
     covariances = []
     masses = []
@@ -163,35 +161,44 @@ def get_mass_center_inertia_polyhedron(vertices, triangles, density=1, solid=Tru
             # C' = det(A) * A * C * A^T
             covariances.append(
                 matscalarMul(
-                    matMul(matMul(transform,
-                                  covariance_canonical),
-                           transform_transposed),
-                    determinant))
+                    matMul(
+                        matMul(transform, covariance_canonical), transform_transposed
+                    ),
+                    determinant,
+                )
+            )
             # m = det(A) / 6.0
             masses.append(determinant / 6.0)
             # find center of gravity of the tetrahedron
             centers.append(
-                tuple(0.25 * sum(vert[i] for vert in (vert0, vert1, vert2))
-                      for i in range(3))
+                tuple(
+                    0.25 * sum(vert[i] for vert in (vert0, vert1, vert2))
+                    for i in range(3)
+                )
             )
 
         else:
             # find center of gravity of the triangle
-            centers.append(tuple(
-                sum(vert[i] for vert in (vert0, vert1, vert2)) / 3.0 for i in range(3))
+            centers.append(
+                tuple(
+                    sum(vert[i] for vert in (vert0, vert1, vert2)) / 3.0
+                    for i in range(3)
+                )
             )
             # find mass of triangle
             # mass is surface, which is half the norm of cross product
             # of two edges
             masses.append(
-                vecNorm(vecCrossProduct(
-                    vecSub(vert1, vert0), vecSub(vert2, vert0))) / 2.0)
+                vecNorm(vecCrossProduct(vecSub(vert1, vert0), vecSub(vert2, vert0)))
+                / 2.0
+            )
             # find covariance at center of this triangle
             # (this is approximate only as it replaces triangle with point mass
             # todo: find better way)
             covariances.append(
-                tuple(tuple(masses[-1]*x*y for x in centers[-1])
-                      for y in centers[-1])
+                tuple(
+                    tuple(masses[-1] * x * y for x in centers[-1]) for y in centers[-1]
+                )
             )
 
     # accumulate the results
@@ -204,8 +211,7 @@ def get_mass_center_inertia_polyhedron(vertices, triangles, density=1, solid=Tru
     # weighed average of centers with masses
     total_center = (0, 0, 0)
     for center, mass in zip(centers, masses):
-        total_center = vecAdd(total_center,
-                              vecscalarMul(center, mass / total_mass))
+        total_center = vecAdd(total_center, vecscalarMul(center, mass / total_mass))
     # add covariances, and correct the values
     total_covariance = ((0, 0, 0), (0, 0, 0), (0, 0, 0))
     for covariance in covariances:
@@ -216,15 +222,16 @@ def get_mass_center_inertia_polyhedron(vertices, triangles, density=1, solid=Tru
     # translate covariance to center of gravity:
     # C' = C - m * ( x dx^T + dx x^T + dx dx^T )
     # with x the translation vector and dx the center of gravity
-    translate_correction = matscalarMul(tuple(tuple(x * y for x in total_center)
-                                              for y in total_center),
-                                        total_mass)
+    translate_correction = matscalarMul(
+        tuple(tuple(x * y for x in total_center) for y in total_center), total_mass
+    )
     total_covariance = matSub(total_covariance, translate_correction)
 
     # convert covariance matrix into inertia tensor
     trace = sum(total_covariance[i][i] for i in range(3))
-    trace_matrix = tuple(tuple((trace if i == j else 0) for i in range(3))
-                         for j in range(3))
+    trace_matrix = tuple(
+        tuple((trace if i == j else 0) for i in range(3)) for j in range(3)
+    )
     total_inertia = matSub(trace_matrix, total_covariance)
 
     # correct for given density
@@ -234,11 +241,12 @@ def get_mass_center_inertia_polyhedron(vertices, triangles, density=1, solid=Tru
     # correct negative mass
     if total_mass < 0:
         total_mass = -total_mass
-        total_inertia = tuple(tuple(-x for x in row)
-                              for row in total_inertia)
+        total_inertia = tuple(tuple(-x for x in row) for row in total_inertia)
 
     return total_mass, total_center, total_inertia
 
+
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

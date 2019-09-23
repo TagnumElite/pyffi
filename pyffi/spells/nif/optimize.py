@@ -62,7 +62,7 @@
 # --------------------------------------------------------------------------
 
 
-import os.path # exists
+import os.path  # exists
 
 from pyffi.formats.nif import NifFormat
 from pyffi.utils import unique_map
@@ -74,9 +74,9 @@ import pyffi.spells.nif.fix
 import pyffi.spells.nif.modify
 
 # localization
-#import gettext
-#_ = gettext.translation('pyffi').ugettext
-_ = lambda msg: msg # stub, for now
+# import gettext
+# _ = gettext.translation('pyffi').ugettext
+_ = lambda msg: msg  # stub, for now
 
 # set flag to overwrite files
 __readonly__ = False
@@ -90,6 +90,7 @@ __examples__ = """* Standard usage:
 
     python niftoaster.py optimize --exclude=NiMaterialProperty /path/to/copy/of/my/nifs
 """
+
 
 class SpellCleanRefLists(pyffi.spells.nif.NifSpell):
     """Remove empty and duplicate entries in reference lists."""
@@ -140,21 +141,20 @@ class SpellCleanRefLists(pyffi.spells.nif.NifSpell):
     def branchentry(self, branch):
         if isinstance(branch, NifFormat.NiObjectNET):
             # clean extra data
-            branch.set_extra_datas(
-                self.cleanreflist(branch.get_extra_datas(), "extra"))
+            branch.set_extra_datas(self.cleanreflist(branch.get_extra_datas(), "extra"))
         if isinstance(branch, NifFormat.NiAVObject):
             # clean properties
             branch.set_properties(
-                self.cleanreflist(branch.get_properties(), "property"))
+                self.cleanreflist(branch.get_properties(), "property")
+            )
         if isinstance(branch, NifFormat.NiNode):
             # clean children
-            branch.set_children(
-                self.cleanreflist(branch.get_children(), "child"))
+            branch.set_children(self.cleanreflist(branch.get_children(), "child"))
             # clean effects
-            branch.set_effects(
-                self.cleanreflist(branch.get_effects(), "effect"))
+            branch.set_effects(self.cleanreflist(branch.get_effects(), "effect"))
         # always recurse further
         return True
+
 
 class SpellMergeDuplicates(pyffi.spells.nif.NifSpell):
     """Remove duplicate branches."""
@@ -174,26 +174,22 @@ class SpellMergeDuplicates(pyffi.spells.nif.NifSpell):
         # merge other things: this is just a quick hack to make sure the
         # optimizer won't do anything wrong)
         try:
-            return not self.data.header.has_block_type(
-                NifFormat.NiPSysMeshEmitter)
+            return not self.data.header.has_block_type(NifFormat.NiPSysMeshEmitter)
         except ValueError:
             # when in doubt, do the spell
             return True
 
     def branchinspect(self, branch):
         # only inspect the NiObjectNET branch (merging havok can mess up things)
-        return isinstance(branch, (NifFormat.NiObjectNET,
-                                   NifFormat.NiGeometryData))
+        return isinstance(branch, (NifFormat.NiObjectNET, NifFormat.NiGeometryData))
 
     def branchentry(self, branch):
         for otherbranch in self.branches:
-            if (branch is not otherbranch and
-                branch.is_interchangeable(otherbranch)):
+            if branch is not otherbranch and branch.is_interchangeable(otherbranch):
                 # skip properties that have controllers (the
                 # controller data cannot always be reliably checked,
                 # see also issue #2106668)
-                if (isinstance(branch, NifFormat.NiProperty)
-                    and branch.controller):
+                if isinstance(branch, NifFormat.NiProperty) and branch.controller:
                     continue
                 # skip BSShaderProperty blocks (see niftools issue #3009832)
                 if isinstance(branch, NifFormat.BSShaderProperty):
@@ -209,6 +205,7 @@ class SpellMergeDuplicates(pyffi.spells.nif.NifSpell):
             self.branches.append(branch)
             # continue recursion
             return True
+
 
 class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
     """Optimize all geometries:
@@ -236,8 +233,9 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
     def datainspect(self):
         # do not optimize if an egm or tri file is detected
         filename = self.stream.name
-        if (os.path.exists(filename[:-3] + "egm")
-            or os.path.exists(filename[:-3] + "tri")):
+        if os.path.exists(filename[:-3] + "egm") or os.path.exists(
+            filename[:-3] + "tri"
+        ):
             return False
         # so far, only reference lists in NiObjectNET blocks, NiAVObject
         # blocks, and NiNode blocks are checked
@@ -252,11 +250,15 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
         # get map, deleting unused vertices
         return unique_map(
             vhash
-            for i, vhash in enumerate(data.get_vertex_hash_generator(
-                vertexprecision=self.VERTEXPRECISION,
-                normalprecision=self.NORMALPRECISION,
-                uvprecision=self.UVPRECISION,
-                vcolprecision=self.VCOLPRECISION)))
+            for i, vhash in enumerate(
+                data.get_vertex_hash_generator(
+                    vertexprecision=self.VERTEXPRECISION,
+                    normalprecision=self.NORMALPRECISION,
+                    uvprecision=self.UVPRECISION,
+                    vcolprecision=self.VCOLPRECISION,
+                )
+            )
+        )
 
     def branchentry(self, branch):
         """Optimize a NiTriStrips or NiTriShape block:
@@ -285,9 +287,10 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
             # so skipping to be on the safe side
             self.toaster.msg(
                 "mesh has additional geometry data"
-                " which is not well understood: not optimizing")
+                " which is not well understood: not optimizing"
+            )
             return False
-    
+
         # we found a geometry to optimize
 
         # we're going to change the data
@@ -295,8 +298,7 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
 
         # cover degenerate case
         if branch.data.num_vertices < 3 or branch.data.num_triangles == 0:
-            self.toaster.msg(
-                "less than 3 vertices or no triangles: removing branch")
+            self.toaster.msg("less than 3 vertices or no triangles: removing branch")
             self.data.replace_global_node(branch, None)
             return False
 
@@ -306,35 +308,37 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
         data = branch.data
 
         v_map, v_map_inverse = self.optimize_vertices(data)
-        
-        self.toaster.msg("(num vertices was %i and is now %i)"
-                         % (len(v_map), len(v_map_inverse)))
+
+        self.toaster.msg(
+            "(num vertices was %i and is now %i)" % (len(v_map), len(v_map_inverse))
+        )
 
         # optimizing triangle ordering
         # first, get new triangle indices, with duplicate vertices removed
-        triangles = list(pyffi.utils.vertex_cache.get_unique_triangles(
-            (v_map[v0], v_map[v1], v_map[v2])
-            for v0, v1, v2 in data.get_triangles()))
-        old_atvr = pyffi.utils.vertex_cache.average_transform_to_vertex_ratio(
-            triangles)
+        triangles = list(
+            pyffi.utils.vertex_cache.get_unique_triangles(
+                (v_map[v0], v_map[v1], v_map[v2]) for v0, v1, v2 in data.get_triangles()
+            )
+        )
+        old_atvr = pyffi.utils.vertex_cache.average_transform_to_vertex_ratio(triangles)
         self.toaster.msg("optimizing triangle ordering")
         new_triangles = pyffi.utils.vertex_cache.get_cache_optimized_triangles(
-            triangles)
+            triangles
+        )
         new_atvr = pyffi.utils.vertex_cache.average_transform_to_vertex_ratio(
-            new_triangles)
+            new_triangles
+        )
         if new_atvr < old_atvr:
             triangles = new_triangles
-            self.toaster.msg(
-                "(ATVR reduced from %.3f to %.3f)" % (old_atvr, new_atvr))
+            self.toaster.msg("(ATVR reduced from %.3f to %.3f)" % (old_atvr, new_atvr))
         else:
-            self.toaster.msg(
-                "(ATVR stable at %.3f)" % old_atvr)            
+            self.toaster.msg("(ATVR stable at %.3f)" % old_atvr)
         # optimize triangles to have sequentially ordered indices
         self.toaster.msg("optimizing vertex ordering")
-        v_map_opt = pyffi.utils.vertex_cache.get_cache_optimized_vertex_map(
-            triangles)
-        triangles = [(v_map_opt[v0], v_map_opt[v1], v_map_opt[v2])
-                      for v0, v1, v2 in triangles]
+        v_map_opt = pyffi.utils.vertex_cache.get_cache_optimized_vertex_map(triangles)
+        triangles = [
+            (v_map_opt[v0], v_map_opt[v1], v_map_opt[v2]) for v0, v1, v2 in triangles
+        ]
         # update vertex map and its inverse
         for i in range(data.num_vertices):
             try:
@@ -351,8 +355,7 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
         except ValueError:
             # max() arg is an empty sequence
             # this means that there are no vertices
-            self.toaster.msg(
-                "less than 3 vertices or no triangles: removing branch")
+            self.toaster.msg("less than 3 vertices or no triangles: removing branch")
             self.data.replace_global_node(branch, None)
             return False
         del v_map_inverse[new_numvertices:]
@@ -360,8 +363,7 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
         # use a triangle representation
         if not isinstance(branch, NifFormat.NiTriShape):
             self.toaster.msg("replacing branch by NiTriShape")
-            newbranch = branch.get_interchangeable_tri_shape(
-                triangles=triangles)
+            newbranch = branch.get_interchangeable_tri_shape(triangles=triangles)
             self.data.replace_global_node(branch, newbranch)
             branch = newbranch
             data = newbranch.data
@@ -371,9 +373,9 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
         # copy old data
         oldverts = [(v.x, v.y, v.z) for v in data.vertices]
         oldnorms = [(n.x, n.y, n.z) for n in data.normals]
-        olduvs   = [[(uv.u, uv.v) for uv in uvset] for uvset in data.uv_sets]
+        olduvs = [[(uv.u, uv.v) for uv in uvset] for uvset in data.uv_sets]
         oldvcols = [(c.r, c.g, c.b, c.a) for c in data.vertex_colors]
-        if branch.skin_instance: # for later
+        if branch.skin_instance:  # for later
             oldweights = branch.get_vertex_weights()
         # set new data
         data.num_vertices = new_numvertices
@@ -433,11 +435,11 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
             # update skin partition (only if branch already exists)
             if branch.get_skin_partition():
                 self.toaster.msg("updating skin partition")
-                if isinstance(branch.skin_instance,
-                              NifFormat.BSDismemberSkinInstance):
+                if isinstance(branch.skin_instance, NifFormat.BSDismemberSkinInstance):
                     # get body part indices (in the old system!)
                     triangles, trianglepartmap = (
-                        branch.skin_instance.get_dismember_partitions())
+                        branch.skin_instance.get_dismember_partitions()
+                    )
                     maximize_bone_sharing = True
                     # update mapping
                     new_triangles = []
@@ -461,10 +463,14 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
                     maximize_bone_sharing = False
                 # use Oblivion settings
                 branch.update_skin_partition(
-                    maxbonesperpartition=18, maxbonespervertex=4,
-                    stripify=False, verbose=0,
-                    triangles=triangles, trianglepartmap=trianglepartmap,
-                    maximize_bone_sharing=maximize_bone_sharing)
+                    maxbonesperpartition=18,
+                    maxbonespervertex=4,
+                    stripify=False,
+                    verbose=0,
+                    triangles=triangles,
+                    trianglepartmap=trianglepartmap,
+                    maximize_bone_sharing=maximize_bone_sharing,
+                )
 
         # update morph data
         for morphctrl in branch.get_controllers():
@@ -483,17 +489,18 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
                     self.toaster.logger.warn(
                         "number of vertices in morph ({0}) does not match"
                         " number of vertices in shape ({1}):"
-                        " resizing morph, graphical glitches might result"
-                        .format(morphdata.num_vertices, len(v_map)))
+                        " resizing morph, graphical glitches might result".format(
+                            morphdata.num_vertices, len(v_map)
+                        )
+                    )
                     morphdata.num_vertices = len(v_map)
                     for morph in morphdata.morphs:
-                        morph.arg = morphdata.num_vertices # manual argument passing
+                        morph.arg = morphdata.num_vertices  # manual argument passing
                         morph.vectors.update_size()
                 # now remap morph vertices
                 for morph in morphdata.morphs:
                     # store a copy of the old vectors
-                    oldmorphvectors = [(vec.x, vec.y, vec.z)
-                                       for vec in morph.vectors]
+                    oldmorphvectors = [(vec.x, vec.y, vec.z) for vec in morph.vectors]
                     for old_i, vec in zip(v_map_inverse, morph.vectors):
                         vec.x = oldmorphvectors[old_i][0]
                         vec.y = oldmorphvectors[old_i][1]
@@ -502,27 +509,34 @@ class SpellOptimizeGeometry(pyffi.spells.nif.NifSpell):
                 # resize matrices
                 morphdata.num_vertices = new_numvertices
                 for morph in morphdata.morphs:
-                    morph.arg = morphdata.num_vertices # manual argument passing
+                    morph.arg = morphdata.num_vertices  # manual argument passing
                     morph.vectors.update_size()
 
         # recalculate tangent space (only if the branch already exists)
-        if (branch.find(block_name=b'Tangent space (binormal & tangent vectors)',
-                        block_type=NifFormat.NiBinaryExtraData)
-                or (data.num_uv_sets & 61440) or (data.extra_vectors_flags & 16)):
+        if (
+            branch.find(
+                block_name=b"Tangent space (binormal & tangent vectors)",
+                block_type=NifFormat.NiBinaryExtraData,
+            )
+            or (data.num_uv_sets & 61440)
+            or (data.extra_vectors_flags & 16)
+        ):
             self.toaster.msg("recalculating tangent space")
             branch.update_tangent_space()
 
         # stop recursion
         return False
 
+
 # XXX todo
 class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
     """Optimize geometry by splitting large models into pieces.
     (This spell is not yet fully implemented!)
     """
+
     SPELLNAME = "opt_split"
     READONLY = False
-    THRESHOLD_RADIUS = 100 #: Threshold where to split geometry.
+    THRESHOLD_RADIUS = 100  #: Threshold where to split geometry.
 
     # XXX todo
     @staticmethod
@@ -566,8 +580,8 @@ class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
     def addTriangle(sourcetriangle, v_map, sourcedata, destdata):
         """Add a triangle from source to destination."""
         desttriangle = [
-            destdata.addVertex(sourceindex)
-            for sourceindex in sourcetriangle]
+            destdata.addVertex(sourceindex) for sourceindex in sourcetriangle
+        ]
         destdata.num_triangles += 1
         destdata.triangles.update_size()
         destdata.triangles[-1].v_1 = desttriangle[0]
@@ -578,9 +592,13 @@ class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
     @staticmethod
     def get_size(vertices, triangle):
         """Calculate size of geometry data + given triangle."""
+
         def helper(oper, coord):
-            return oper((getattr(vert, coord) for vert in triangle),
-                        oper(getattr(vert, coord) for vert in vertices))
+            return oper(
+                (getattr(vert, coord) for vert in triangle),
+                oper(getattr(vert, coord) for vert in vertices),
+            )
+
         minx = helper(min, "x")
         miny = helper(min, "y")
         minz = helper(min, "z")
@@ -591,15 +609,14 @@ class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
 
     # XXX todo: merge into branchentry spell
     @staticmethod
-    def split(geom, threshold_radius = THRESHOLD_RADIUS):
+    def split(geom, threshold_radius=THRESHOLD_RADIUS):
         """Takes a NiGeometry block and splits the geometries. Returns a NiNode
         which contains the splitted geometry. Note that everything is triangulated
         in the process."""
         # make list of triangles
         # this will be used as the list of triangles still to add
         triangles = geom.data.get_triangles()
-        node = NifFormat.NiNode().deepcopy(
-            NifFormat.NiAVObject.deepcopy(geom))
+        node = NifFormat.NiNode().deepcopy(NifFormat.NiAVObject.deepcopy(geom))
         geomsplit = None
         # while there are still triangles to add...
         while triangles:
@@ -622,11 +639,15 @@ class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
                 addTriangle(triangle, v_map, geom.data, geomsplit.data)
             # find face that is close to current geometry
             for triangle in triangles:
-                 if get_size(geomsplit.data,
-                            tuple(geom.data.vertices[index]
-                                  for index in triangle)) < threshold_radius:
-                     addTriangle(triangle, v_map, geom.data, geomsplit.data)
-                     break
+                if (
+                    get_size(
+                        geomsplit.data,
+                        tuple(geom.data.vertices[index] for index in triangle),
+                    )
+                    < threshold_radius
+                ):
+                    addTriangle(triangle, v_map, geom.data, geomsplit.data)
+                    break
             else:
                 # if exceeded, start new geometry
                 # first finish some things in geomsplit data
@@ -657,7 +678,7 @@ class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
         if branch in self.optimized:
             # already optimized
             return False
-    
+
         # we found a geometry to optimize
         # XXX todo
         # get geometry data
@@ -670,7 +691,7 @@ class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
             optimized_geometries.append(block)
             return False
         # radius is over the threshold, so re-organize the geometry
-        newblock = split(block, threshold_radius = THRESHOLD_RADIUS)
+        newblock = split(block, threshold_radius=THRESHOLD_RADIUS)
         # replace block with newblock everywhere
         data.replace_global_node(block, newblock)
 
@@ -678,6 +699,7 @@ class SpellSplitGeometry(pyffi.spells.nif.NifSpell):
 
         # stop recursing
         return False
+
 
 class SpellDelUnusedBones(pyffi.spells.nif.NifSpell):
     """Remove nodes that are not used for anything."""
@@ -701,18 +723,21 @@ class SpellDelUnusedBones(pyffi.spells.nif.NifSpell):
     def branchinspect(self, branch):
         # only inspect the NiNode branch
         return isinstance(branch, NifFormat.NiNode)
-    
+
     def branchentry(self, branch):
         if isinstance(branch, NifFormat.NiNode):
-            if ((not branch.children)
+            if (
+                (not branch.children)
                 and (not branch.collision_object)
-                and (branch not in self._used_bones)):
+                and (branch not in self._used_bones)
+            ):
                 self.toaster.msg("removing unreferenced bone")
                 self.data.replace_global_node(branch, None)
                 self.changed = True
                 # no need to recurse further
                 return False
         return True
+
 
 class SpellDelZeroScale(pyffi.spells.nif.NifSpell):
     """Remove nodes with zero scale."""
@@ -727,7 +752,7 @@ class SpellDelZeroScale(pyffi.spells.nif.NifSpell):
     def branchinspect(self, branch):
         # only inspect the NiAVObject branch
         return isinstance(branch, NifFormat.NiAVObject)
-    
+
     def branchentry(self, branch):
         if isinstance(branch, NifFormat.NiAVObject):
             if branch.scale == 0:
@@ -738,12 +763,13 @@ class SpellDelZeroScale(pyffi.spells.nif.NifSpell):
                 return False
         return True
 
+
 class SpellReduceGeometry(SpellOptimizeGeometry):
     """Reduce vertices of all geometries."""
 
     SPELLNAME = "opt_reducegeometry"
     READONLY = False
-    
+
     @classmethod
     def toastentry(cls, toaster):
         if not toaster.options["arg"]:
@@ -752,7 +778,8 @@ class SpellReduceGeometry(SpellOptimizeGeometry):
                 "(e.g. 2 to reduce a little, 1 to reduce more, "
                 "0 to reduce even more, -0.1 is usually the highest "
                 "level of optimization possible before significant "
-                " graphical oddities occur) to to apply spell")
+                " graphical oddities occur) to to apply spell"
+            )
             return False
         else:
             precision = float(toaster.options["arg"])
@@ -762,10 +789,12 @@ class SpellReduceGeometry(SpellOptimizeGeometry):
             cls.VCOLPRECISION = max(precision, 0)
             return True
 
+
 class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
     """Optimize collision geometries by converting shapes to primitive
     boxes where appropriate.
     """
+
     SPELLNAME = "opt_collisionbox"
     READONLY = False
     VERTEXPRECISION = 3
@@ -775,20 +804,25 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
         # list of all optimized geometries so far
         # (to avoid optimizing the same geometry twice)
         self.optimized = []
-        
+
     def datainspect(self):
         # only run the spell if there are collisions
-        return (
-            self.inspectblocktype(NifFormat.bhkPackedNiTriStripsShape)
-            or self.inspectblocktype(NifFormat.bhkNiTriStripsShape))
+        return self.inspectblocktype(
+            NifFormat.bhkPackedNiTriStripsShape
+        ) or self.inspectblocktype(NifFormat.bhkNiTriStripsShape)
 
     def branchinspect(self, branch):
         # only inspect the collision branches
-        return isinstance(branch, (NifFormat.NiAVObject,
-                                   NifFormat.bhkCollisionObject,
-                                   NifFormat.bhkRigidBody,
-                                   NifFormat.bhkMoppBvTreeShape))
-        
+        return isinstance(
+            branch,
+            (
+                NifFormat.NiAVObject,
+                NifFormat.bhkCollisionObject,
+                NifFormat.bhkRigidBody,
+                NifFormat.bhkMoppBvTreeShape,
+            ),
+        )
+
     def get_box_shape(self, shape):
         """Check if the given shape is has a box shape. If so, return an
         equivalent (bhkConvexTransformShape +) bhkBoxShape.
@@ -804,10 +838,13 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
                 return None
             vertices = shape.data.vertices
             triangles = [
-                (hk_triangle.triangle.v_1,
-                 hk_triangle.triangle.v_2,
-                 hk_triangle.triangle.v_3)
-                for hk_triangle in shape.data.triangles]
+                (
+                    hk_triangle.triangle.v_1,
+                    hk_triangle.triangle.v_2,
+                    hk_triangle.triangle.v_3,
+                )
+                for hk_triangle in shape.data.triangles
+            ]
             material = shape.get_sub_shapes()[0].material
             factor = 1.0
         elif isinstance(shape, NifFormat.bhkNiTriStripsShape):
@@ -821,8 +858,16 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
         if len(triangles) != 12:
             return None
         # sorted vertices of a unit box
-        unit_box = [(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1),
-                    (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)]
+        unit_box = [
+            (0, 0, 0),
+            (0, 0, 1),
+            (0, 1, 0),
+            (0, 1, 1),
+            (1, 0, 0),
+            (1, 0, 1),
+            (1, 1, 0),
+            (1, 1, 1),
+        ]
         # sort vertices and rescale them to fit in the unit box
         verts = sorted(list(vert.as_tuple() for vert in vertices))
         min_ = [min(vert[i] for vert in verts) for i in range(3)]
@@ -831,17 +876,23 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
             # one of the dimensions is zero, so not a box
             return None
         scaled_verts = sorted(
-            set(tuple(int(0.5 + PRECISION * ((vert[i] - min_[i]) / size[i]))
-                      for i in range(3))
-                for vert in verts))
+            set(
+                tuple(
+                    int(0.5 + PRECISION * ((vert[i] - min_[i]) / size[i]))
+                    for i in range(3)
+                )
+                for vert in verts
+            )
+        )
         # if our vertices are a box, then the scaled_verts should coincide with
         # unit_box
         if len(scaled_verts) != 8:
             # cannot be a box
             return None
-        non_boxiness = sum(sum(abs(PRECISION * vert[i] - othervert[i])
-                               for i in range(3))
-                           for vert, othervert in zip(unit_box, scaled_verts))
+        non_boxiness = sum(
+            sum(abs(PRECISION * vert[i] - othervert[i]) for i in range(3))
+            for vert, othervert in zip(unit_box, scaled_verts)
+        )
         if non_boxiness > 0:
             # not really a box, so return nothing
             return None
@@ -857,14 +908,14 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
             # material has a bad value, this sometimes happens
             pass
         boxshape.radius = 0.1
-        boxshape.unknown_8_bytes[0] = 0x6b
-        boxshape.unknown_8_bytes[1] = 0xee
+        boxshape.unknown_8_bytes[0] = 0x6B
+        boxshape.unknown_8_bytes[1] = 0xEE
         boxshape.unknown_8_bytes[2] = 0x43
         boxshape.unknown_8_bytes[3] = 0x40
-        boxshape.unknown_8_bytes[4] = 0x3a
-        boxshape.unknown_8_bytes[5] = 0xef
-        boxshape.unknown_8_bytes[6] = 0x8e
-        boxshape.unknown_8_bytes[7] = 0x3e
+        boxshape.unknown_8_bytes[4] = 0x3A
+        boxshape.unknown_8_bytes[5] = 0xEF
+        boxshape.unknown_8_bytes[6] = 0x8E
+        boxshape.unknown_8_bytes[7] = 0x3E
         # check translation
         mid = [min_[i] + 0.5 * size[i] for i in range(3)]
         if sum(abs(mid[i]) for i in range(3)) < 1e-6:
@@ -879,7 +930,7 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
             tfshape.transform.m_24 = mid[1] / factor
             tfshape.transform.m_34 = mid[2] / factor
             return tfshape
-        
+
     def branchentry(self, branch):
         """Optimize a vertex based collision block:
           - remove duplicate vertices
@@ -889,11 +940,12 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
         if branch in self.optimized:
             # already optimized
             return False
-        
-        if (isinstance(branch, NifFormat.bhkMoppBvTreeShape)
+
+        if (
+            isinstance(branch, NifFormat.bhkMoppBvTreeShape)
             and isinstance(branch.shape, NifFormat.bhkPackedNiTriStripsShape)
-            and isinstance(branch.shape.data,
-                           NifFormat.hkPackedNiTriStripsData)):
+            and isinstance(branch.shape.data, NifFormat.hkPackedNiTriStripsData)
+        ):
             # packed collision with mopp
             box_shape = self.get_box_shape(branch.shape)
             if box_shape:
@@ -902,9 +954,10 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
                 self.toaster.msg(_("optimized box collision"))
                 self.changed = True
                 self.optimized.append(branch)
-            return False # don't recurse farther
-        elif (isinstance(branch, NifFormat.bhkRigidBody)
-              and isinstance(branch.shape, NifFormat.bhkNiTriStripsShape)):
+            return False  # don't recurse farther
+        elif isinstance(branch, NifFormat.bhkRigidBody) and isinstance(
+            branch.shape, NifFormat.bhkNiTriStripsShape
+        ):
             # unpacked collision
             box_shape = self.get_box_shape(branch.shape)
             if box_shape:
@@ -915,9 +968,9 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
                 self.optimized.append(branch)
             # don't recurse further
             return False
-        elif (isinstance(branch, NifFormat.bhkRigidBody)
-              and isinstance(branch.shape,
-                             NifFormat.bhkPackedNiTriStripsShape)):
+        elif isinstance(branch, NifFormat.bhkRigidBody) and isinstance(
+            branch.shape, NifFormat.bhkPackedNiTriStripsShape
+        ):
             # packed collision without mopp
             box_shape = self.get_box_shape(branch.shape)
             if box_shape:
@@ -927,8 +980,9 @@ class SpellOptimizeCollisionBox(pyffi.spells.nif.NifSpell):
                 self.changed = True
                 self.optimized.append(branch)
             return False
-        #keep recursing
+        # keep recursing
         return True
+
 
 class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
     """Optimize collision geometries by removing duplicate vertices."""
@@ -945,17 +999,22 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
 
     def datainspect(self):
         # only run the spell if there are collisions
-        return (
-            self.inspectblocktype(NifFormat.bhkPackedNiTriStripsShape)
-            or self.inspectblocktype(NifFormat.bhkNiTriStripsShape))
+        return self.inspectblocktype(
+            NifFormat.bhkPackedNiTriStripsShape
+        ) or self.inspectblocktype(NifFormat.bhkNiTriStripsShape)
 
     def branchinspect(self, branch):
         # only inspect the collision branches
-        return isinstance(branch, (NifFormat.NiAVObject,
-                                   NifFormat.bhkCollisionObject,
-                                   NifFormat.bhkRigidBody,
-                                   NifFormat.bhkMoppBvTreeShape))
-        
+        return isinstance(
+            branch,
+            (
+                NifFormat.NiAVObject,
+                NifFormat.bhkCollisionObject,
+                NifFormat.bhkRigidBody,
+                NifFormat.bhkMoppBvTreeShape,
+            ),
+        )
+
     def optimize_mopp(self, mopp):
         """Optimize a bhkMoppBvTreeShape."""
         shape = mopp.shape
@@ -969,24 +1028,23 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
         full_v_map_inverse = []
         subshape_counts = []
         for subshape_index in range(len(shape.get_sub_shapes())):
-            self.toaster.msg(_("(processing subshape %i)")
-                             % subshape_index)
+            self.toaster.msg(_("(processing subshape %i)") % subshape_index)
             v_map, v_map_inverse = unique_map(
                 shape.get_vertex_hash_generator(
-                    vertexprecision=self.VERTEXPRECISION,
-                    subshape_index=subshape_index))
+                    vertexprecision=self.VERTEXPRECISION, subshape_index=subshape_index
+                )
+            )
             self.toaster.msg(
                 _("(num vertices in collision shape was %i and is now %i)")
-                % (len(v_map), len(v_map_inverse)))
+                % (len(v_map), len(v_map_inverse))
+            )
             # update subshape vertex count
             subshape_counts.append(len(v_map_inverse))
             # update full maps
             num_vertices = len(full_v_map_inverse)
             old_num_vertices = len(full_v_map)
-            full_v_map += [num_vertices + i
-                           for i in v_map]
-            full_v_map_inverse += [old_num_vertices + old_i
-                                   for old_i in v_map_inverse]
+            full_v_map += [num_vertices + i for i in v_map]
+            full_v_map_inverse += [old_num_vertices + old_i for old_i in v_map_inverse]
         # copy old data
         oldverts = [(v.x, v.y, v.z) for v in data.vertices]
         # set new subshape counts
@@ -996,7 +1054,7 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
                 shape.sub_shapes[subshape_index].num_vertices = subshape_count
             if shape.data.sub_shapes:
                 # fallout 3 subshapes
-                shape.data.sub_shapes[subshape_index].num_vertices = subshape_count            
+                shape.data.sub_shapes[subshape_index].num_vertices = subshape_count
         # set new data
         data.num_vertices = len(full_v_map_inverse)
         data.vertices.update_size()
@@ -1022,12 +1080,22 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
         self.toaster.msg(_("removing duplicate triangles"))
         t_map, t_map_inverse = unique_map(shape.get_triangle_hash_generator())
         new_numtriangles = len(t_map_inverse)
-        self.toaster.msg(_("(num triangles in collision shape was %i and is now %i)")
-                         % (len(t_map), new_numtriangles))
+        self.toaster.msg(
+            _("(num triangles in collision shape was %i and is now %i)")
+            % (len(t_map), new_numtriangles)
+        )
         # copy old data
-        oldtris = [(tri.triangle.v_1, tri.triangle.v_2, tri.triangle.v_3,
-                    tri.normal.x, tri.normal.y, tri.normal.z)
-                   for tri in data.triangles]
+        oldtris = [
+            (
+                tri.triangle.v_1,
+                tri.triangle.v_2,
+                tri.triangle.v_3,
+                tri.normal.x,
+                tri.normal.y,
+                tri.normal.z,
+            )
+            for tri in data.triangles
+        ]
         # set new data
         data.num_triangles = new_numtriangles
         data.triangles.update_size()
@@ -1044,7 +1112,7 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
         del oldtris
         # update mopp data and welding info
         mopp.update_mopp_welding()
-        
+
     def branchentry(self, branch):
         """Optimize a vertex based collision block:
           - remove duplicate vertices
@@ -1058,10 +1126,11 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
             # already optimized
             return False
 
-        if (isinstance(branch, NifFormat.bhkMoppBvTreeShape)
+        if (
+            isinstance(branch, NifFormat.bhkMoppBvTreeShape)
             and isinstance(branch.shape, NifFormat.bhkPackedNiTriStripsShape)
-            and isinstance(branch.shape.data,
-                           NifFormat.hkPackedNiTriStripsData)):
+            and isinstance(branch.shape.data, NifFormat.hkPackedNiTriStripsData)
+        ):
             # packed collision with mopp
             self.toaster.msg(_("optimizing mopp"))
             self.optimize_mopp(branch)
@@ -1073,8 +1142,9 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
             self.optimized.append(branch)
             self.changed = True
             return False
-        elif (isinstance(branch, NifFormat.bhkRigidBody)
-              and isinstance(branch.shape, NifFormat.bhkNiTriStripsShape)):
+        elif isinstance(branch, NifFormat.bhkRigidBody) and isinstance(
+            branch.shape, NifFormat.bhkNiTriStripsShape
+        ):
             if branch.havok_col_filter.layer == NifFormat.OblivionLayer.CLUTTER:
                 # packed collisions do not work for clutter
                 # so skip it
@@ -1090,18 +1160,20 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
             self.changed = True
             # don't recurse further
             return False
-        elif (isinstance(branch, NifFormat.bhkRigidBody)
-              and isinstance(branch.shape,
-                             NifFormat.bhkPackedNiTriStripsShape)):
+        elif isinstance(branch, NifFormat.bhkRigidBody) and isinstance(
+            branch.shape, NifFormat.bhkPackedNiTriStripsShape
+        ):
             # packed collision without mopp
             # add a mopp to it if it is static
-            if any(sub_shape.havok_col_filter.layer != 1
-                   for sub_shape in branch.shape.get_sub_shapes()):
+            if any(
+                sub_shape.havok_col_filter.layer != 1
+                for sub_shape in branch.shape.get_sub_shapes()
+            ):
                 # no mopps for non-static objects
                 return False
             self.toaster.msg(_("adding mopp"))
             mopp = NifFormat.bhkMoppBvTreeShape()
-            shape = branch.shape # store reference before replacing
+            shape = branch.shape  # store reference before replacing
             self.data.replace_global_node(branch.shape, mopp)
             mopp.shape = shape
             mopp.material = shape.get_sub_shapes()[0].material
@@ -1122,13 +1194,14 @@ class SpellOptimizeCollisionGeometry(pyffi.spells.nif.NifSpell):
             return False
         # keep recursing
         return True
-        
+
+
 class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
     """Optimizes animations by removing duplicate keys"""
 
     SPELLNAME = "opt_optimizeanimation"
     READONLY = False
-    
+
     @classmethod
     def toastentry(cls, toaster):
         if not toaster.options["arg"]:
@@ -1136,7 +1209,6 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
         else:
             cls.significance_check = float(toaster.options["arg"])
         return True
-
 
     def datainspect(self):
         # returns more than needed but easiest way to ensure it catches all
@@ -1146,55 +1218,87 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
     def branchinspect(self, branch):
         # inspect the NiAVObject branch, and NiControllerSequence
         # branch (for kf files)
-        return isinstance(branch, (NifFormat.NiAVObject,
-                                   NifFormat.NiTimeController,
-                                   NifFormat.NiInterpolator,
-                                   NifFormat.NiControllerManager,
-                                   NifFormat.NiControllerSequence,
-                                   NifFormat.NiKeyframeData,
-                                   NifFormat.NiTextKeyExtraData,
-                                   NifFormat.NiFloatData))
+        return isinstance(
+            branch,
+            (
+                NifFormat.NiAVObject,
+                NifFormat.NiTimeController,
+                NifFormat.NiInterpolator,
+                NifFormat.NiControllerManager,
+                NifFormat.NiControllerSequence,
+                NifFormat.NiKeyframeData,
+                NifFormat.NiTextKeyExtraData,
+                NifFormat.NiFloatData,
+            ),
+        )
 
-    def optimize_keys(self,keys):
+    def optimize_keys(self, keys):
         """Helper function to optimize the keys."""
         new_keys = []
-        #compare keys
+        # compare keys
         ## types: 0 = float/int values
         ##        1 = Vector4, Quaternions, QuaternionsWXYZ
         ##        2 = word values (ie NiTextKeyExtraData)
         ##        3 = Vector3 values (ie translations)
-        if len(keys) < 3: return keys # no optimization possible?
-        precision = 10**self.significance_check
-        if isinstance(keys[0].value,(float,int)):
+        if len(keys) < 3:
+            return keys  # no optimization possible?
+        precision = 10 ** self.significance_check
+        if isinstance(keys[0].value, (float, int)):
             for i, key in enumerate(keys):
-                if i == 0: # since we don't want to delete the first key even if it is  the same as the last key.
+                if (
+                    i == 0
+                ):  # since we don't want to delete the first key even if it is  the same as the last key.
                     new_keys.append(key)
-                    continue                
+                    continue
                 try:
-                    if int(precision*keys[i-1].value) != int(precision*key.value):
+                    if int(precision * keys[i - 1].value) != int(precision * key.value):
                         new_keys.append(key)
                         continue
-                    if int(precision*keys[i+1].value) != int(precision*key.value):
+                    if int(precision * keys[i + 1].value) != int(precision * key.value):
                         new_keys.append(key)
                 except IndexError:
                     new_keys.append(key)
             return new_keys
-        elif isinstance(keys[0].value,(str)):
+        elif isinstance(keys[0].value, (str)):
             for i, key in enumerate(keys):
-                if i == 0: # since we don't want to delete the first key even if it is  the same as the last key.
+                if (
+                    i == 0
+                ):  # since we don't want to delete the first key even if it is  the same as the last key.
                     new_keys.append(key)
-                    continue 
+                    continue
                 try:
-                    if keys[i-1].value != key.value:
+                    if keys[i - 1].value != key.value:
                         new_keys.append(key)
                         continue
-                    if keys[i+1].value != key.value:
+                    if keys[i + 1].value != key.value:
                         new_keys.append(key)
                 except IndexError:
                     new_keys.append(key)
             return new_keys
-        elif isinstance(keys[0].value,(NifFormat.Vector4,NifFormat.Quaternion,NifFormat.QuaternionXYZW)):
-            tempkey = [[int(keys[0].value.w*precision),int(keys[0].value.x*precision),int(keys[0].value.y*precision),int(keys[0].value.z*precision)],[int(keys[1].value.w*precision),int(keys[1].value.x*precision),int(keys[1].value.y*precision),int(keys[1].value.z*precision)],[int(keys[2].value.w*precision),int(keys[2].value.x*precision),int(keys[2].value.y*precision),int(keys[2].value.z*precision)]]
+        elif isinstance(
+            keys[0].value,
+            (NifFormat.Vector4, NifFormat.Quaternion, NifFormat.QuaternionXYZW),
+        ):
+            tempkey = [
+                [
+                    int(keys[0].value.w * precision),
+                    int(keys[0].value.x * precision),
+                    int(keys[0].value.y * precision),
+                    int(keys[0].value.z * precision),
+                ],
+                [
+                    int(keys[1].value.w * precision),
+                    int(keys[1].value.x * precision),
+                    int(keys[1].value.y * precision),
+                    int(keys[1].value.z * precision),
+                ],
+                [
+                    int(keys[2].value.w * precision),
+                    int(keys[2].value.x * precision),
+                    int(keys[2].value.y * precision),
+                    int(keys[2].value.z * precision),
+                ],
+            ]
             for i, key in enumerate(keys):
                 if i == 0:
                     new_keys.append(key)
@@ -1203,10 +1307,10 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
                 tempkey[1] = tempkey[2]
                 tempkey[2] = []
                 try:
-                    tempkey[2].append(int(keys[i+1].value.w*precision))
-                    tempkey[2].append(int(keys[i+1].value.x*precision))
-                    tempkey[2].append(int(keys[i+1].value.y*precision))
-                    tempkey[2].append(int(keys[i+1].value.z*precision))
+                    tempkey[2].append(int(keys[i + 1].value.w * precision))
+                    tempkey[2].append(int(keys[i + 1].value.x * precision))
+                    tempkey[2].append(int(keys[i + 1].value.y * precision))
+                    tempkey[2].append(int(keys[i + 1].value.z * precision))
                 except IndexError:
                     new_keys.append(key)
                     continue
@@ -1216,8 +1320,24 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
                 if tempkey[1] != tempkey[2]:
                     new_keys.append(key)
             return new_keys
-        elif isinstance(keys[0].value,(NifFormat.Vector3)):
-            tempkey = [[int(keys[0].value.x*precision),int(keys[0].value.y*precision),int(keys[0].value.z*precision)],[int(keys[1].value.x*precision),int(keys[1].value.y*precision),int(keys[1].value.z*precision)],[int(keys[2].value.x*precision),int(keys[2].value.y*precision),int(keys[2].value.z*precision)]]
+        elif isinstance(keys[0].value, (NifFormat.Vector3)):
+            tempkey = [
+                [
+                    int(keys[0].value.x * precision),
+                    int(keys[0].value.y * precision),
+                    int(keys[0].value.z * precision),
+                ],
+                [
+                    int(keys[1].value.x * precision),
+                    int(keys[1].value.y * precision),
+                    int(keys[1].value.z * precision),
+                ],
+                [
+                    int(keys[2].value.x * precision),
+                    int(keys[2].value.y * precision),
+                    int(keys[2].value.z * precision),
+                ],
+            ]
             for i, key in enumerate(keys):
                 if i == 0:
                     new_keys.append(key)
@@ -1226,9 +1346,9 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
                 tempkey[1] = tempkey[2]
                 tempkey[2] = []
                 try:
-                    tempkey[2].append(int(keys[i+1].value.x*precision))
-                    tempkey[2].append(int(keys[i+1].value.y*precision))
-                    tempkey[2].append(int(keys[i+1].value.z*precision))
+                    tempkey[2].append(int(keys[i + 1].value.x * precision))
+                    tempkey[2].append(int(keys[i + 1].value.y * precision))
+                    tempkey[2].append(int(keys[i + 1].value.z * precision))
                 except IndexError:
                     new_keys.append(key)
                     continue
@@ -1238,29 +1358,33 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
                 if tempkey[1] != tempkey[2]:
                     new_keys.append(key)
             return new_keys
-        else: #something unhandled -- but what?
-            
+        else:  # something unhandled -- but what?
+
             return keys
-            
-    def update_animation(self,old_keygroup,new_keys):
-        self.toaster.msg(_("Num keys was %i and is now %i") % (len(old_keygroup.keys),len(new_keys)))
+
+    def update_animation(self, old_keygroup, new_keys):
+        self.toaster.msg(
+            _("Num keys was %i and is now %i") % (len(old_keygroup.keys), len(new_keys))
+        )
         old_keygroup.num_keys = len(new_keys)
         old_keygroup.keys.update_size()
-        for old_key, new_key in zip(old_keygroup.keys,new_keys):
+        for old_key, new_key in zip(old_keygroup.keys, new_keys):
             old_key.time = new_key.time
             old_key.value = new_key.value
         self.changed = True
-        
-    def update_animation_quaternion(self,old_keygroup,new_keys):
-        self.toaster.msg(_("Num keys was %i and is now %i") % (len(old_keygroup),len(new_keys)))
+
+    def update_animation_quaternion(self, old_keygroup, new_keys):
+        self.toaster.msg(
+            _("Num keys was %i and is now %i") % (len(old_keygroup), len(new_keys))
+        )
         old_keygroup.update_size()
-        for old_key, new_key in zip(old_keygroup,new_keys):
+        for old_key, new_key in zip(old_keygroup, new_keys):
             old_key.time = new_key.time
             old_key.value = new_key.value
         self.changed = True
 
     def branchentry(self, branch):
-            
+
         if isinstance(branch, NifFormat.NiKeyframeData):
             # (this also covers NiTransformData)
             if branch.num_rotation_keys != 0:
@@ -1268,20 +1392,22 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
                     for rotation in branch.xyz_rotations:
                         new_keys = self.optimize_keys(rotation.keys)
                         if len(new_keys) != rotation.num_keys:
-                            self.update_animation(rotation,new_keys)
+                            self.update_animation(rotation, new_keys)
                 else:
                     new_keys = self.optimize_keys(branch.quaternion_keys)
                     if len(new_keys) != branch.num_rotation_keys:
                         branch.num_rotation_keys = len(new_keys)
-                        self.update_animation_quaternion(branch.quaternion_keys,new_keys)
+                        self.update_animation_quaternion(
+                            branch.quaternion_keys, new_keys
+                        )
             if branch.translations.num_keys != 0:
                 new_keys = self.optimize_keys(branch.translations.keys)
                 if len(new_keys) != branch.translations.num_keys:
-                    self.update_animation(branch.translations,new_keys)
+                    self.update_animation(branch.translations, new_keys)
             if branch.scales.num_keys != 0:
                 new_keys = self.optimize_keys(branch.scales.keys)
                 if len(new_keys) != branch.scales.num_keys:
-                    self.update_animation(branch.scales,new_keys)
+                    self.update_animation(branch.scales, new_keys)
             # no children of NiKeyframeData so no need to recurse further
             return False
         elif isinstance(branch, NifFormat.NiTextKeyExtraData):
@@ -1289,13 +1415,14 @@ class SpellOptimizeAnimation(pyffi.spells.nif.NifSpell):
             # no children of NiTextKeyExtraData so no need to recurse further
             return False
         elif isinstance(branch, NifFormat.NiFloatData):
-            #self.optimize_keys(branch.data.keys)
+            # self.optimize_keys(branch.data.keys)
             # no children of NiFloatData so no need to recurse further
             return False
         else:
             # recurse further
             return True
-        
+
+
 class SpellOptimize(
     pyffi.spells.SpellGroupSeries(
         pyffi.spells.nif.modify.SpellCleanFarNif,
@@ -1306,11 +1433,14 @@ class SpellOptimize(
             pyffi.spells.nif.fix.SpellFixTexturePath,
             pyffi.spells.nif.fix.SpellClampMaterialAlpha,
             pyffi.spells.nif.fix.SpellFixBhkSubShapes,
-            pyffi.spells.nif.fix.SpellFixEmptySkeletonRoots),
+            pyffi.spells.nif.fix.SpellFixEmptySkeletonRoots,
+        ),
         SpellOptimizeGeometry,
         SpellOptimizeCollisionBox,
         SpellOptimizeCollisionGeometry,
         SpellMergeDuplicates,
-        )):
+    )
+):
     """Global fixer and optimizer spell."""
+
     SPELLNAME = "optimize"

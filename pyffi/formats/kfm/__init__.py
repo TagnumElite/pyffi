@@ -148,13 +148,16 @@ from pyffi.utils.graph import EdgeFilter
 
 class KfmFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the kfm file format."""
-    xml_file_name = 'kfm.xml'
+
+    xml_file_name = "kfm.xml"
     # where to look for kfm.xml and in what order:
     # KFMXMLPATH env var, or KfmFormat module directory
-    xml_file_path = [os.getenv('KFMXMLPATH'),
-                     os.path.join(os.path.dirname(__file__), "kfmxml")]
+    xml_file_path = [
+        os.getenv("KFMXMLPATH"),
+        os.path.join(os.path.dirname(__file__), "kfmxml"),
+    ]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.kfm$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.kfm$", re.IGNORECASE)
     # used for comparing floats
     _EPSILON = 0.0001
 
@@ -167,7 +170,9 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
     ushort = pyffi.object_models.common.UShort
     float = pyffi.object_models.common.Float
     SizedString = pyffi.object_models.common.SizedString
-    TextString = pyffi.object_models.common.UndecodedData  # for text (used by older kfm versions)
+    TextString = (
+        pyffi.object_models.common.UndecodedData
+    )  # for text (used by older kfm versions)
 
     # implementation of kfm-specific basic types
 
@@ -212,17 +217,19 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
             if header_string != version_string.encode("ascii"):
                 raise ValueError(
                     "invalid KFM header: expected '%s' but got '%s'"
-                    % (version_string, header_string))
+                    % (version_string, header_string)
+                )
             # check eol style
             nextchar = stream.read(1)
-            if nextchar == '\x0d'.encode("ascii"):
+            if nextchar == "\x0d".encode("ascii"):
                 nextchar = stream.read(1)
                 self._doseol = True
             else:
                 self._doseol = False
-            if nextchar != '\x0a'.encode("ascii"):
+            if nextchar != "\x0a".encode("ascii"):
                 raise ValueError(
-                    "invalid KFM header: string does not end on \\n or \\r\\n")
+                    "invalid KFM header: string does not end on \\n or \\r\\n"
+                )
             self.__value = header_string
 
         def write(self, stream, data):
@@ -237,17 +244,18 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
             stream.write(self.version_string(data.version).encode("ascii"))
             # write \n (or \r\n for older versions)
             if self._doseol:
-                stream.write('\x0d\x0a'.encode("ascii"))
+                stream.write("\x0d\x0a".encode("ascii"))
             else:
-                stream.write('\x0a'.encode("ascii"))
+                stream.write("\x0a".encode("ascii"))
 
         def get_size(self, data=None):
             """Return number of bytes the header string occupies in a file.
 
             :return: Number of bytes.
             """
-            return len(self.version_string(data.version)) \
-                   + (1 if not self._doseol else 2)
+            return len(self.version_string(data.version)) + (
+                1 if not self._doseol else 2
+            )
 
         # DetailNode
 
@@ -268,13 +276,16 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
             ';Gamebryo KFM File Version 1.2.4b'
             """
             if version == -1 or version is None:
-                raise RuntimeError('no string for version %s' % version)
-            return ";Gamebryo KFM File Version %s" % ({
-                0x01000000: "1.0",
-                0x01024b00: "1.2.4b",
-                0x0200000b: "2.0.0.0b",
-                0x0201000b: "2.1.0.0b",
-                0x0202000b: "2.2.0.0b"}[version])
+                raise RuntimeError("no string for version %s" % version)
+            return ";Gamebryo KFM File Version %s" % (
+                {
+                    0x01000000: "1.0",
+                    0x01024B00: "1.2.4b",
+                    0x0200000B: "2.0.0.0b",
+                    0x0201000B: "2.1.0.0b",
+                    0x0202000B: "2.2.0.0b",
+                }[version]
+            )
 
     # other types with internal implementation
     class FilePath(SizedString):
@@ -302,11 +313,11 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
         '0x202000b'
         """
 
-        if not '.' in version_str:
+        if not "." in version_str:
             return int(version_str)
 
         try:
-            ver_list = [int(x, 16) for x in version_str.split('.')]
+            ver_list = [int(x, 16) for x in version_str.split(".")]
         except ValueError:
             # version not supported (i.e. version_str '10.0.1.3z' would
             # trigger this)
@@ -315,19 +326,18 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
             # version not supported
             return -1
         for ver_digit in ver_list:
-            if (ver_digit | 0xff) > 0xff:
+            if (ver_digit | 0xFF) > 0xFF:
                 return -1  # version not supported
         while len(ver_list) < 4:
             ver_list.append(0)
-        return ((ver_list[0] << 24)
-                + (ver_list[1] << 16)
-                + (ver_list[2] << 8)
-                + ver_list[3])
+        return (
+            (ver_list[0] << 24) + (ver_list[1] << 16) + (ver_list[2] << 8) + ver_list[3]
+        )
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual kfm data."""
 
-        def __init__(self, version=0x0202000b):
+        def __init__(self, version=0x0202000B):
             """Initialize kfm data."""
 
             # the version numbers are stored outside the header structure
@@ -385,7 +395,7 @@ class KfmFormat(pyffi.object_models.xml.FileFormat):
 
             # check if we are at the end of the file
             if stream.read(1):
-                raise ValueError('end of file not reached: corrupt kfm file?')
+                raise ValueError("end of file not reached: corrupt kfm file?")
 
         def write(self, stream):
             """Write a kfm file.

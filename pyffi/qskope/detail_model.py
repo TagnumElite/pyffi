@@ -49,32 +49,34 @@ from pyffi.qskope.detail_tree import DetailTreeItem, DetailTreeItemData
 class DetailModel(QtCore.QAbstractItemModel):
     """General purpose model for QModelIndexed access to pyffi data structures
     such as StructBase, Array, and BasicBase instances."""
+
     # column definitions
     NUM_COLUMNS = 3
-    COL_NAME  = 0
-    COL_TYPE  = 1
+    COL_NAME = 0
+    COL_TYPE = 1
     COL_VALUE = 2
 
-#    def __init__(self, parent = None, block = None, refnumber_dict = None):
-#        """Initialize the model to display the given block. The refnumber_dict
-#        dictionary is used to handle references in the block."""
-#        QtCore.QAbstractItemModel.__init__(self, parent)
-#        # this list stores the blocks in the view
-#        # is a list of NiObjects for the nif format, and a list of Chunks for
-#        # the cgf format
-#        self.block = block
-#        self.refNumber = refnumber_dict if not refnumber_dict is None else {}
+    #    def __init__(self, parent = None, block = None, refnumber_dict = None):
+    #        """Initialize the model to display the given block. The refnumber_dict
+    #        dictionary is used to handle references in the block."""
+    #        QtCore.QAbstractItemModel.__init__(self, parent)
+    #        # this list stores the blocks in the view
+    #        # is a list of NiObjects for the nif format, and a list of Chunks for
+    #        # the cgf format
+    #        self.block = block
+    #        self.refNumber = refnumber_dict if not refnumber_dict is None else {}
 
-    def __init__(self, parent=None, globalnode=None, globalmodel=None,
-                 edge_filter=EdgeFilter()):
+    def __init__(
+        self, parent=None, globalnode=None, globalmodel=None, edge_filter=EdgeFilter()
+    ):
         """Initialize the model to display the given global node in the
         detail tree. We also need a reference to the global model to
         resolve node references.
         """
         QtCore.QAbstractItemModel.__init__(self, parent)
         self.root_item = DetailTreeItem(
-            data=DetailTreeItemData(node=globalnode),
-            edge_filter=EdgeFilter())
+            data=DetailTreeItemData(node=globalnode), edge_filter=EdgeFilter()
+        )
         self.globalmodel = globalmodel
 
     def flags(self, index):
@@ -123,7 +125,7 @@ class DetailModel(QtCore.QAbstractItemModel):
             if isinstance(display, GlobalNode):
                 # reference
                 blocknum = self.globalmodel.index_dict[display]
-                if (not hasattr(display, "name") or not display.name):
+                if not hasattr(display, "name") or not display.name:
                     return "%i [%s]" % (blocknum, display.__class__.__name__)
                 else:
                     return "%i (%s)" % (blocknum, display.name)
@@ -133,8 +135,10 @@ class DetailModel(QtCore.QAbstractItemModel):
                     display = display[:32] + "..."
                 return display.replace("\n", " ").replace("\r", " ")
             else:
-                raise TypeError("%s: do not know how to display %s"
-                                % (item.data.name, display.__class__.__name__))
+                raise TypeError(
+                    "%s: do not know how to display %s"
+                    % (item.data.name, display.__class__.__name__)
+                )
 
         # other colums: invalid
         else:
@@ -142,8 +146,7 @@ class DetailModel(QtCore.QAbstractItemModel):
 
     def headerData(self, section, orientation, role):
         """Return header data."""
-        if (orientation == QtCore.Qt.Horizontal
-            and role == QtCore.Qt.DisplayRole):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             if section == self.COL_TYPE:
                 return "Type"
             elif section == self.COL_NAME:
@@ -224,8 +227,9 @@ class DetailModel(QtCore.QAbstractItemModel):
             # set the value (EditRole, so use set_editor_value, not set_value)
             node.set_editor_value(pyvalue)
             # tell everyone that the data has changed
-            self.emit(QtCore.SIGNAL('dataChanged(QModelIndex, QModelIndex)'),
-                                    index, index)
+            self.emit(
+                QtCore.SIGNAL("dataChanged(QModelIndex, QModelIndex)"), index, index
+            )
             return True
         # all other cases: failed
         return False

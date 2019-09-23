@@ -65,7 +65,7 @@
 # ~ Imports
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import operator # itemgetter
+import operator  # itemgetter
 from weakref import WeakSet
 
 
@@ -79,7 +79,7 @@ class Edge:
         >>> edge.verts
         (6, 9)
         """
-        
+
         if ev0 == ev1:
             raise ValueError("Degenerate edge.")
 
@@ -96,6 +96,7 @@ class Edge:
         Edge(1, 2)
         """
         return "Edge(%s, %s)" % self.verts
+
 
 class Face:
     """An oriented face which keeps track its adjacent faces."""
@@ -138,7 +139,11 @@ class Face:
         :param other:
         :return:
         """
-        return (self.verts[0] == other.verts[0]) & (self.verts[1] == self.verts[1]) & (self.verts[2] == self.verts[2])
+        return (
+            (self.verts[0] == other.verts[0])
+            & (self.verts[1] == self.verts[1])
+            & (self.verts[2] == self.verts[2])
+        )
 
     def __hash__(self):
         return self.verts[0] + self.verts[1] + self.verts[2]
@@ -166,6 +171,7 @@ class Mesh:
 
     :ivar faces: List of faces of the mesh.
     :type faces: ``list`` of :class:`Face`"""
+
     def __init__(self, faces=None, lock=True):
         """Initialize a mesh, and optionally assign its faces and lock.
 
@@ -211,14 +217,14 @@ class Mesh:
             if not self._faces:
                 # special case
                 return "Mesh()"
-            return ("Mesh(faces=[%s], lock=False)"
-                    % ', '.join(repr(faceverts)
-                                for faceverts in sorted(self._faces)))
+            return "Mesh(faces=[%s], lock=False)" % ", ".join(
+                repr(faceverts) for faceverts in sorted(self._faces)
+            )
         else:
             # locked
-            return ("Mesh(faces=[%s])"
-                    % ', '.join(repr(face.verts)
-                                for face in self.faces))
+            return "Mesh(faces=[%s])" % ", ".join(
+                repr(face.verts) for face in self.faces
+            )
 
     def _add_edge(self, face, pv0, pv1):
         """Create new edge for mesh for given face, or return existing
@@ -306,8 +312,9 @@ class Mesh:
         """
         # store faces and set their index
         self.faces = []
-        for i, (verts, face) in enumerate(sorted(iter(self._faces.items()),
-                                          key=operator.itemgetter(0))):
+        for i, (verts, face) in enumerate(
+            sorted(iter(self._faces.items()), key=operator.itemgetter(0))
+        ):
             face.index = i
             self.faces.append(face)
         # remove helper structures
@@ -336,9 +343,11 @@ class Mesh:
                 for adj_adj_faces in adj_face.adjacent_faces:
                     adj_adj_faces.discard(face)
                     # faster (but breaks py3k!!):
-                    #if id(face) in adj_adj_faces.data:
+                    # if id(face) in adj_adj_faces.data:
                     #    del adj_adj_faces.data[id(face)]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

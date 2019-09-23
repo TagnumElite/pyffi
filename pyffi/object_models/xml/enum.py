@@ -43,28 +43,30 @@ import struct
 from pyffi.object_models.xml.basic import BasicBase
 from pyffi.object_models.editable import EditableComboBox
 
+
 class _MetaEnumBase(type):
     """This metaclass checks for the presence of _enumkeys, _enumvalues,
     and _numbytes attributes. It also adds enum class attributes.
 
     Used as metaclass of EnumBase."""
+
     def __init__(cls, name, bases, dct):
         super(_MetaEnumBase, cls).__init__(name, bases, dct)
         # consistency checks
-        if not '_enumkeys' in dct:
-            raise TypeError('%s: missing _enumkeys attribute'%cls)
-        if not '_enumvalues' in dct:
-            raise TypeError('%s: missing _enumvalues attribute'%cls)
-        if not '_numbytes' in dct:
-            raise TypeError('%s: missing _numbytes attribute'%cls)
+        if not "_enumkeys" in dct:
+            raise TypeError("%s: missing _enumkeys attribute" % cls)
+        if not "_enumvalues" in dct:
+            raise TypeError("%s: missing _enumvalues attribute" % cls)
+        if not "_numbytes" in dct:
+            raise TypeError("%s: missing _numbytes attribute" % cls)
 
         # check storage type
         if cls._numbytes == 1:
-            cls._struct = 'B'
+            cls._struct = "B"
         elif cls._numbytes == 2:
-            cls._struct = 'H'
+            cls._struct = "H"
         elif cls._numbytes == 4:
-            cls._struct = 'I'
+            cls._struct = "I"
         else:
             raise RuntimeError("unsupported enum numbytes")
 
@@ -92,7 +94,7 @@ class _MetaEnumBase(type):
     def __next__(cls):
         if cls.__i < len(cls._enumvalues):
             cls.__i += 1
-            return (cls._enumkeys[cls.__i-1], cls._enumvalues[cls.__i-1])
+            return (cls._enumkeys[cls.__i - 1], cls._enumvalues[cls.__i - 1])
         else:
             return
 
@@ -110,21 +112,22 @@ class _MetaEnumBase(type):
         return len(cls._enumkeys)
 
     def __repr__(cls):
-        return "<enum '%s'>"%(cls.__name__)
+        return "<enum '%s'>" % (cls.__name__)
 
     def __str__(cls):
         returns = "{"
         for idx, key in enumerate(cls._enumkeys):
-            if not idx == 0 and idx <= len(cls._enumkeys) -1:
+            if not idx == 0 and idx <= len(cls._enumkeys) - 1:
                 returns += ", "
-            returns += "\"%s\": \"%s\"" % (key, cls._enumvalues[idx])
+            returns += '"%s": "%s"' % (key, cls._enumvalues[idx])
         returns += "}"
         return returns
+
 
 class EnumBase(BasicBase, EditableComboBox, metaclass=_MetaEnumBase):
     _enumkeys = []
     _enumvalues = []
-    _numbytes = 1 # default width of an enum
+    _numbytes = 1  # default width of an enum
 
     #
     # BasicBase methods
@@ -144,29 +147,29 @@ class EnumBase(BasicBase, EditableComboBox, metaclass=_MetaEnumBase):
             val = int(value)
         except ValueError:
             try:
-                val = int(value, 16) # for '0x...' strings
+                val = int(value, 16)  # for '0x...' strings
             except ValueError:
                 if value in self._enumkeys:
                     val = getattr(self, value)
                 else:
-                    raise ValueError(
-                        "cannot convert value '%s' to integer"%value)
+                    raise ValueError("cannot convert value '%s' to integer" % value)
         if not val in self._enumvalues:
             logger = logging.getLogger("pyffi.object_models.xml.enum")
-            logger.error('invalid enum value (%i) for %s'
-                         % (val, self.__class__.__name__))
+            logger.error(
+                "invalid enum value (%i) for %s" % (val, self.__class__.__name__)
+            )
         else:
             self._value = val
 
     def read(self, stream, data):
         """Read value from stream."""
-        self._value = struct.unpack(data._byte_order + self._struct,
-                                    stream.read(self._numbytes))[0]
+        self._value = struct.unpack(
+            data._byte_order + self._struct, stream.read(self._numbytes)
+        )[0]
 
     def write(self, stream, data):
         """Write value to stream."""
-        stream.write(struct.pack(data._byte_order + self._struct,
-                                 self._value))
+        stream.write(struct.pack(data._byte_order + self._struct, self._value))
 
     def __str__(self):
         try:

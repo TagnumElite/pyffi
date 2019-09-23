@@ -1,2 +1,2 @@
 sphinx
-yummy_sphinx_theme
+yummy_sphinx_theme==0.0.9

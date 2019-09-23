@@ -63,4 +63,5 @@ class SpellDumpAll(KfmSpell):
 
 class KfmToaster(pyffi.spells.Toaster):
     """Base class for kfm toasters."""
+
     FILEFORMAT = KfmFormat

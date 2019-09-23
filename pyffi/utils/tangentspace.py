@@ -39,9 +39,15 @@
 
 from pyffi.utils.mathutils import *
 
-def getTangentSpace(vertices = None, normals = None, uvs = None,
-                    triangles = None, orientation = False,
-                    orthogonal = True):
+
+def getTangentSpace(
+    vertices=None,
+    normals=None,
+    uvs=None,
+    triangles=None,
+    orientation=False,
+    orthogonal=True,
+):
     """Calculate tangent space data.
 
     >>> vertices = [(0,0,0), (0,1,0), (1,0,0)]
@@ -66,10 +72,11 @@ def getTangentSpace(vertices = None, normals = None, uvs = None,
     # validate input
     if len(vertices) != len(normals) or len(vertices) != len(uvs):
         raise ValueError(
-            "lists of vertices, normals, and uvs must have the same length")
+            "lists of vertices, normals, and uvs must have the same length"
+        )
 
-    bin = [(0,0,0) for i in range(len(vertices)) ]
-    tan = [(0,0,0) for i in range(len(vertices)) ]
+    bin = [(0, 0, 0) for i in range(len(vertices))]
+    tan = [(0, 0, 0) for i in range(len(vertices))]
     orientations = [0 for i in range(len(vertices))]
 
     # calculate tangents and binormals from vertex and texture coordinates
@@ -94,30 +101,32 @@ def getTangentSpace(vertices = None, normals = None, uvs = None,
         r = w2w1[0] * w3w1[1] - w3w1[0] * w2w1[1]
 
         # sign of surface
-        r_sign = (1 if r >= 0 else -1)
+        r_sign = 1 if r >= 0 else -1
 
         # contribution of this triangle to tangents and binormals
         sdir = (
             r_sign * (w3w1[1] * v2v1[0] - w2w1[1] * v3v1[0]),
             r_sign * (w3w1[1] * v2v1[1] - w2w1[1] * v3v1[1]),
-            r_sign * (w3w1[1] * v2v1[2] - w2w1[1] * v3v1[2]))
+            r_sign * (w3w1[1] * v2v1[2] - w2w1[1] * v3v1[2]),
+        )
         try:
             sdir = vecNormalized(sdir)
-        except ZeroDivisionError: # catches zero vector
-            continue # skip triangle
-        except ValueError: # catches invalid data
-            continue # skip triangle
+        except ZeroDivisionError:  # catches zero vector
+            continue  # skip triangle
+        except ValueError:  # catches invalid data
+            continue  # skip triangle
 
         tdir = (
             r_sign * (w2w1[0] * v3v1[0] - w3w1[0] * v2v1[0]),
             r_sign * (w2w1[0] * v3v1[1] - w3w1[0] * v2v1[1]),
-            r_sign * (w2w1[0] * v3v1[2] - w3w1[0] * v2v1[2]))
+            r_sign * (w2w1[0] * v3v1[2] - w3w1[0] * v2v1[2]),
+        )
         try:
             tdir = vecNormalized(tdir)
-        except ZeroDivisionError: # catches zero vector
-            continue # skip triangle
-        except ValueError: # catches invalid data
-            continue # skip triangle
+        except ZeroDivisionError:  # catches zero vector
+            continue  # skip triangle
+        except ValueError:  # catches invalid data
+            continue  # skip triangle
 
         # vector combination algorithm could possibly be improved
         for i in (t1, t2, t3):
@@ -129,24 +138,17 @@ def getTangentSpace(vertices = None, normals = None, uvs = None,
     xvec = (1, 0, 0)
     yvec = (0, 1, 0)
     for i, norm in enumerate(normals):
-        if abs(1-vecNorm(norm)) > 0.01:
+        if abs(1 - vecNorm(norm)) > 0.01:
             raise ValueError(
-                "tangentspace: unnormalized normal in list of normals (%s, norm is %f)" % (norm, vecNorm(norm)))
+                "tangentspace: unnormalized normal in list of normals (%s, norm is %f)"
+                % (norm, vecNorm(norm))
+            )
         try:
             # turn norm, bin, tan into a base via Gram-Schmidt
-            bin[i] = vecSub(bin[i],
-                            vecscalarMul(
-                                norm,
-                                vecDotProduct(norm, bin[i])))
+            bin[i] = vecSub(bin[i], vecscalarMul(norm, vecDotProduct(norm, bin[i])))
             bin[i] = vecNormalized(bin[i])
-            tan[i] = vecSub(tan[i],
-                            vecscalarMul(
-                                norm,
-                                vecDotProduct(norm, tan[i])))
-            tan[i] = vecSub(tan[i],
-                            vecscalarMul(
-                                bin[i],
-                                vecDotProduct(norm, bin[i])))
+            tan[i] = vecSub(tan[i], vecscalarMul(norm, vecDotProduct(norm, tan[i])))
+            tan[i] = vecSub(tan[i], vecscalarMul(bin[i], vecDotProduct(norm, bin[i])))
             tan[i] = vecNormalized(tan[i])
         except ZeroDivisionError:
             # insuffient data to set tangent space for this vertex
@@ -165,6 +167,8 @@ def getTangentSpace(vertices = None, normals = None, uvs = None,
     else:
         return tan, bin
 
+
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

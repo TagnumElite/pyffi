@@ -42,11 +42,13 @@
 from pyffi.formats.cgf import CgfFormat
 import pyffi.spells.cgf
 
+
 def dumpBlock(chunk):
     # XXX figure out how to get the version
-    #print('chunk %3i (%s version 0x%04X)'
+    # print('chunk %3i (%s version 0x%04X)'
     #      % (i, chunk.__class__.__name__, version))
     return str(chunk)
+
 
 class SpellDumpAll(pyffi.spells.cgf.CgfSpell):
     """Dump the whole file."""

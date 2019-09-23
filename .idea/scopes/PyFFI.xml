@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="PyFFI" pattern="(file:setup.py||file[pyffi]:pyffi//*)&amp;&amp;!file[pyffi]:pyffi/formats/kfm/kfmxml//*&amp;&amp;!file[pyffi]:pyffi/formats/nif/nifxml//*" />
+</component>

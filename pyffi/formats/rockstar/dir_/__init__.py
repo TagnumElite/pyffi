@@ -114,16 +114,19 @@ from pyffi.object_models.xml.basic import BasicBase
 import pyffi.object_models
 from pyffi.utils.graph import EdgeFilter
 
+
 class DirFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the DIR format."""
-    xml_file_name = 'dir.xml'
+
+    xml_file_name = "dir.xml"
     # where to look for dir.xml
     xml_file_path = [os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.dir$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.dir$", re.IGNORECASE)
 
     # basic types
     UInt = pyffi.object_models.common.UInt
+
     class String(pyffi.object_models.common.FixedString):
         _len = 24
 
@@ -157,19 +160,19 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
             """
             pos = stream.tell()
             try:
-                off1, size1, file1 = struct.unpack(
-                    "<II24s", stream.read(32))
+                off1, size1, file1 = struct.unpack("<II24s", stream.read(32))
                 try:
-                    off2, = struct.unpack(
-                        "<I", stream.read(4))
+                    off2, = struct.unpack("<I", stream.read(4))
                 except struct.error:
                     # this happens if .dir only contains one file record
                     off2 = size1
-                if not(off1 == 0
-                       #and size1 < 1000 # heuristic
-                       and off2 == size1
-                       and file1[-1] == 0):
-                    raise ValueError('Not a Rockstar DIR file.')
+                if not (
+                    off1 == 0
+                    # and size1 < 1000 # heuristic
+                    and off2 == size1
+                    and file1[-1] == 0
+                ):
+                    raise ValueError("Not a Rockstar DIR file.")
             finally:
                 stream.seek(pos)
 
@@ -186,7 +189,6 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
                 self.inspect_quick(stream)
             finally:
                 stream.seek(pos)
-
 
         def read(self, stream):
             """Read a dir file.
@@ -224,7 +226,7 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
             """
             for file_record in self.files:
                 image.seek(file_record.offset * 2048)
-                with open(os.path.join(folder, file_record.name), 'wb') as data:
+                with open(os.path.join(folder, file_record.name), "wb") as data:
                     data.write(image.read(file_record.size * 2048))
 
         def pack(self, image, folder):
@@ -233,16 +235,18 @@ class DirFormat(pyffi.object_models.xml.FileFormat):
             """
             for file_record in self.files:
                 if image.tell() != file_record.offset * 2048:
-                    raise ValueError('file offset mismatch')
-                with open(os.path.join(folder, file_record.name), 'rb') as data:
+                    raise ValueError("file offset mismatch")
+                with open(os.path.join(folder, file_record.name), "rb") as data:
                     allbytes = data.read()
                     size = file_record.size * 2048
                     if len(allbytes) > size:
-                        raise ValueError('file larger than record size')
+                        raise ValueError("file larger than record size")
                     image.write(allbytes)
                     if len(allbytes) < size:
-                        image.write('\x00' * (size - len(allbytes)))
+                        image.write("\x00" * (size - len(allbytes)))
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

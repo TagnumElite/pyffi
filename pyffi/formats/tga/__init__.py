@@ -108,14 +108,16 @@ import pyffi.object_models
 import pyffi.utils.graph
 from pyffi.utils.graph import EdgeFilter
 
+
 class TgaFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the TGA format."""
-    xml_file_name = 'tga.xml'
+
+    xml_file_name = "tga.xml"
     # where to look for tga.xml and in what order:
     # TGAXMLPATH env var, or TgaFormat module directory
-    xml_file_path = [os.getenv('TGAXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("TGAXMLPATH"), os.path.dirname(__file__)]
     # filter for recognizing tga files by extension
-    RE_FILENAME = re.compile(r'^.*\.tga$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.tga$", re.IGNORECASE)
 
     # basic types
     int = pyffi.object_models.common.Int
@@ -130,8 +132,9 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
 
     class FooterString(pyffi.object_models.xml.basic.BasicBase):
         """The Targa footer signature."""
+
         def __str__(self):
-            return 'TRUEVISION-XFILE.\x00'
+            return "TRUEVISION-XFILE.\x00"
 
         def read(self, stream, data):
             """Read signature from stream.
@@ -143,7 +146,8 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             if signat != self.__str__().encode("ascii"):
                 raise ValueError(
                     "invalid Targa signature: expected '%s' but got '%s'"
-                    %(self.__str__(), signat))
+                    % (self.__str__(), signat)
+                )
 
         def write(self, stream, data):
             """Write signature to stream.
@@ -169,7 +173,8 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             if value != self.__str__():
                 raise ValueError(
                     "invalid Targa signature: expected '%s' but got '%s'"
-                    %(self.__str__(), value))
+                    % (self.__str__(), value)
+                )
 
         def get_size(self, data=None):
             """Return number of bytes that the signature occupies in a file.
@@ -192,21 +197,22 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
 
         def read(self, stream, data):
             data = data
-            if data.header.image_type in (TgaFormat.ImageType.INDEXED,
-                                          TgaFormat.ImageType.RGB,
-                                          TgaFormat.ImageType.GREY):
+            if data.header.image_type in (
+                TgaFormat.ImageType.INDEXED,
+                TgaFormat.ImageType.RGB,
+                TgaFormat.ImageType.GREY,
+            ):
                 self.children = [
                     TgaFormat.Pixel(argument=data.header.pixel_size)
-                    for i in range(data.header.width
-                                    * data.header.height)]
+                    for i in range(data.header.width * data.header.height)
+                ]
                 for pixel in self.children:
                     pixel.read(stream, data)
             else:
                 self.children = []
                 count = 0
                 while count < data.header.width * data.header.height:
-                    pixel = TgaFormat.RLEPixels(
-                        argument=data.header.pixel_size)
+                    pixel = TgaFormat.RLEPixels(argument=data.header.pixel_size)
                     pixel.read(stream, data)
                     self.children.append(pixel)
                     count += pixel.header.count + 1
@@ -226,11 +232,10 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
                 yield str(i)
 
     class Data(pyffi.object_models.FileFormat.Data):
-
         def __init__(self):
             self.header = TgaFormat.Header()
             self.image = TgaFormat.Image()
-            self.footer = None # TgaFormat.Footer() is optional
+            self.footer = None  # TgaFormat.Footer() is optional
 
         def inspect(self, stream):
             """Quick heuristic check if stream contains Targa data,
@@ -244,11 +249,9 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             pos = stream.tell()
             # read header
             try:
-                id_length, colormap_type, image_type, \
-                colormap_index, colormap_length, colormap_size, \
-                x_origin, y_origin, width, height, \
-                pixel_size, flags = struct.unpack("<BBBHHBHHHHBB",
-                                                  stream.read(18))
+                id_length, colormap_type, image_type, colormap_index, colormap_length, colormap_size, x_origin, y_origin, width, height, pixel_size, flags = struct.unpack(
+                    "<BBBHHBHHHHBB", stream.read(18)
+                )
             except struct.error:
                 # could not read 18 bytes
                 # not a TGA file
@@ -258,10 +261,12 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             # check if tga type is valid
             # check pixel size
             # check width and height
-            if not(image_type in (1, 2, 3, 9, 10, 11)
-                   and pixel_size in (8, 24, 32)
-                   and width <= 100000
-                   and height <= 100000):
+            if not (
+                image_type in (1, 2, 3, 9, 10, 11)
+                and pixel_size in (8, 24, 32)
+                and width <= 100000
+                and height <= 100000
+            ):
                 raise ValueError("Not a Targa file.")
             # this looks like a tga file!
 
@@ -272,14 +277,14 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             :type stream: ``file``
             """
             # read the file
-            self.inspect(stream) # quick check
+            self.inspect(stream)  # quick check
 
             # header
             self.header.read(stream, self)
 
             # image
             self.image.read(stream, self)
-            
+
             # check if we are at the end of the file
             if not stream.read(1):
                 self.footer = None
@@ -313,6 +318,8 @@ class TgaFormat(pyffi.object_models.xml.FileFormat):
             if self.footer:
                 yield "Footer"
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

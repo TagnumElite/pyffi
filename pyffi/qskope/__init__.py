@@ -63,7 +63,8 @@ from pyffi.object_models import FileFormat
 # http://doc.trolltech.com/4.3/qmainwindow.html#details
 class QSkope(QtGui.QMainWindow):
     """Main QSkope window."""
-    def __init__(self, parent = None):
+
+    def __init__(self, parent=None):
         """Initialize the main window."""
         QtGui.QMainWindow.__init__(self, parent)
 
@@ -84,9 +85,11 @@ class QSkope(QtGui.QMainWindow):
         # connect global with detail:
         # if object is selected in global view, then show its details in the
         # detail view
-        QtCore.QObject.connect(self.globalWidget,
-                               QtCore.SIGNAL("clicked(const QModelIndex &)"),
-                               self.setDetailModel)
+        QtCore.QObject.connect(
+            self.globalWidget,
+            QtCore.SIGNAL("clicked(const QModelIndex &)"),
+            self.setDetailModel,
+        )
 
         # set up the central widget
         self.splitter = QtGui.QSplitter()
@@ -114,42 +117,42 @@ class QSkope(QtGui.QMainWindow):
         # open a file
         self.openAct = QtGui.QAction("&Open", self)
         self.openAct.setShortcut("Ctrl+O")
-        QtCore.QObject.connect(self.openAct,
-                               QtCore.SIGNAL("triggered()"),
-                               self.openAction)
+        QtCore.QObject.connect(
+            self.openAct, QtCore.SIGNAL("triggered()"), self.openAction
+        )
 
         # save a file
         self.saveAct = QtGui.QAction("&Save", self)
         self.saveAct.setShortcut("Ctrl+S")
-        QtCore.QObject.connect(self.saveAct,
-                               QtCore.SIGNAL("triggered()"),
-                               self.saveAction)
+        QtCore.QObject.connect(
+            self.saveAct, QtCore.SIGNAL("triggered()"), self.saveAction
+        )
 
         # save a file as ...
         self.saveAsAct = QtGui.QAction("Save As...", self)
         self.saveAsAct.setShortcut("Ctrl+Shift+S")
-        QtCore.QObject.connect(self.saveAsAct,
-                               QtCore.SIGNAL("triggered()"),
-                               self.saveAsAction)
+        QtCore.QObject.connect(
+            self.saveAsAct, QtCore.SIGNAL("triggered()"), self.saveAsAction
+        )
 
         # exit
         self.exitAct = QtGui.QAction("E&xit", self)
         self.exitAct.setShortcut("Ctrl+Q")
-        QtCore.QObject.connect(self.exitAct,
-                               QtCore.SIGNAL("triggered()"),
-                               QtGui.qApp.quit)
+        QtCore.QObject.connect(
+            self.exitAct, QtCore.SIGNAL("triggered()"), QtGui.qApp.quit
+        )
 
         # tell something about QSkope
         self.aboutQSkopeAct = QtGui.QAction("About QSkope", self)
-        QtCore.QObject.connect(self.aboutQSkopeAct,
-                               QtCore.SIGNAL("triggered()"),
-                               self.aboutQSkopeAction)
+        QtCore.QObject.connect(
+            self.aboutQSkopeAct, QtCore.SIGNAL("triggered()"), self.aboutQSkopeAction
+        )
 
         # tell something about Qt
         self.aboutQtAct = QtGui.QAction("About Qt", self)
-        QtCore.QObject.connect(self.aboutQtAct,
-                               QtCore.SIGNAL("triggered()"),
-                               QtGui.qApp.aboutQt)
+        QtCore.QObject.connect(
+            self.aboutQtAct, QtCore.SIGNAL("triggered()"), QtGui.qApp.aboutQt
+        )
 
     # implementation details:
     # http://doc.trolltech.com/4.3/mainwindows-menus.html
@@ -170,16 +173,15 @@ class QSkope(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         """Called when the application is closed. Saves the settings."""
-        settings = self.getSettings(versioned = True)
+        settings = self.getSettings(versioned=True)
         settings.setValue("MainWindow/geometry", self.saveGeometry())
         QtGui.QMainWindow.closeEvent(self, event)
-
 
     #
     # various helper functions
     #
 
-    def openFile(self, filename = None):
+    def openFile(self, filename=None):
         """Open a file, and set up the view."""
         # inform user about file being read
         self.statusBar().showMessage("Reading %s ..." % filename)
@@ -189,13 +191,24 @@ class QSkope(QtGui.QMainWindow):
         try:
             stream = open(filename, "rb")
             # try reading as a NIF file
-            for Format in (NifFormat, CgfFormat, KfmFormat, DdsFormat,
-                           TgaFormat, EgmFormat, EspFormat, TriFormat,
-                           EgtFormat, BsaFormat, PskFormat, DirFormat):
+            for Format in (
+                NifFormat,
+                CgfFormat,
+                KfmFormat,
+                DdsFormat,
+                TgaFormat,
+                EgmFormat,
+                EspFormat,
+                TriFormat,
+                EgtFormat,
+                BsaFormat,
+                PskFormat,
+                DirFormat,
+            ):
                 self.data = Format.Data()
                 try:
                     self.data.read(stream)
-                except ValueError as err: #ValueError:
+                except ValueError as err:  # ValueError:
                     # failed, try next format
                     print(str(err))
                     continue
@@ -205,14 +218,13 @@ class QSkope(QtGui.QMainWindow):
                 # all failed: inform user that format
                 # is not recognized
                 self.statusBar().showMessage(
-                    'File format of %s not recognized'
-                    % filename)
+                    "File format of %s not recognized" % filename
+                )
                 return
 
         except (ValueError, IOError):
             # update status bar message
-            self.statusBar().showMessage("Failed reading %s (see console)"
-                                         % filename)
+            self.statusBar().showMessage("Failed reading %s (see console)" % filename)
             raise
 
         else:
@@ -224,10 +236,10 @@ class QSkope(QtGui.QMainWindow):
 
             # set up the models and update the views
             self.globalModel = pyffi.qskope.global_model.GlobalModel(
-                globalnode=self.data)
+                globalnode=self.data
+            )
             self.globalWidget.setModel(self.globalModel)
-            self.setDetailModel(
-                self.globalModel.index(0, 0, QtCore.QModelIndex()))
+            self.setDetailModel(self.globalModel.index(0, 0, QtCore.QModelIndex()))
 
             # update window title
             self.setWindowTitle("QSkope - %s" % self.fileName)
@@ -237,7 +249,7 @@ class QSkope(QtGui.QMainWindow):
             except UnboundLocalError:
                 pass
 
-    def saveFile(self, filename = None):
+    def saveFile(self, filename=None):
         """Save changes to disk."""
         # TODO support dds saving as well
         # TODO support tga saving as well
@@ -255,8 +267,7 @@ class QSkope(QtGui.QMainWindow):
 
         except ValueError:
             # update status bar message
-            self.statusBar().showMessage("Failed saving %s (see console)"
-                                         % filename)
+            self.statusBar().showMessage("Failed saving %s (see console)" % filename)
             raise
         else:
             # update status bar message
@@ -265,7 +276,7 @@ class QSkope(QtGui.QMainWindow):
             stream.close()
 
     @staticmethod
-    def getSettings(versioned = False):
+    def getSettings(versioned=False):
         """Return the QSkope settings."""
         if not versioned:
             return QtCore.QSettings("PyFFI", "QSkope")
@@ -283,8 +294,8 @@ class QSkope(QtGui.QMainWindow):
         if index.isValid():
             globalnode = index.internalPointer().data.node
             self.detailModel = pyffi.qskope.detail_model.DetailModel(
-                globalnode=globalnode,
-                globalmodel=self.globalModel)
+                globalnode=globalnode, globalmodel=self.globalModel
+            )
         else:
             self.detailModel = pyffi.qskope.detail_model.DetailModel()
         # set the widget's model
@@ -296,7 +307,7 @@ class QSkope(QtGui.QMainWindow):
         # (displays an extra file dialog)
         filename = QtGui.QFileDialog.getOpenFileName(self, "Open File")
         if filename:
-            self.openFile(filename = filename)
+            self.openFile(filename=filename)
 
     def saveAsAction(self):
         """Save a file."""
@@ -312,7 +323,7 @@ class QSkope(QtGui.QMainWindow):
         # wrapper around saveFile
         # (gets file name automatically from stored file name)
         if self.fileName:
-            self.saveFile(filename = self.fileName)
+            self.saveFile(filename=self.fileName)
 
     def aboutQSkopeAction(self):
         """Display an information window about QSkope."""
@@ -320,7 +331,8 @@ class QSkope(QtGui.QMainWindow):
         mbox = QtGui.QMessageBox(self)
         # set window title and window text
         mbox.setWindowTitle("About QSkope")
-        mbox.setText("""
+        mbox.setText(
+            """
 <p>QSkope is a tool bundled with PyFFI for analyzing and editing files whose
 format is supported by pyffi. QSkope is written in Python.</p>
 <p>The Python File Format Interface, or briefly PyFFI, is a general purpose
@@ -334,6 +346,8 @@ on <a href="https://github.com">Github</a>.</p>
 <p>You are running PyFFI %s.
 The most recent version of PyFFI can always be downloaded from the
 <a href="https://github.com/niftools/pyffi/releases">
-PyFFI Github Releases page</a>.""" % pyffi.__version__)
+PyFFI Github Releases page</a>."""
+            % pyffi.__version__
+        )
         # display the window
         mbox.exec_()

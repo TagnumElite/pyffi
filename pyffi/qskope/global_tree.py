@@ -38,8 +38,8 @@
 # --------------------------------------------------------------------------
 
 
-
 from pyffi.utils.graph import GlobalNode, EdgeType, EdgeFilter
+
 
 class GlobalTreeItemData(object):
     """Stores all data used in the detail view.
@@ -47,6 +47,7 @@ class GlobalTreeItemData(object):
     :ivar node: The node of the item.
     :type node: :class:`DetailNode`
     """
+
     def __init__(self, node=None):
         if not isinstance(node, GlobalNode):
             raise TypeError("node must be GlobalNode instance")
@@ -61,6 +62,7 @@ class GlobalTreeItemData(object):
     @property
     def typename(self):
         return self.node.__class__.__name__
+
 
 class GlobalTreeItem(object):
     """Stores all internal information to vizualize L{GlobalNode}s in a
@@ -79,15 +81,20 @@ class GlobalTreeItem(object):
         may form cycles (or not, this is format dependent).
     :type edge_type: ``int``
     """
-    def __init__(self, data=None, parent=None, row=0, edge_type=EdgeType(),
-                 edge_filter=EdgeFilter()):
+
+    def __init__(
+        self,
+        data=None,
+        parent=None,
+        row=0,
+        edge_type=EdgeType(),
+        edge_filter=EdgeFilter(),
+    ):
         """Initialize the node tree hierarchy from the given data."""
         if not isinstance(data, GlobalTreeItemData):
-            raise TypeError(
-                "data must be a GlobalTreeItemData instance")
+            raise TypeError("data must be a GlobalTreeItemData instance")
         if not isinstance(parent, (type(None), GlobalTreeItem)):
-            raise TypeError(
-                "parent must be either None or a GlobalTreeItem instance")
+            raise TypeError("parent must be either None or a GlobalTreeItem instance")
         if not isinstance(edge_type, EdgeType):
             raise TypeError("edge_type must be EdgeType instance")
         self.data = data
@@ -99,8 +106,12 @@ class GlobalTreeItem(object):
                 data=GlobalTreeItemData(node=child_node),
                 parent=self,
                 row=child_row,
-                edge_type=child_edge_type)
-            for (child_row, (child_node, child_edge_type))
-            in enumerate(zip(
-                data.node.get_global_child_nodes(edge_filter=edge_filter),
-                data.node.get_global_child_edge_types(edge_filter=edge_filter)))]
+                edge_type=child_edge_type,
+            )
+            for (child_row, (child_node, child_edge_type)) in enumerate(
+                zip(
+                    data.node.get_global_child_nodes(edge_filter=edge_filter),
+                    data.node.get_global_child_edge_types(edge_filter=edge_filter),
+                )
+            )
+        ]

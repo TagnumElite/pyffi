@@ -75,8 +75,25 @@ class Expression(object):
     False
     """
 
-    operators = set(('==', '!=', '>=', '<=', '&&', '||', '&', '|', '-', '!',
-                     '<', '>', '/', '*', '+'))
+    operators = set(
+        (
+            "==",
+            "!=",
+            ">=",
+            "<=",
+            "&&",
+            "||",
+            "&",
+            "|",
+            "-",
+            "!",
+            "<",
+            ">",
+            "/",
+            "*",
+            "+",
+        )
+    )
 
     def __init__(self, expr_str, name_filter=None):
         try:
@@ -104,7 +121,7 @@ class Expression(object):
         elif self._left is None:
             pass
         else:
-            assert (isinstance(self._left, int))  # debug
+            assert isinstance(self._left, int)  # debug
             left = self._left
 
         if not self._op:
@@ -122,49 +139,52 @@ class Expression(object):
         elif self._right is None:
             pass
         else:
-            assert (isinstance(self._right, int))  # debug
+            assert isinstance(self._right, int)  # debug
             right = self._right
 
-        if self._op == '==':
+        if self._op == "==":
             return left == right
-        elif self._op == '!=':
+        elif self._op == "!=":
             return left != right
-        elif self._op == '>=':
+        elif self._op == ">=":
             return left >= right
-        elif self._op == '<=':
+        elif self._op == "<=":
             return left <= right
-        elif self._op == '&&':
+        elif self._op == "&&":
             return left and right
-        elif self._op == '||':
+        elif self._op == "||":
             return left or right
-        elif self._op == '&':
+        elif self._op == "&":
             return left & right
-        elif self._op == '|':
+        elif self._op == "|":
             return left | right
-        elif self._op == '-':
+        elif self._op == "-":
             return left - right
-        elif self._op == '!':
+        elif self._op == "!":
             return not (right)
-        elif self._op == '>':
+        elif self._op == ">":
             return left > right
-        elif self._op == '<':
+        elif self._op == "<":
             return left < right
-        elif self._op == '/':
+        elif self._op == "/":
             return left / right
-        elif self._op == '*':
+        elif self._op == "*":
             return left * right
-        elif self._op == '+':
+        elif self._op == "+":
             return left + right
         else:
-            raise NotImplementedError("expression syntax error: operator '" + self._op + "' not implemented")
+            raise NotImplementedError(
+                "expression syntax error: operator '" + self._op + "' not implemented"
+            )
 
     def __str__(self):
         """Reconstruct the expression to a string."""
 
         left = str(self._left) if not self._left is None else ""
-        if not self._op: return left
+        if not self._op:
+            return left
         right = str(self._right) if not self._right is None else ""
-        return left + ' ' + self._op + ' ' + right
+        return left + " " + self._op + " " + right
 
     @classmethod
     def _parse(cls, expr_str, name_filter=None):
@@ -185,7 +205,7 @@ class Expression(object):
         # failed, so return the string, passed through the name filter
         except ValueError:
             pass
-        m = re.match(r'^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$', expr_str)
+        m = re.match(r"^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$", expr_str)
         if m:
             ver = (
                 (int(m.group(1)) << 24)
@@ -198,8 +218,7 @@ class Expression(object):
         # (where a dot separates components)
         if name_filter is None:
             name_filter = lambda x: x
-        return '.'.join(name_filter(comp)
-                        for comp in expr_str.split("."))
+        return ".".join(name_filter(comp) for comp in expr_str.split("."))
         return expr_str
 
     @classmethod
@@ -232,7 +251,7 @@ class Expression(object):
             # yes, it is a bracketted expression
             # so remove brackets and whitespace,
             # and let that be the left hand side
-            left_str = expr_str[left_startpos + 1:left_endpos].strip()
+            left_str = expr_str[left_startpos + 1 : left_endpos].strip()
             # if there is no next token, then just return the expression
             # without brackets
             if left_endpos + 1 == len(expr_str):
@@ -246,21 +265,28 @@ class Expression(object):
             # let's first scan for operators of two characters
             # and then for operators of one character
             for op_endpos in range(op_startpos + 1, op_startpos - 1, -1):
-                op_str = expr_str[op_startpos:op_endpos + 1]
+                op_str = expr_str[op_startpos : op_endpos + 1]
                 if op_str in cls.operators:
                     break
             else:
-                raise ValueError("expression syntax error: expected operator at '%s'" % expr_str[op_startpos:])
+                raise ValueError(
+                    "expression syntax error: expected operator at '%s'"
+                    % expr_str[op_startpos:]
+                )
         else:
             # it's not... so we need to scan for the first operator
             for op_startpos, ch in enumerate(expr_str):
-                if ch == ' ': continue
-                if ch == '(' or ch == ')':
-                    raise ValueError("expression syntax error: expected operator before '%s'" % expr_str[op_startpos:])
+                if ch == " ":
+                    continue
+                if ch == "(" or ch == ")":
+                    raise ValueError(
+                        "expression syntax error: expected operator before '%s'"
+                        % expr_str[op_startpos:]
+                    )
                 # to avoid confusion between && and &, and || and |,
                 # let's first scan for operators of two characters
                 for op_endpos in range(op_startpos + 1, op_startpos - 1, -1):
-                    op_str = expr_str[op_startpos:op_endpos + 1]
+                    op_str = expr_str[op_startpos : op_endpos + 1]
                     if op_str in cls.operators:
                         break
                 else:
@@ -269,8 +295,8 @@ class Expression(object):
             else:
                 # no operator found, so we are done
                 left_str = expr_str.strip()
-                op_str = ''
-                right_str = ''
+                op_str = ""
+                right_str = ""
                 return left_str, op_str, right_str
             # operator found! now get the left hand side
             left_str = expr_str[:op_startpos].strip()
@@ -282,26 +308,30 @@ class Expression(object):
             # yes, we found a bracketted expression
             # so remove brackets and whitespace,
             # and let that be the right hand side
-            right_str = expr_str[right_startpos + 1:right_endpos].strip()
+            right_str = expr_str[right_startpos + 1 : right_endpos].strip()
             # check for trailing junk
-            if expr_str[right_endpos + 1:] and not expr_str[right_endpos + 1:] == ' ':
+            if expr_str[right_endpos + 1 :] and not expr_str[right_endpos + 1 :] == " ":
                 for op in cls.operators:
                     if expr_str.find(op) != -1:
                         break
                 else:
                     raise ValueError(
-                        "expression syntax error: unexpected trailing characters '%s'" % expr_str[right_endpos + 1:])
+                        "expression syntax error: unexpected trailing characters '%s'"
+                        % expr_str[right_endpos + 1 :]
+                    )
                 # trailing characters contain an operator: do not remove
                 # brackets but take
                 # everything to be the right hand side (this happens for
                 # instance in '(x <= y) && (y <= z) && (x != z)')
-                right_str = expr_str[op_endpos + 1:].strip()
+                right_str = expr_str[op_endpos + 1 :].strip()
         else:
             # no, so just take the whole expression as right hand side
-            right_str = expr_str[op_endpos + 1:].strip()
+            right_str = expr_str[op_endpos + 1 :].strip()
             # check that it is a valid expression
             if ("(" in right_str) or (")" in right_str):
-                raise ValueError("expression syntax error: unexpected brackets in '%s'" % right_str)
+                raise ValueError(
+                    "expression syntax error: unexpected brackets in '%s'" % right_str
+                )
         return left_str, op_str, right_str
 
     @staticmethod

@@ -129,12 +129,14 @@ class Array(_ListWrap):
     arg = None  # default argument
 
     def __init__(
-            self,
-            element_type=None,
-            element_type_template=None,
-            element_type_argument=None,
-            count1=None, count2=None,
-            parent=None):
+        self,
+        element_type=None,
+        element_type_template=None,
+        element_type_argument=None,
+        count1=None,
+        count2=None,
+        parent=None,
+    ):
         """Initialize the array type.
 
         :param element_type: The class describing the type of each element.
@@ -148,11 +150,9 @@ class Array(_ListWrap):
         :param parent: The parent of this instance, that is, the instance this
             array is an attribute of."""
         if count2 is None:
-            _ListWrap.__init__(self,
-                               element_type=element_type, parent=parent)
+            _ListWrap.__init__(self, element_type=element_type, parent=parent)
         else:
-            _ListWrap.__init__(self,
-                               element_type=_ListWrap, parent=parent)
+            _ListWrap.__init__(self, element_type=_ListWrap, parent=parent)
         self._elementType = element_type
         self._parent = weakref.ref(parent) if parent else None
         self._elementTypeTemplate = element_type_template
@@ -165,7 +165,8 @@ class Array(_ListWrap):
                 elem_instance = self._elementType(
                     template=self._elementTypeTemplate,
                     argument=self._elementTypeArgument,
-                    parent=self)
+                    parent=self,
+                )
                 self.append(elem_instance)
         else:
             for i in range(self._len1()):
@@ -174,7 +175,8 @@ class Array(_ListWrap):
                     elem_instance = self._elementType(
                         template=self._elementTypeTemplate,
                         argument=self._elementTypeArgument,
-                        parent=elem)
+                        parent=elem,
+                    )
                     elem.append(elem_instance)
                 self.append(elem)
 
@@ -188,7 +190,7 @@ class Array(_ListWrap):
     def _len2(self, index1):
         """The length the array should have, obtained by evaluating the count2 expression."""
         if self._count2 is None:
-            raise ValueError('single array treated as double array (bug?)')
+            raise ValueError("single array treated as double array (bug?)")
         if self._parent is None:
             expr = self._count2.eval()
         else:
@@ -224,7 +226,7 @@ class Array(_ListWrap):
 
     # string of the array
     def __str__(self):
-        text = '%s instance at 0x%08X\n' % (self.__class__, id(self))
+        text = "%s instance at 0x%08X\n" % (self.__class__, id(self))
         if self._count2 is None:
             for i, element in enumerate(list.__iter__(self)):
                 if i > 16:
@@ -261,7 +263,8 @@ class Array(_ListWrap):
                 for i in range(new_size - old_size):
                     elem = self._elementType(
                         template=self._elementTypeTemplate,
-                        argument=self._elementTypeArgument)
+                        argument=self._elementTypeArgument,
+                    )
                     self.append(elem)
         else:
             if new_size < old_size:
@@ -278,7 +281,8 @@ class Array(_ListWrap):
                     for j in range(new_size_i - old_size_i):
                         elem = self._elementType(
                             template=self._elementTypeTemplate,
-                            argument=self._elementTypeArgument)
+                            argument=self._elementTypeArgument,
+                        )
                         elemlist.append(elem)
 
     def read(self, stream, data):
@@ -290,8 +294,8 @@ class Array(_ListWrap):
         len1 = self._len1()
         self.logger.debug("Reading array of size " + str(len1))
         if len1 > 0x10000000:
-            raise ValueError('array too long (%i)' % len1)
-        del self[0:self.__len__()]
+            raise ValueError("array too long (%i)" % len1)
+        del self[0 : self.__len__()]
 
         # read array
         if self._count2 is None:
@@ -299,20 +303,22 @@ class Array(_ListWrap):
                 elem = self._elementType(
                     template=self._elementTypeTemplate,
                     argument=self._elementTypeArgument,
-                    parent=self)
+                    parent=self,
+                )
                 elem.read(stream, data)
                 self.append(elem)
         else:
             for i in range(len1):
                 len2i = self._len2(i)
                 if len2i > 0x10000000:
-                    raise ValueError('array too long (%i)' % len2i)
+                    raise ValueError("array too long (%i)" % len2i)
                 elemlist = _ListWrap(self._elementType, parent=self)
                 for j in range(len2i):
                     elem = self._elementType(
                         template=self._elementTypeTemplate,
                         argument=self._elementTypeArgument,
-                        parent=elemlist)
+                        parent=elemlist,
+                    )
                     elem.read(stream, data)
                     elemlist.append(elem)
                 self.append(elemlist)
@@ -322,10 +328,12 @@ class Array(_ListWrap):
         self._elementTypeArgument = self.arg
         len1 = self._len1()
         if len1 != self.__len__():
-            raise ValueError('array size (%i) different from to field describing number of elements (%i)' %
-                             (self.__len__(), len1))
+            raise ValueError(
+                "array size (%i) different from to field describing number of elements (%i)"
+                % (self.__len__(), len1)
+            )
         if len1 > 0x10000000:
-            raise ValueError('array too long (%i)' % len1)
+            raise ValueError("array too long (%i)" % len1)
         if self._count2 is None:
             for elem in list.__iter__(self):
                 elem.write(stream, data)
@@ -333,10 +341,12 @@ class Array(_ListWrap):
             for i, elemlist in enumerate(list.__iter__(self)):
                 len2i = self._len2(i)
                 if len2i != elemlist.__len__():
-                    raise ValueError("array size (%i) different from to field describing number of elements (%i)" %
-                                     (elemlist.__len__(), len2i))
+                    raise ValueError(
+                        "array size (%i) different from to field describing number of elements (%i)"
+                        % (elemlist.__len__(), len2i)
+                    )
                 if len2i > 0x10000000:
-                    raise ValueError('array too long (%i)' % len2i)
+                    raise ValueError("array too long (%i)" % len2i)
                 for elem in list.__iter__(elemlist):
                     elem.write(stream, data)
 
@@ -380,8 +390,7 @@ class Array(_ListWrap):
 
     def get_size(self, data=None):
         """Calculate the sum of the size of all elements in the array."""
-        return sum(
-            (elem.get_size(data) for elem in self._elementList()), 0)
+        return sum((elem.get_size(data) for elem in self._elementList()), 0)
 
     def get_hash(self, data=None):
         """Calculate a hash value for the array, as a tuple."""

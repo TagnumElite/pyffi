@@ -38,8 +38,8 @@
 # --------------------------------------------------------------------------
 
 
-
 from pyffi.utils.graph import DetailNode, EdgeType, EdgeFilter
+
 
 class DetailTreeItemData(object):
     """Stores all data used in the detail view.
@@ -49,6 +49,7 @@ class DetailTreeItemData(object):
     :ivar name: The name of the node (this is usually not stored in the node).
     :type name: ``str``
     """
+
     def __init__(self, node=None, name=None):
         if not isinstance(node, DetailNode):
             raise TypeError("node must be DetailNode instance")
@@ -67,6 +68,7 @@ class DetailTreeItemData(object):
     def typename(self):
         return self.node.__class__.__name__
 
+
 class DetailTreeItem(object):
     """Stores all internal information to vizualize :class:`DetailNode`\ s in a
     tree view.
@@ -82,15 +84,20 @@ class DetailTreeItem(object):
     :ivar edge_type: The type of edge from the parent of this node to itself.
     :type edge_type: :class:`EdgeType`
     """
-    def __init__(self, data=None, parent=None, row=0, edge_type=EdgeType(),
-                 edge_filter=EdgeFilter()):
+
+    def __init__(
+        self,
+        data=None,
+        parent=None,
+        row=0,
+        edge_type=EdgeType(),
+        edge_filter=EdgeFilter(),
+    ):
         """Initialize the node tree hierarchy from the given data."""
         if not isinstance(data, DetailTreeItemData):
-            raise TypeError(
-                "data must be a DetailTreeItemData instance")
+            raise TypeError("data must be a DetailTreeItemData instance")
         if not isinstance(parent, (type(None), DetailTreeItem)):
-            raise TypeError(
-                "parent must be either None or a DetailTreeItem instance")
+            raise TypeError("parent must be either None or a DetailTreeItem instance")
         if not isinstance(edge_type, EdgeType):
             raise TypeError("edge_type must be EdgeType instance")
         self.data = data
@@ -102,9 +109,13 @@ class DetailTreeItem(object):
                 data=DetailTreeItemData(node=childnode, name=childname),
                 parent=self,
                 row=childrow,
-                edge_type=child_edge_type)
-            for (childrow, (childnode, childname, child_edge_type))
-            in enumerate(zip(
-                data.node.get_detail_child_nodes(edge_filter=edge_filter),
-                data.node.get_detail_child_names(edge_filter=edge_filter),
-                data.node.get_detail_child_edge_types(edge_filter=edge_filter)))]
+                edge_type=child_edge_type,
+            )
+            for (childrow, (childnode, childname, child_edge_type)) in enumerate(
+                zip(
+                    data.node.get_detail_child_nodes(edge_filter=edge_filter),
+                    data.node.get_detail_child_names(edge_filter=edge_filter),
+                    data.node.get_detail_child_edge_types(edge_filter=edge_filter),
+                )
+            )
+        ]

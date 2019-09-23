@@ -280,8 +280,7 @@ class Spell(object):
             branch = self.data
         # the root data element: datainspect has already been called
         if branch is self.data:
-            self.toaster.msgblockbegin(
-                "--- %s ---" % self.SPELLNAME)
+            self.toaster.msgblockbegin("--- %s ---" % self.SPELLNAME)
             if self.dataentry():
                 # spell returned True so recurse to children
                 # we use the abstract tree functions to parse the tree
@@ -293,8 +292,8 @@ class Spell(object):
         elif self._branchinspect(branch) and self.branchinspect(branch):
             self.toaster.msgblockbegin(
                 """~~~ %s [%s] ~~~"""
-                % (branch.__class__.__name__,
-                   branch.get_global_display()))
+                % (branch.__class__.__name__, branch.get_global_display())
+            )
             # cast the spell on the branch
             if self.branchentry(branch):
                 # spell returned True so recurse to children
@@ -433,21 +432,24 @@ class SpellGroupBase(Spell):
         # call base class constructor
         Spell.__init__(self, toaster=toaster, data=data, stream=stream)
         # set up the list of spells
-        self.spells = [spellclass(toaster=toaster, data=data, stream=stream)
-                       for spellclass in self.ACTIVESPELLCLASSES]
+        self.spells = [
+            spellclass(toaster=toaster, data=data, stream=stream)
+            for spellclass in self.ACTIVESPELLCLASSES
+        ]
 
     def datainspect(self):
         """Inspect every spell with L{Spell.datainspect} and keep
         those spells that must be cast."""
-        self.spells = [spell for spell in self.spells
-                       if spell.datainspect()]
+        self.spells = [spell for spell in self.spells if spell.datainspect()]
         return bool(self.spells)
 
     @classmethod
     def toastentry(cls, toaster):
         cls.ACTIVESPELLCLASSES = [
-            spellclass for spellclass in cls.SPELLCLASSES
-            if spellclass.toastentry(toaster)]
+            spellclass
+            for spellclass in cls.SPELLCLASSES
+            if spellclass.toastentry(toaster)
+        ]
         return bool(cls.ACTIVESPELLCLASSES)
 
     @classmethod
@@ -458,6 +460,7 @@ class SpellGroupBase(Spell):
 
 class SpellGroupSeriesBase(SpellGroupBase):
     """Base class for running spells in series."""
+
     def recurse(self, branch=None):
         """Recurse spells in series."""
         for spell in self.spells:
@@ -490,6 +493,7 @@ class SpellGroupParallelBase(SpellGroupBase):
     """Base class for running spells in parallel (that is, with only
     a single recursion in the tree).
     """
+
     def branchinspect(self, branch):
         """Inspect spells with :meth:`Spell.branchinspect` (not all checks are
         executed, only keeps going until a spell inspection returns ``True``).
@@ -503,12 +507,11 @@ class SpellGroupParallelBase(SpellGroupBase):
 
     def branchexit(self, branch):
         for spell in self.spells:
-             spell.branchexit(branch)
+            spell.branchexit(branch)
 
     def dataentry(self):
         """Look into every spell with :meth:`Spell.dataentry`."""
-        self.spells = [spell for spell in self.spells
-                       if spell.dataentry()]
+        self.spells = [spell for spell in self.spells if spell.dataentry()]
         return bool(self.spells)
 
     def dataexit(self):
@@ -523,24 +526,29 @@ class SpellGroupParallelBase(SpellGroupBase):
 
 def SpellGroupSeries(*args):
     """Class factory for grouping spells in series."""
-    return type("".join(spellclass.__name__ for spellclass in args),
-                (SpellGroupSeriesBase,),
-                {"SPELLCLASSES": args,
-                 "SPELLNAME":
-                     " | ".join(spellclass.SPELLNAME for spellclass in args),
-                 "READONLY": 
-                      all(spellclass.READONLY for spellclass in args)})
+    return type(
+        "".join(spellclass.__name__ for spellclass in args),
+        (SpellGroupSeriesBase,),
+        {
+            "SPELLCLASSES": args,
+            "SPELLNAME": " | ".join(spellclass.SPELLNAME for spellclass in args),
+            "READONLY": all(spellclass.READONLY for spellclass in args),
+        },
+    )
 
 
 def SpellGroupParallel(*args):
     """Class factory for grouping spells in parallel."""
-    return type("".join(spellclass.__name__ for spellclass in args),
-                (SpellGroupParallelBase,),
-                {"SPELLCLASSES": args,
-                 "SPELLNAME":
-                     " & ".join(spellclass.SPELLNAME for spellclass in args),
-                 "READONLY": 
-                      all(spellclass.READONLY for spellclass in args)})
+    return type(
+        "".join(spellclass.__name__ for spellclass in args),
+        (SpellGroupParallelBase,),
+        {
+            "SPELLCLASSES": args,
+            "SPELLNAME": " & ".join(spellclass.SPELLNAME for spellclass in args),
+            "READONLY": all(spellclass.READONLY for spellclass in args),
+        },
+    )
+
 
 class SpellApplyPatch(Spell):
     """A spell for applying a patch on files."""
@@ -575,6 +583,7 @@ class SpellApplyPatch(Spell):
 
 class fake_logger:
     """Simple logger for testing."""
+
     level = logging.DEBUG
 
     @classmethod
@@ -611,17 +620,20 @@ def _toaster_job(args):
 
     class multiprocessing_fake_logger(fake_logger):
         """Simple logger which works well along with multiprocessing on all platforms."""
+
         @classmethod
         def _log(cls, level, level_str, msg):
             # do not actually log, just print
             if level >= cls.level:
-                print("pyffi.toaster:%i:%s:%s"
-                      % (multiprocessing.current_process().pid,
-                         level_str, msg))
+                print(
+                    "pyffi.toaster:%i:%s:%s"
+                    % (multiprocessing.current_process().pid, level_str, msg)
+                )
 
     toasterclass, filename, options, spellnames = args
-    toaster = toasterclass(options=options, spellnames=spellnames,
-                           logger=multiprocessing_fake_logger)
+    toaster = toasterclass(
+        options=options, spellnames=spellnames, logger=multiprocessing_fake_logger
+    )
 
     # toast entry code
     if not toaster.spellclass.toastentry(toaster):
@@ -629,11 +641,12 @@ def _toaster_job(args):
         return
 
     # toast single file
-    stream = open(filename, mode='rb' if toaster.spellclass.READONLY else 'r+b')
+    stream = open(filename, mode="rb" if toaster.spellclass.READONLY else "r+b")
     toaster._toast(stream)
 
     # toast exit code
     toaster.spellclass.toastexit(toaster)
+
 
 # CPU_COUNT is used for default number of jobs
 if multiprocessing:
@@ -664,20 +677,35 @@ class Toaster(object):
     """Dictionary with aliases for spells."""
 
     DEFAULT_OPTIONS = dict(
-        raisetesterror=False, verbose=1, pause=False,
-        exclude=[], include=[], examples=False,
+        raisetesterror=False,
+        verbose=1,
+        pause=False,
+        exclude=[],
+        include=[],
+        examples=False,
         spells=False,
         interactive=True,
-        helpspell=False, dryrun=False, prefix="", suffix="", arg="",
-        createpatch=False, applypatch=False, diffcmd="", patchcmd="",
+        helpspell=False,
+        dryrun=False,
+        prefix="",
+        suffix="",
+        arg="",
+        createpatch=False,
+        applypatch=False,
+        diffcmd="",
+        patchcmd="",
         series=False,
-        skip=[], only=[],
-        jobs=CPU_COUNT, refresh=32,
-        sourcedir="", destdir="",
+        skip=[],
+        only=[],
+        jobs=CPU_COUNT,
+        refresh=32,
+        sourcedir="",
+        destdir="",
         archives=False,
         resume=False,
         gccollect=False,
-        inifile="")
+        inifile="",
+    )
     """List of spell classes of the particular :class:`Toaster` instance."""
 
     options = {}
@@ -707,8 +735,7 @@ class Toaster(object):
     skip_regexs = []
     """Tuple of regular expressions corresponding to the skip key of :attr:`options`."""
 
-    def __init__(self, spellclass=None, options=None, spellnames=None,
-                 logger=None):
+    def __init__(self, spellclass=None, options=None, spellnames=None, logger=None):
         """Initialize the toaster.
 
         :param spellclass: Deprecated, use spellnames.
@@ -752,31 +779,27 @@ class Toaster(object):
             self.logger.setLevel(logging.DEBUG)
         # check errors
         if self.options["createpatch"] and self.options["applypatch"]:
-            raise ValueError(
-                "options --diff and --patch are mutually exclusive")
-        if self.options["diffcmd"] and not(self.options["createpatch"]):
-            raise ValueError(
-                "option --diff-cmd can only be used with --diff")
-        if self.options["patchcmd"] and not(self.options["applypatch"]):
-            raise ValueError(
-                "option --patch-cmd can only be used with --patch")
+            raise ValueError("options --diff and --patch are mutually exclusive")
+        if self.options["diffcmd"] and not (self.options["createpatch"]):
+            raise ValueError("option --diff-cmd can only be used with --diff")
+        if self.options["patchcmd"] and not (self.options["applypatch"]):
+            raise ValueError("option --patch-cmd can only be used with --patch")
         # multiprocessing available?
         if (multiprocessing is None) and self.options["jobs"] > 1:
-            self.logger.warn(
-                "multiprocessing not supported on this platform")
+            self.logger.warn("multiprocessing not supported on this platform")
             self.options["jobs"] = 1
         # update include and exclude types
         self.include_types = tuple(
             getattr(self.FILEFORMAT, block_type)
-            for block_type in self.options["include"])
+            for block_type in self.options["include"]
+        )
         self.exclude_types = tuple(
             getattr(self.FILEFORMAT, block_type)
-            for block_type in self.options["exclude"])
+            for block_type in self.options["exclude"]
+        )
         # update skip and only regular expressions
-        self.skip_regexs = tuple(
-            re.compile(regex) for regex in self.options["skip"])
-        self.only_regexs = tuple(
-            re.compile(regex) for regex in self.options["only"])
+        self.skip_regexs = tuple(re.compile(regex) for regex in self.options["skip"])
+        self.only_regexs = tuple(re.compile(regex) for regex in self.options["only"])
 
     def _update_spellclass(self):
         """Update spell class from given list of spell names."""
@@ -790,17 +813,19 @@ class Toaster(object):
                 self.logger.warning(
                     "The %s spell is deprecated and will be removed"
                     " from a future release; use the %s spell as a"
-                    " replacement" % (spellname, self.ALIASDICT[spellname]))
+                    " replacement" % (spellname, self.ALIASDICT[spellname])
+                )
                 spellname = self.ALIASDICT[spellname]
             # find the spell
-            spellklasses = [spellclass for spellclass in self.SPELLS
-                            if spellclass.SPELLNAME == spellname]
+            spellklasses = [
+                spellclass
+                for spellclass in self.SPELLS
+                if spellclass.SPELLNAME == spellname
+            ]
             if not spellklasses:
-                raise ValueError(
-                    "%s is not a known spell" % spellname)
+                raise ValueError("%s is not a known spell" % spellname)
             if len(spellklasses) > 1:
-                raise ValueError(
-                    "multiple spells are called %s (BUG?)" % spellname)
+                raise ValueError("multiple spells are called %s (BUG?)" % spellname)
             spellclasses.extend(spellklasses)
         # create group of spells
         if len(spellclasses) > 1:
@@ -832,7 +857,7 @@ class Toaster(object):
         message, but if the message argument is ``None``, then no message is
         printed."""
         self.indent -= 1
-        if not(message is None):
+        if not (message is None):
             self.msg(message)
 
     def is_admissible_branch_class(self, branchtype):
@@ -906,179 +931,241 @@ class Toaster(object):
         usage = "%prog [options] <spell1> <spell2> ... <file>|<folder>"
         description = (
             "Apply the spells <spell1>, <spell2>, and so on,"
-            " on <file>, or recursively on <folder>.")
+            " on <file>, or recursively on <folder>."
+        )
         errormessage_numargs = (
-            "incorrect number of arguments (use the --help option for help)")
+            "incorrect number of arguments (use the --help option for help)"
+        )
 
         parser = optparse.OptionParser(
             usage,
             version="%%prog (PyFFI %s)" % pyffi.__version__,
-            description=description)
+            description=description,
+        )
         parser.add_option(
-            "--archives", dest="archives",
+            "--archives",
+            dest="archives",
             action="store_true",
-            help="also parse files inside archives")
+            help="also parse files inside archives",
+        )
         parser.add_option(
-            "-a", "--arg", dest="arg",
+            "-a",
+            "--arg",
+            dest="arg",
             type="string",
             metavar="ARG",
-            help="pass argument ARG to each spell")
+            help="pass argument ARG to each spell",
+        )
         parser.add_option(
-            "--dest-dir", dest="destdir",
+            "--dest-dir",
+            dest="destdir",
             type="string",
             metavar="DESTDIR",
             help="write files to DESTDIR"
             " instead of overwriting the original;"
             " this is done by replacing SOURCEDIR by DESTDIR"
-            " in all source file paths")
+            " in all source file paths",
+        )
         parser.add_option(
-            "--diff", dest="createpatch",
+            "--diff",
+            dest="createpatch",
             action="store_true",
-            help=
-            "write a binary patch"
-            " instead of overwriting the original")
+            help="write a binary patch" " instead of overwriting the original",
+        )
         parser.add_option(
-            "--diff-cmd", dest="diffcmd",
+            "--diff-cmd",
+            dest="diffcmd",
             type="string",
             metavar="CMD",
             help="use CMD as diff command; this command must accept precisely"
-            " 3 arguments: 'CMD oldfile newfile patchfile'.")
+            " 3 arguments: 'CMD oldfile newfile patchfile'.",
+        )
         parser.add_option(
-            "--dry-run", dest="dryrun",
+            "--dry-run",
+            dest="dryrun",
             action="store_true",
-            help=
-            "save modification to temporary file"
+            help="save modification to temporary file"
             " instead of overwriting the original"
-            " (for debugging)")
+            " (for debugging)",
+        )
         parser.add_option(
-            "--examples", dest="examples",
+            "--examples",
+            dest="examples",
             action="store_true",
-            help="show examples of usage and exit")
+            help="show examples of usage and exit",
+        )
         parser.add_option(
-            "--help-spell", dest="helpspell",
+            "--help-spell",
+            dest="helpspell",
             action="store_true",
-            help="show help specific to the given spells")
+            help="show help specific to the given spells",
+        )
         parser.add_option(
-            "-i", "--include", dest="include",
+            "-i",
+            "--include",
+            dest="include",
             type="string",
             action="append",
             metavar="BLOCK",
             help="include only block type BLOCK in spell; if this option is"
-                 " not specified, then all block types are included except"
-                 " those specified under --exclude; include multiple block"
-                 " types by specifying this option more than once")
+            " not specified, then all block types are included except"
+            " those specified under --exclude; include multiple block"
+            " types by specifying this option more than once",
+        )
         parser.add_option(
-            "--ini-file", dest="inifile",
+            "--ini-file",
+            dest="inifile",
             type="string",
             action="callback",
             callback=self.parse_inifile,
-            callback_kwargs={'toaster': self},
+            callback_kwargs={"toaster": self},
             metavar="FILE",
             help="read all options from FILE; if specified, all other arguments"
-                 " are ignored; to take options from multiple ini files, specify"
-                 " more than once")
+            " are ignored; to take options from multiple ini files, specify"
+            " more than once",
+        )
         parser.add_option(
-            "-j", "--jobs", dest="jobs",
+            "-j",
+            "--jobs",
+            dest="jobs",
             type="int",
             metavar="JOBS",
-            help="allow JOBS jobs at once [default: %default]")
+            help="allow JOBS jobs at once [default: %default]",
+        )
         parser.add_option(
-            "--noninteractive", dest="interactive",
+            "--noninteractive",
+            dest="interactive",
             action="store_false",
-            help="non-interactive session (overwrites files without warning)")
+            help="non-interactive session (overwrites files without warning)",
+        )
         parser.add_option(
-            "--only", dest="only",
+            "--only",
+            dest="only",
             type="string",
             action="append",
             metavar="REGEX",
             help="only toast files whose names"
-                 " (i) contain the regular expression REGEX, and"
-                 " (ii) do not contain any regular expression specified with --skip;"
-                 " if specified multiple times, the expressions are 'ored'")
+            " (i) contain the regular expression REGEX, and"
+            " (ii) do not contain any regular expression specified with --skip;"
+            " if specified multiple times, the expressions are 'ored'",
+        )
         parser.add_option(
-            "--overwrite", dest="resume",
+            "--overwrite",
+            dest="resume",
             action="store_false",
-            help="overwrite existing files (also see --resume)")
+            help="overwrite existing files (also see --resume)",
+        )
         parser.add_option(
-            "--patch", dest="applypatch",
+            "--patch",
+            dest="applypatch",
             action="store_true",
-            help="apply all binary patches")
+            help="apply all binary patches",
+        )
         parser.add_option(
-            "--patch-cmd", dest="patchcmd",
+            "--patch-cmd",
+            dest="patchcmd",
             type="string",
             metavar="CMD",
             help="use CMD as patch command; this command must accept precisely "
-                 "3 arguments: 'CMD oldfile newfile patchfile'.""")
+            "3 arguments: 'CMD oldfile newfile patchfile'."
+            "",
+        )
         parser.add_option(
-            "-p", "--pause", dest="pause",
-            action="store_true",
-            help="pause when done")
+            "-p", "--pause", dest="pause", action="store_true", help="pause when done"
+        )
         parser.add_option(
-            "--prefix", dest="prefix",
+            "--prefix",
+            dest="prefix",
             type="string",
             metavar="PREFIX",
             help="prepend PREFIX to file name when saving modification"
-                 " instead of overwriting the original")
+            " instead of overwriting the original",
+        )
         parser.add_option(
-            "-r", "--raise", dest="raisetesterror",
+            "-r",
+            "--raise",
+            dest="raisetesterror",
             action="store_true",
-            help="raise exception on errors during the spell (for debugging)")
+            help="raise exception on errors during the spell (for debugging)",
+        )
         parser.add_option(
-            "--refresh", dest="refresh",
+            "--refresh",
+            dest="refresh",
             type="int",
             metavar="REFRESH",
             help="start new process pool every JOBS * REFRESH files"
-                 " if JOBS is 2 or more"
-                 " (when processing a large number of files, this prevents"
-                 " leaking memory on some operating systems) [default: %default]")
+            " if JOBS is 2 or more"
+            " (when processing a large number of files, this prevents"
+            " leaking memory on some operating systems) [default: %default]",
+        )
         parser.add_option(
-            "--resume", dest="resume",
+            "--resume",
+            dest="resume",
             action="store_true",
-            help="do not overwrite existing files")
+            help="do not overwrite existing files",
+        )
         parser.add_option(
-            "--series", dest="series",
+            "--series",
+            dest="series",
             action="store_true",
-            help="run spells in series rather than in parallel")
+            help="run spells in series rather than in parallel",
+        )
         parser.add_option(
-            "--skip", dest="skip",
+            "--skip",
+            dest="skip",
             type="string",
             action="append",
             metavar="REGEX",
             help="skip all files whose names contain the regular expression REGEX"
-                 " (takes precedence over --only);"
-                 " if specified multiple times, the expressions are 'ored'")
+            " (takes precedence over --only);"
+            " if specified multiple times, the expressions are 'ored'",
+        )
         parser.add_option(
-            "--source-dir", dest="sourcedir",
+            "--source-dir",
+            dest="sourcedir",
             type="string",
             metavar="SOURCEDIR",
-            help="see --dest-dir")
+            help="see --dest-dir",
+        )
         parser.add_option(
-            "--spells", dest="spells",
+            "--spells",
+            dest="spells",
             action="store_true",
-            help="list all spells and exit")
+            help="list all spells and exit",
+        )
         parser.add_option(
-            "--suffix", dest="suffix",
+            "--suffix",
+            dest="suffix",
             type="string",
             metavar="SUFFIX",
             help="append SUFFIX to file name when saving modification"
-                 " instead of overwriting the original")
+            " instead of overwriting the original",
+        )
         parser.add_option(
-            "-v", "--verbose", dest="verbose",
+            "-v",
+            "--verbose",
+            dest="verbose",
             type="int",
             metavar="LEVEL",
-            help="verbosity level: 0, 1, or 2 [default: %default]")
+            help="verbosity level: 0, 1, or 2 [default: %default]",
+        )
         parser.add_option(
-            "-x", "--exclude", dest="exclude",
+            "-x",
+            "--exclude",
+            dest="exclude",
             type="string",
             action="append",
             metavar="BLOCK",
             help="exclude block type BLOCK from spell; exclude multiple"
-                 " block types by specifying this option more than once")
+            " block types by specifying this option more than once",
+        )
         parser.add_option(
-            "--gccollect", dest="gccollect",
+            "--gccollect",
+            dest="gccollect",
             action="store_true",
             help="run garbage collector after every spell"
-                 " (slows down toaster but may save memory)")
+            " (slows down toaster but may save memory)",
+        )
         parser.set_defaults(**deepcopy(self.DEFAULT_OPTIONS))
         (options, args) = parser.parse_args()
 
@@ -1122,11 +1209,11 @@ class Toaster(object):
                 return
             if not args:
                 # no args: error if no top or no spells
-                if not(self.top and self.spellnames):
+                if not (self.top and self.spellnames):
                     parser.error(errormessage_numargs)
             elif len(args) == 1:
                 # single argument is top, error if no spells
-                if not(self.spellnames):
+                if not (self.spellnames):
                     parser.error(errormessage_numargs)
                 self.top = args[-1]
             else:
@@ -1177,13 +1264,13 @@ class Toaster(object):
             in chunks of given size.
             """
             all_files = pyffi.utils.walk(
-                top, onerror=None,
-                re_filename=self.FILEFORMAT.RE_FILENAME)
+                top, onerror=None, re_filename=self.FILEFORMAT.RE_FILENAME
+            )
             while True:
                 # fetch chunksize files from all files
                 file_pool = [
-                    filename for i, filename in zip(
-                        range(chunksize), all_files)]
+                    filename for i, filename in zip(range(chunksize), all_files)
+                ]
                 if not file_pool:
                     # done!
                     break
@@ -1205,7 +1292,7 @@ class Toaster(object):
         # is much more verbose by default
 
         pause = self.options.get("pause", False)
-        
+
         # do not ask for confirmation (!= cli default)
         interactive = self.options.get("interactive", False)
 
@@ -1231,14 +1318,22 @@ class Toaster(object):
         # check that top starts with sourcedir
         if not top.startswith(sourcedir):
             raise ValueError(
-                "invalid --source-dir: %s does not start with %s"
-                % (top, sourcedir))
+                "invalid --source-dir: %s does not start with %s" % (top, sourcedir)
+            )
 
         # warning
-        if ((not self.spellclass.READONLY) and (not dryrun)
-                and (not prefix) and (not createpatch)
-                and interactive and (not suffix) and (not destdir)):
-            self.logger.warn("This script will modify your files, in particular if something goes wrong it may destroy them.")
+        if (
+            (not self.spellclass.READONLY)
+            and (not dryrun)
+            and (not prefix)
+            and (not createpatch)
+            and interactive
+            and (not suffix)
+            and (not destdir)
+        ):
+            self.logger.warn(
+                "This script will modify your files, in particular if something goes wrong it may destroy them."
+            )
             self.logger.warn("Make a backup of your files before running this script.")
             if not input("Are you sure that you want to proceed? [n/y] ") in ("y", "Y"):
                 self.logger.info("Script aborted by user.")
@@ -1249,24 +1344,39 @@ class Toaster(object):
         # walk over all streams, and create a data instance for each of them
         # inspect the file but do not yet read in full
         if jobs == 1:
-            for stream in self.FILEFORMAT.walk(top, mode='rb' if self.spellclass.READONLY else 'r+b'):
+            for stream in self.FILEFORMAT.walk(
+                top, mode="rb" if self.spellclass.READONLY else "r+b"
+            ):
                 self._toast(stream)
                 if self.options["gccollect"]:
                     # force free memory (helps when parsing many files)
                     gc.collect()
         else:
             chunksize = self.options["refresh"] * self.options["jobs"]
-            self.msg("toasting with %i threads in chunks of %i files"
-                     % (jobs, chunksize))
+            self.msg(
+                "toasting with %i threads in chunks of %i files" % (jobs, chunksize)
+            )
             for file_pool in file_pools(chunksize):
                 self.logger.debug("process file pool:")
                 for filename in file_pool:
                     self.logger.debug("  " + filename)
-                with concurrent.futures.ProcessPoolExecutor(max_workers=jobs) as executor:
-                    list(executor.map(
-                        _toaster_job,
-                        ((self.__class__, filename, self.options, self.spellnames)
-                         for filename in file_pool)))
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=jobs
+                ) as executor:
+                    list(
+                        executor.map(
+                            _toaster_job,
+                            (
+                                (
+                                    self.__class__,
+                                    filename,
+                                    self.options,
+                                    self.spellnames,
+                                )
+                                for filename in file_pool
+                            ),
+                        )
+                    )
 
         # toast exit code
         self.spellclass.toastexit(self)
@@ -1283,7 +1393,7 @@ class Toaster(object):
                     continue
                 # open the archive
                 try:
-                    archive_in = ARCHIVE_CLASS.Data(name=filename_in, mode='r')
+                    archive_in = ARCHIVE_CLASS.Data(name=filename_in, mode="r")
                 except ValueError:
                     self.logger.warn("archive format not recognized, skipped")
                     continue
@@ -1294,7 +1404,7 @@ class Toaster(object):
                         self._toast_member(member)
                 else:
                     file_out = tempfile.TemporaryFile()
-                    archive_out = ARCHIVE_CLASS.Data(fileobj=file_out, mode='w')
+                    archive_out = ARCHIVE_CLASS.Data(fileobj=file_out, mode="w")
                     for member in archive_in.get_members():
                         self._toast(member)
                         archive_out.add(member)
@@ -1326,12 +1436,12 @@ class Toaster(object):
 
             # create spell instance
             spell = self.spellclass(toaster=self, data=data, stream=stream)
-            
+
             # inspect the spell instance
             if spell._datainspect() and spell.datainspect():
                 # read the full file
                 data.read(stream)
-                
+
                 # cast the spell on the data tree
                 spell.recurse()
 
@@ -1346,10 +1456,14 @@ class Toaster(object):
 
         except Exception as expt:
             self.files_failed.add(stream.name)
-            self.logger.error("FAILED ON {0} - with the follow exception".format(stream.name))
+            self.logger.error(
+                "FAILED ON {0} - with the follow exception".format(stream.name)
+            )
             self.logger.error("EXPT MSG : " + str(expt))
             self.logger.error("If you were running a spell that came with PyFFI")
-            self.logger.error("Please report this issue - https://github.com/niftools/pyffi/issues")
+            self.logger.error(
+                "Please report this issue - https://github.com/niftools/pyffi/issues"
+            )
             # if raising test errors, reraise the exception
             if self.options["raisetesterror"]:
                 raise
@@ -1378,14 +1492,13 @@ class Toaster(object):
         # and do some sanity checks if this is the case
         if self.options["destdir"]:
             if not self.options["sourcedir"]:
-                raise ValueError(
-                    "--dest-dir specified without --source-dir")
+                raise ValueError("--dest-dir specified without --source-dir")
             if not head.startswith(self.options["sourcedir"]):
                 raise ValueError(
                     "invalid --source-dir: %s does not start with %s"
-                    % (filename, self.options["sourcedir"]))
-            head = head.replace(
-                self.options["sourcedir"], self.options["destdir"], 1)
+                    % (filename, self.options["sourcedir"])
+                )
+            head = head.replace(self.options["sourcedir"], self.options["destdir"], 1)
         return head, self.options["prefix"] + root + self.options["suffix"], ext
 
     def get_toast_stream(self, filename, test_exists=False):
@@ -1460,17 +1573,16 @@ class Toaster(object):
 
     def writepatch(self, stream, data):
         """Creates a binary patch for the updated file."""
-        diffcmd = self.options.get('diffcmd')
+        diffcmd = self.options.get("diffcmd")
         if not diffcmd:
             raise ValueError("must specify a diff command")
-
 
         # create a temporary file that won't get deleted when closed
         self.options["suffix"] = ".tmp"
         newfile = self.spellclass.get_toast_stream(self, stream.name)
         try:
             data.write(newfile)
-        except: # not just Exception, also CTRL-C
+        except:  # not just Exception, also CTRL-C
             self.msg("write failed!!!")
             raise
         # use external diff command
@@ -1485,6 +1597,8 @@ class Toaster(object):
         # delete temporary file
         os.remove(newfilename)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod(optionflags=doctest.ELLIPSIS)

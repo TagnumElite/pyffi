@@ -114,14 +114,16 @@ from pyffi.object_models.xml.basic import BasicBase
 import pyffi.object_models
 from pyffi.utils.graph import EdgeFilter
 
+
 class DdsFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the DDS format."""
-    xml_file_name = 'dds.xml'
+
+    xml_file_name = "dds.xml"
     # where to look for dds.xml and in what order:
     # DDSXMLPATH env var, or DdsFormat module directory
-    xml_file_path = [os.getenv('DDSXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("DDSXMLPATH"), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.dds$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.dds$", re.IGNORECASE)
     # used for comparing floats
     _EPSILON = 0.0001
 
@@ -140,11 +142,12 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
 
     class HeaderString(BasicBase):
         """Basic type which implements the header of a DDS file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
         def __str__(self):
-            return 'DDS'
+            return "DDS"
 
         def get_detail_display(self):
             return self.__str__()
@@ -166,7 +169,8 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
             # check if the string is correct
             if hdrstr != "DDS ".encode("ascii"):
                 raise ValueError(
-                    "invalid DDS header: expected 'DDS ' but got '%s'" % hdrstr)
+                    "invalid DDS header: expected 'DDS ' but got '%s'" % hdrstr
+                )
 
         def write(self, stream, data):
             """Write the header string to stream.
@@ -194,10 +198,11 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
         >>> hex(DdsFormat.version_number('DX10'))
         '0xa000000'
         """
-        return {'DX9': 0x09000000, 'DX10': 0x0A000000}[version_str]
+        return {"DX9": 0x09000000, "DX10": 0x0A000000}[version_str]
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual dds data."""
+
         def __init__(self, version=0x09000000):
             self.version = version
             self.header = DdsFormat.Header()
@@ -221,9 +226,9 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
                     raise ValueError("Not a DDS file.")
                 size = struct.unpack("<I", stream.read(4))
                 if size == 124:
-                    self.version = 0x09000000 # DX9
+                    self.version = 0x09000000  # DX9
                 elif size == 144:
-                    self.version = 0x0A000000 # DX10
+                    self.version = 0x0A000000  # DX10
             finally:
                 stream.seek(pos)
 
@@ -243,7 +248,6 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-
         def read(self, stream, verbose=0):
             """Read a dds file.
 
@@ -259,9 +263,8 @@ class DdsFormat(pyffi.object_models.xml.FileFormat):
 
             # check if we are at the end of the file
             if stream.read(1):
-                raise ValueError(
-                    'end of file not reached: corrupt dds file?')
-            
+                raise ValueError("end of file not reached: corrupt dds file?")
+
         def write(self, stream, verbose=0):
             """Write a dds file.
 

@@ -47,6 +47,7 @@
 import pyffi.spells
 from pyffi.formats.cgf import CgfFormat
 
+
 class CgfSpell(pyffi.spells.Spell):
     """Base class for spells for cgf files."""
 
@@ -60,8 +61,10 @@ class CgfSpell(pyffi.spells.Spell):
             return True
 
         # check that at least one block type of the header is admissible
-        return any(self.toaster.is_admissible_branch_class(header_type)
-                   for header_type in self.data.chunk_table.get_chunk_types())
+        return any(
+            self.toaster.is_admissible_branch_class(header_type)
+            for header_type in self.data.chunk_table.get_chunk_types()
+        )
 
     def inspectblocktype(self, block_type):
         """This function heuristically checks whether the given block type
@@ -75,8 +78,8 @@ class CgfSpell(pyffi.spells.Spell):
             cannot be determined.
         :rtype: ``bool``
         """
-        return (block_type in self.data.chunk_table.get_chunk_types())
+        return block_type in self.data.chunk_table.get_chunk_types()
+
 
 class CgfToaster(pyffi.spells.Toaster):
     FILEFORMAT = CgfFormat
-

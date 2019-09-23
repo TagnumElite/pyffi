@@ -53,21 +53,22 @@ class _MetaBitStructBase(type):
     """This metaclass checks for the presence of a _attrs attribute.
     For each attribute in _attrs, an <attrname> property is generated which gets and sets bit fields.
     Used as metaclass of BitStructBase."""
+
     def __init__(cls, name, bases, dct):
         super(_MetaBitStructBase, cls).__init__(name, bases, dct)
         # consistency checks
-        if not '_attrs' in dct:
-            raise TypeError('%s: missing _attrs attribute' % cls)
-        if not '_numbytes' in dct:
-            raise TypeError('%s: missing _numbytes attribute' % cls)
+        if not "_attrs" in dct:
+            raise TypeError("%s: missing _attrs attribute" % cls)
+        if not "_numbytes" in dct:
+            raise TypeError("%s: missing _numbytes attribute" % cls)
 
         # check storage type
         if cls._numbytes == 1:
-            cls._struct = 'B'
+            cls._struct = "B"
         elif cls._numbytes == 2:
-            cls._struct = 'H'
+            cls._struct = "H"
         elif cls._numbytes == 4:
-            cls._struct = 'I'
+            cls._struct = "I"
         else:
             raise RuntimeError("unsupported bitstruct numbytes")
 
@@ -79,12 +80,17 @@ class _MetaBitStructBase(type):
         cls._has_refs = False
         # does the type contain a string?
         cls._has_strings = False
-        for attr in dct['_attrs']:
+        for attr in dct["_attrs"]:
             # get and set basic attributes
-            setattr(cls, attr.name, property(
-                partial(BitStructBase.get_attribute, name=attr.name),
-                partial(BitStructBase.set_attribute, name=attr.name),
-                doc=attr.doc))
+            setattr(
+                cls,
+                attr.name,
+                property(
+                    partial(BitStructBase.get_attribute, name=attr.name),
+                    partial(BitStructBase.set_attribute, name=attr.name),
+                    doc=attr.doc,
+                ),
+            )
 
         # precalculate the attribute list
         cls._attribute_list = cls._get_attribute_list()
@@ -93,13 +99,15 @@ class _MetaBitStructBase(type):
         cls._names = cls._get_names()
 
     def __repr__(cls):
-        return "<bit_struct '%s'>"%(cls.__name__)
+        return "<bit_struct '%s'>" % (cls.__name__)
+
 
 class Bits(DetailNode, EditableSpinBox):
     """Basic implementation of a n-bit unsigned integer type (without read and write)."""
-    def __init__(self, numbits=1, default=0, parent = None):
+
+    def __init__(self, numbits=1, default=0, parent=None):
         # parent disabled for performance
-        #self._parent = weakref.ref(parent) if parent else None
+        # self._parent = weakref.ref(parent) if parent else None
         self._value = default
         self._numbits = numbits
 
@@ -112,7 +120,7 @@ class Bits(DetailNode, EditableSpinBox):
         if not isinstance(value, int):
             raise TypeError("bitstruct attribute must be integer")
         if value >> self._numbits:
-            raise ValueError('value out of range (%i)' % value)
+            raise ValueError("value out of range (%i)" % value)
         self._value = value
 
     def __str__(self):
@@ -226,7 +234,9 @@ class BitStructBase(DetailNode, metaclass=_MetaBitStructBase):
 
             # instantiate the integer
             if attr.default is not None:
-                attr_instance = Bits(numbits=attr.numbits, default=attr.default, parent=self)
+                attr_instance = Bits(
+                    numbits=attr.numbits, default=attr.default, parent=self
+                )
             else:
                 attr_instance = Bits(numbits=attr.numbits, parent=self)
 
@@ -245,8 +255,10 @@ class BitStructBase(DetailNode, metaclass=_MetaBitStructBase):
         elif isinstance(block, self.__class__):
             attrlist = self._get_filtered_attribute_list()
         else:
-            raise ValueError("deepcopy: classes %s and %s unrelated"
-                             % (self.__class__.__name__, block.__class__.__name__))
+            raise ValueError(
+                "deepcopy: classes %s and %s unrelated"
+                % (self.__class__.__name__, block.__class__.__name__)
+            )
         # copy the attributes
         for attr in attrlist:
             setattr(self, attr.name, getattr(block, attr.name))
@@ -255,19 +267,18 @@ class BitStructBase(DetailNode, metaclass=_MetaBitStructBase):
 
     # string of all attributes
     def __str__(self):
-        text = '%s instance at 0x%08X\n' % (self.__class__, id(self))
+        text = "%s instance at 0x%08X\n" % (self.__class__, id(self))
         # used to track names of attributes that have already been added
         # is faster than self.__dict__.has_key(...)
         for attr in self._get_filtered_attribute_list():
             # append string
-            attr_str_lines = str(
-                getattr(self, "_%s_value_" % attr.name)).splitlines()
+            attr_str_lines = str(getattr(self, "_%s_value_" % attr.name)).splitlines()
             if len(attr_str_lines) > 1:
-                text += '* %s :\n' % attr.name
+                text += "* %s :\n" % attr.name
                 for attr_str in attr_str_lines:
-                    text += '    %s\n' % attr_str
+                    text += "    %s\n" % attr_str
             else:
-                text += '* %s : %s\n' % (attr.name, attr_str_lines[0])
+                text += "* %s : %s\n" % (attr.name, attr_str_lines[0])
         return text
 
     def __int__(self):
@@ -287,7 +298,9 @@ class BitStructBase(DetailNode, metaclass=_MetaBitStructBase):
     def read(self, stream, data):
         """Read structure from stream."""
         # read all attributes
-        value = struct.unpack(data._byte_order + self._struct, stream.read(self._numbytes))[0]
+        value = struct.unpack(
+            data._byte_order + self._struct, stream.read(self._numbytes)
+        )[0]
 
         # set the structure variables
         self.populate_attribute_values(value, data)
@@ -315,7 +328,11 @@ class BitStructBase(DetailNode, metaclass=_MetaBitStructBase):
 
     def write(self, stream, data):
         """Write structure to stream."""
-        stream.write(struct.pack(data._byte_order + self._struct, self.get_attributes_values(data)))
+        stream.write(
+            struct.pack(
+                data._byte_order + self._struct, self.get_attributes_values(data)
+            )
+        )
 
     def fix_links(self, data):
         """Fix links in the structure."""
@@ -410,8 +427,10 @@ class BitStructBase(DetailNode, metaclass=_MetaBitStructBase):
             # print("version check passed") # debug
 
             # check user version
-            if not(attr.userver is None or user_version is None) \
-               and user_version != attr.userver:
+            if (
+                not (attr.userver is None or user_version is None)
+                and user_version != attr.userver
+            ):
                 continue
             # print("user version check passed") # debug
 

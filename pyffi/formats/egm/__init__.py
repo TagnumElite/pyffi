@@ -129,14 +129,16 @@ from pyffi.object_models.xml.basic import BasicBase
 import pyffi.object_models
 from pyffi.utils.graph import EdgeFilter
 
+
 class EgmFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the EGM format."""
-    xml_file_name = 'egm.xml'
+
+    xml_file_name = "egm.xml"
     # where to look for egm.xml and in what order:
     # EGMXMLPATH env var, or EgmFormat module directory
-    xml_file_path = [os.getenv('EGMXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("EGMXMLPATH"), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.egm$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.egm$", re.IGNORECASE)
 
     # basic types
     int = pyffi.object_models.common.Int
@@ -152,11 +154,12 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
 
     class FileSignature(BasicBase):
         """Basic type which implements the header of a EGM file."""
+
         def __init__(self, **kwargs):
             BasicBase.__init__(self, **kwargs)
 
         def __str__(self):
-            return 'FREGM'
+            return "FREGM"
 
         def get_detail_display(self):
             return self.__str__()
@@ -178,8 +181,8 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
             # check if the string is correct
             if hdrstr != "FREGM".encode("ascii"):
                 raise ValueError(
-                    "invalid EGM header: expected 'FREGM' but got '%s'"
-                    % hdrstr)
+                    "invalid EGM header: expected 'FREGM' but got '%s'" % hdrstr
+                )
 
         def write(self, stream, data):
             """Write the header string to stream.
@@ -204,7 +207,7 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
             raise NotImplementedError
 
         def __str__(self):
-            return 'XXX'
+            return "XXX"
 
         def get_size(self, data=None):
             return 3
@@ -214,16 +217,17 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
 
         def read(self, stream, data):
             ver = stream.read(3)
-            if ver != ('%03i' % data.version).encode("ascii"):
+            if ver != ("%03i" % data.version).encode("ascii"):
                 raise ValueError(
                     "Invalid version number: expected b'%03i' but got %s."
-                    % (data.version, ver))
+                    % (data.version, ver)
+                )
 
         def write(self, stream, data):
-            stream.write(('%03i' % data.version).encode("ascii"))
+            stream.write(("%03i" % data.version).encode("ascii"))
 
         def get_detail_display(self):
-            return 'XXX'
+            return "XXX"
 
     @staticmethod
     def version_number(version_str):
@@ -247,6 +251,7 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual egm data."""
+
         def __init__(self, version=2, num_vertices=0):
             self.header = EgmFormat.Header()
             self.header.num_vertices = num_vertices
@@ -286,7 +291,6 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-
         def read(self, stream):
             """Read a egm file.
 
@@ -298,18 +302,19 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
             self.header.read(stream, self)
             self.sym_morphs = [
                 EgmFormat.MorphRecord(argument=self.header.num_vertices)
-                for i in range(self.header.num_sym_morphs)]
+                for i in range(self.header.num_sym_morphs)
+            ]
             self.asym_morphs = [
                 EgmFormat.MorphRecord(argument=self.header.num_vertices)
-                for i in range(self.header.num_asym_morphs)]
+                for i in range(self.header.num_asym_morphs)
+            ]
             for morph in self.sym_morphs + self.asym_morphs:
                 morph.read(stream, self)
 
             # check if we are at the end of the file
             if stream.read(1):
-                raise ValueError(
-                    'end of file not reached: corrupt egm file?')
-            
+                raise ValueError("end of file not reached: corrupt egm file?")
+
         def write(self, stream):
             """Write a egm file.
 
@@ -381,22 +386,21 @@ class EgmFormat(pyffi.object_models.xml.FileFormat):
         [1000, 3000, 2000]
         [-8999, 3000, -999]
         """
+
         def get_relative_vertices(self):
             for vert in self.vertices:
-                yield (vert.x * self.scale,
-                       vert.y * self.scale,
-                       vert.z * self.scale)
+                yield (vert.x * self.scale, vert.y * self.scale, vert.z * self.scale)
 
         def set_relative_vertices(self, vertices):
             # copy to list
             vertices = list(vertices)
             # check length
             if len(vertices) != self.arg:
-                raise ValueError("expected %i vertices, but got %i"
-                                 % (self.arg, len(vertices)))
+                raise ValueError(
+                    "expected %i vertices, but got %i" % (self.arg, len(vertices))
+                )
             # get extreme values of morph
-            max_value = max(max(abs(value) for value in vert)
-                            for vert in vertices)
+            max_value = max(max(abs(value) for value in vert) for vert in vertices)
             # calculate scale
             self.scale = max_value / 32767.0
             inv_scale = 1 / self.scale

@@ -76,9 +76,9 @@ contained in a file whose format is described in a particular way
 
 import codecs
 import logging
-import os.path # os.path.altsep
-import re # compile
-import sys # version_info
+import os.path  # os.path.altsep
+import re  # compile
+import sys  # version_info
 
 import pyffi.utils
 import pyffi.utils.graph
@@ -125,7 +125,8 @@ class MetaFileFormat(type):
             else:
                 raise IOError(
                     "'%s' not found in any of the directories %s"
-                    % (filename, filepaths))
+                    % (filename, filepaths)
+                )
 
 
 class FileFormat(object):
@@ -149,19 +150,19 @@ class FileFormat(object):
 
     # precompiled regular expressions, used in name_parts
 
-    _RE_NAME_SEP = re.compile('[_\W]+')
+    _RE_NAME_SEP = re.compile("[_\W]+")
     """Matches seperators for splitting names."""
-    
-    _RE_NAME_DIGITS = re.compile('([0-9]+)|([a-zA-Z]+)')
+
+    _RE_NAME_DIGITS = re.compile("([0-9]+)|([a-zA-Z]+)")
     """Matches digits or characters for splitting names."""
 
-    _RE_NAME_CAMEL = re.compile('([A-Z][a-z]*)|([a-z]+)')
+    _RE_NAME_CAMEL = re.compile("([A-Z][a-z]*)|([a-z]+)")
     """Finds components of camelCase and CamelCase names."""
 
-    _RE_NAME_LC = re.compile('[a-z]')
+    _RE_NAME_LC = re.compile("[a-z]")
     """Matches a lower case character."""
 
-    _RE_NAME_UC = re.compile('[A-Z]')
+    _RE_NAME_UC = re.compile("[A-Z]")
     """Matches an upper case character."""
 
     # override this with the data instance for this format
@@ -170,7 +171,7 @@ class FileFormat(object):
         Override this class to implement reading and writing.
         """
 
-        _byte_order = '<'
+        _byte_order = "<"
         """Set to '<' for little-endian, and '>' for big-endian."""
 
         version = None
@@ -299,7 +300,7 @@ class FileFormat(object):
         >>> FileFormat.name_attribute('unknown?')
         'unknown'
         """
-        return '_'.join(part.lower() for part in cls.name_parts(name))
+        return "_".join(part.lower() for part in cls.name_parts(name))
 
     @classmethod
     def name_class(cls, name):
@@ -313,11 +314,10 @@ class FileFormat(object):
         >>> FileFormat.name_class('this IS a sillyNAME')
         'ThisIsASillyNAME'
         """
-        return ''.join(part.capitalize()
-                       for part in cls.name_parts(name))
+        return "".join(part.capitalize() for part in cls.name_parts(name))
 
     @classmethod
-    def walkData(cls, top, topdown=True, mode='rb'):
+    def walkData(cls, top, topdown=True, mode="rb"):
         """A generator which yields the data of all files in
         directory top whose filename matches the regular expression
         :attr:`RE_FILENAME`. The argument top can also be a file instead of a
@@ -337,8 +337,9 @@ class FileFormat(object):
         :type mode: ``str``
         """
         # now walk over all these files in directory top
-        for filename in pyffi.utils.walk(top, topdown, onerror=None,
-                                         re_filename=cls.RE_FILENAME):
+        for filename in pyffi.utils.walk(
+            top, topdown, onerror=None, re_filename=cls.RE_FILENAME
+        ):
             stream = open(filename, mode)
             try:
                 # return data for the stream
@@ -349,7 +350,7 @@ class FileFormat(object):
                 stream.close()
 
     @classmethod
-    def walk(cls, top, topdown=True, mode='rb'):
+    def walk(cls, top, topdown=True, mode="rb"):
         """A generator which yields all files in
         directory top whose filename matches the regular expression
         :attr:`RE_FILENAME`. The argument top can also be a file instead of a
@@ -369,13 +370,15 @@ class FileFormat(object):
         :type mode: ``str``
         """
         # now walk over all these files in directory top
-        for filename in pyffi.utils.walk(top, topdown, onerror=None,
-                                         re_filename=cls.RE_FILENAME):
+        for filename in pyffi.utils.walk(
+            top, topdown, onerror=None, re_filename=cls.RE_FILENAME
+        ):
             stream = open(filename, mode)
             try:
                 yield stream
             finally:
                 stream.close()
+
 
 class ArchiveFileFormat(FileFormat):
     """This class is the base class for all archive file formats. It
@@ -393,7 +396,7 @@ class ArchiveFileFormat(FileFormat):
         def __init__(self, name=None, mode=None, fileobj=None):
             """Sets _stream and _mode."""
             # at least:
-            #self._stream = fileobj if fileobj else open(name, mode)
+            # self._stream = fileobj if fileobj else open(name, mode)
             raise NotImplementedError
 
         def get_members(self):
@@ -404,20 +407,21 @@ class ArchiveFileFormat(FileFormat):
 
         def close(self):
             # at least:
-            #self._stream.close()
+            # self._stream.close()
             raise NotImplementedError
 
         def read(self, stream):
-            self.__init__(mode='r', stream=stream)
+            self.__init__(mode="r", stream=stream)
 
         def write(self, stream):
             if self._stream == stream:
                 raise ValueError("cannot write back to the same stream")
             # get all members from the old stream
             members = list(self.get_members())
-            self.__init__(mode='w', fileobj=stream)
+            self.__init__(mode="w", fileobj=stream)
             # set all members to the new stream
             self.set_members(members)
+
 
 class ArchiveMember(object):
     stream = None

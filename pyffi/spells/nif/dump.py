@@ -41,21 +41,23 @@
 
 import codecs
 import http.server
-import ntpath # explicit windows style path manipulations
+import ntpath  # explicit windows style path manipulations
 import os
 import tempfile
 import types
 import webbrowser
-from xml.sax.saxutils import escape # for htmlreport
+from xml.sax.saxutils import escape  # for htmlreport
 
 from pyffi.formats.nif import NifFormat
 from pyffi.spells.nif import NifSpell
 import pyffi.object_models.xml.array
 import pyffi.object_models.xml.struct_
 
+
 def tohex(value, nbytes=4):
     """Improved version of hex."""
-    return ("0x%%0%dX" % (2*nbytes)) % (int(str(value)) & (2**(nbytes*8)-1))
+    return ("0x%%0%dX" % (2 * nbytes)) % (int(str(value)) & (2 ** (nbytes * 8) - 1))
+
 
 def dumpArray(arr):
     """Format an array.
@@ -84,6 +86,7 @@ def dumpArray(arr):
                 break
     return text if text else "None"
 
+
 def dumpBlock(block):
     """Return formatted string for block without following references.
 
@@ -91,19 +94,19 @@ def dumpBlock(block):
     :type block: L{NifFormat.NiObject}
     :return: String string describing the block.
     """
-    text = '%s instance at 0x%08X\n' % (block.__class__.__name__, id(block))
+    text = "%s instance at 0x%08X\n" % (block.__class__.__name__, id(block))
     for attr in block._get_filtered_attribute_list():
-        attr_str_lines = \
-            dumpAttr(getattr(block, "_%s_value_" % attr.name)).splitlines()
+        attr_str_lines = dumpAttr(getattr(block, "_%s_value_" % attr.name)).splitlines()
         if len(attr_str_lines) > 1:
-            text += '* %s :\n' % attr.name
+            text += "* %s :\n" % attr.name
             for attr_str in attr_str_lines:
-                text += '    %s\n' % attr_str
+                text += "    %s\n" % attr_str
         elif attr_str_lines:
-            text += '* %s : %s\n' % (attr.name, attr_str_lines[0])
+            text += "* %s : %s\n" % (attr.name, attr_str_lines[0])
         else:
-            text = '* %s : <None>\n' % attr.name
+            text = "* %s : <None>\n" % attr.name
     return text
+
 
 def dumpAttr(attr):
     """Format an attribute.
@@ -115,11 +118,10 @@ def dumpAttr(attr):
     if isinstance(attr, (NifFormat.Ref, NifFormat.Ptr)):
         ref = attr.get_value()
         if ref:
-            if (hasattr(ref, "name")):
-                return "<%s:%s:0x%08X>" % (ref.__class__.__name__,
-                                           ref.name, id(attr))
+            if hasattr(ref, "name"):
+                return "<%s:%s:0x%08X>" % (ref.__class__.__name__, ref.name, id(attr))
             else:
-                return "<%s:0x%08X>" % (ref.__class__.__name__,id(attr))
+                return "<%s:0x%08X>" % (ref.__class__.__name__, id(attr))
         else:
             return "<None>"
     elif isinstance(attr, list):
@@ -136,7 +138,8 @@ def dumpAttr(attr):
         return tohex(attr, 4)
     else:
         return str(attr)
-    
+
+
 class SpellDumpAll(NifSpell):
     """Dump the whole NIF file."""
 
@@ -148,6 +151,7 @@ class SpellDumpAll(NifSpell):
         # continue recursion
         return True
 
+
 class SpellDumpTex(NifSpell):
     """Dump the texture and material info of all geometries."""
 
@@ -155,59 +159,76 @@ class SpellDumpTex(NifSpell):
 
     def branchinspect(self, branch):
         # stick to main tree nodes, and material and texture properties
-        return isinstance(branch, (NifFormat.NiAVObject,
-                                   NifFormat.NiTexturingProperty,
-                                   NifFormat.NiMaterialProperty,
-                                   NifFormat.BSLightingShaderProperty,
-                                   NifFormat.BSShaderTextureSet))
+        return isinstance(
+            branch,
+            (
+                NifFormat.NiAVObject,
+                NifFormat.NiTexturingProperty,
+                NifFormat.NiMaterialProperty,
+                NifFormat.BSLightingShaderProperty,
+                NifFormat.BSShaderTextureSet,
+            ),
+        )
 
     def branchentry(self, branch):
         if isinstance(branch, NifFormat.NiTexturingProperty):
-            for textype in ('base', 'dark', 'detail', 'gloss', 'glow',
-                            'bump_map', 'decal_0', 'decal_1', 'decal_2',
-                            'decal_3'):
-                if getattr(branch, 'has_%s_texture' % textype):
-                    texdesc = getattr(branch,
-                                      '%s_texture' % textype)
+            for textype in (
+                "base",
+                "dark",
+                "detail",
+                "gloss",
+                "glow",
+                "bump_map",
+                "decal_0",
+                "decal_1",
+                "decal_2",
+                "decal_3",
+            ):
+                if getattr(branch, "has_%s_texture" % textype):
+                    texdesc = getattr(branch, "%s_texture" % textype)
                     if texdesc.source:
                         if texdesc.source.use_external:
                             filename = texdesc.source.file_name
                         else:
-                            filename = '(pixel data packed in file)'
+                            filename = "(pixel data packed in file)"
                     else:
-                        filename = '(no texture file)'
+                        filename = "(no texture file)"
                     self.toaster.msg(
-                        "[%s] %s"
-                        % (textype, filename.decode("utf8", "ignore")))
+                        "[%s] %s" % (textype, filename.decode("utf8", "ignore"))
+                    )
             self.toaster.msg("apply mode %i" % branch.apply_mode)
             # stop recursion
             return False
         elif isinstance(branch, NifFormat.NiMaterialProperty):
-            for coltype in ['ambient', 'diffuse', 'specular', 'emissive']:
-                col = getattr(branch, '%s_color' % coltype)
-                self.toaster.msg('%-10s %4.2f %4.2f %4.2f'
-                                 % (coltype, col.r, col.g, col.b))
-            self.toaster.msg('glossiness %f' % branch.glossiness)
-            self.toaster.msg('alpha      %f' % branch.alpha)
+            for coltype in ["ambient", "diffuse", "specular", "emissive"]:
+                col = getattr(branch, "%s_color" % coltype)
+                self.toaster.msg(
+                    "%-10s %4.2f %4.2f %4.2f" % (coltype, col.r, col.g, col.b)
+                )
+            self.toaster.msg("glossiness %f" % branch.glossiness)
+            self.toaster.msg("alpha      %f" % branch.alpha)
             # stop recursion
             return False
         elif isinstance(branch, NifFormat.BSShaderTextureSet):
-            textures = [path.decode() for path in branch.textures if path.decode() != '']
+            textures = [
+                path.decode() for path in branch.textures if path.decode() != ""
+            ]
             if len(textures) > 0:
-                for n, tex in enumerate (textures):
-                    self.toaster.msg('%i: %s' % (n, tex))
-            else: 
-                self.toaster.msg('BSShaderTextureSet has no Textures')
+                for n, tex in enumerate(textures):
+                    self.toaster.msg("%i: %s" % (n, tex))
+            else:
+                self.toaster.msg("BSShaderTextureSet has no Textures")
             return False
         else:
             # keep looking for blocks of interest
             return True
 
+
 class SpellHtmlReport(NifSpell):
     """Make a html report of selected blocks."""
 
     SPELLNAME = "dump_htmlreport"
-    ENTITIES = { "\n": "<br/>" }
+    ENTITIES = {"\n": "<br/>"}
 
     @classmethod
     def toastentry(cls, toaster):
@@ -220,7 +241,7 @@ class SpellHtmlReport(NifSpell):
         # enter every branch
         # (the base method is called in branch entry)
         return True
-        
+
     def branchentry(self, branch):
         # check if this branch must be checked, if not, recurse further
         if not NifSpell._branchinspect(self, branch):
@@ -230,23 +251,21 @@ class SpellHtmlReport(NifSpell):
         if not reports:
             # start a new report for this block type
             row = "<tr>"
-            row += "<th>%s</th>" % "file" 
-            row +=  "<th>%s</th>" % "id" 
+            row += "<th>%s</th>" % "file"
+            row += "<th>%s</th>" % "id"
             for attr in branch._get_filtered_attribute_list(data=self.data):
-                row += ("<th>%s</th>"
-                        % escape(attr.displayname, self.ENTITIES))
+                row += "<th>%s</th>" % escape(attr.displayname, self.ENTITIES)
             row += "</tr>"
             reports = [row]
             self.toaster.reports_per_blocktype[blocktype] = reports
-        
+
         row = "<tr>"
         row += "<td>%s</td>" % escape(self.stream.name)
         row += "<td>%s</td>" % escape("0x%08X" % id(branch), self.ENTITIES)
         for attr in branch._get_filtered_attribute_list(data=self.data):
-            row += ("<td>%s</td>"
-                    % escape(dumpAttr(getattr(branch, "_%s_value_"
-                                              % attr.name)),
-                             self.ENTITIES))
+            row += "<td>%s</td>" % escape(
+                dumpAttr(getattr(branch, "_%s_value_" % attr.name)), self.ENTITIES
+            )
         row += "</tr>"
         reports.append(row)
         # keep looking for blocks of interest
@@ -256,10 +275,10 @@ class SpellHtmlReport(NifSpell):
     def toastexit(cls, toaster):
         if toaster.reports_per_blocktype:
             rows = []
-            rows.append( "<head>" )
-            rows.append( "<title>Report</title>" )
-            rows.append( "</head>" )
-            rows.append( "<body>" )
+            rows.append("<head>")
+            rows.append("<title>Report</title>")
+            rows.append("</head>")
+            rows.append("<body>")
 
             for blocktype, reports in toaster.reports_per_blocktype.items():
                 rows.append("<h1>%s</h1>" % blocktype)
@@ -271,7 +290,7 @@ class SpellHtmlReport(NifSpell):
 
             cls.browser("\n".join(rows))
         else:
-            toaster.msg('No Report Generated')
+            toaster.msg("No Report Generated")
 
     @classmethod
     def browser(cls, htmlstr):
@@ -280,16 +299,18 @@ class SpellHtmlReport(NifSpell):
         
         Instantiates a trivial http server and calls webbrowser.open
         with a URL to retrieve html from that server.
-        """    
+        """
+
         class RequestHandler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
-                bufferSize = 1024*1024
+                bufferSize = 1024 * 1024
                 for i in range(0, len(htmlstr), bufferSize):
-                    self.wfile.write(htmlstr[i:i+bufferSize])
+                    self.wfile.write(htmlstr[i : i + bufferSize])
 
-        server = http.server.HTTPServer(('127.0.0.1', 0), RequestHandler)
-        webbrowser.open('http://127.0.0.1:%s' % server.server_port)
-        server.handle_request()           
+        server = http.server.HTTPServer(("127.0.0.1", 0), RequestHandler)
+        webbrowser.open("http://127.0.0.1:%s" % server.server_port)
+        server.handle_request()
+
 
 class SpellExportPixelData(NifSpell):
     """Export embedded images as DDS files. If the toaster's
@@ -318,21 +339,30 @@ class SpellExportPixelData(NifSpell):
 
     def branchinspect(self, branch):
         # stick to main tree nodes, and material and texture properties
-        return isinstance(branch, (NifFormat.NiAVObject,
-                                   NifFormat.NiTexturingProperty,
-                                   NifFormat.NiSourceTexture,
-                                   NifFormat.ATextureRenderData))
+        return isinstance(
+            branch,
+            (
+                NifFormat.NiAVObject,
+                NifFormat.NiTexturingProperty,
+                NifFormat.NiSourceTexture,
+                NifFormat.ATextureRenderData,
+            ),
+        )
 
     def branchentry(self, branch):
 
-        if (isinstance(branch, NifFormat.NiSourceTexture)
-            and branch.pixel_data and branch.file_name):
+        if (
+            isinstance(branch, NifFormat.NiSourceTexture)
+            and branch.pixel_data
+            and branch.file_name
+        ):
             self.save_as_dds(branch.pixel_data, branch.file_name)
             return False
         elif isinstance(branch, NifFormat.ATextureRenderData):
             filename = "%s-pixeldata-%i" % (
                 os.path.basename(self.stream.name),
-                self.pixeldata_counter)
+                self.pixeldata_counter,
+            )
             self.save_as_dds(branch, filename)
             self.pixeldata_counter += 1
             return False
@@ -372,8 +402,8 @@ class SpellExportPixelData(NifSpell):
         # XXX following is disabled because not all textures in Bully
         # XXX actually have this form; use "-a textures" for this game
         # make relative path for Bully SE
-        #tmp1, tmp2, tmp3 = head.partition("\\bully\\temp\\export\\")
-        #if tmp2:
+        # tmp1, tmp2, tmp3 = head.partition("\\bully\\temp\\export\\")
+        # if tmp2:
         #    head = tmp3
         # for linux: convert backslash to forward slash
         head = head.replace("\\", "/")
@@ -406,8 +436,7 @@ class SpellExportPixelData(NifSpell):
 
     def save_as_dds(self, pixeldata, texture_filename):
         """Save pixeldata as dds file, using the specified filename."""
-        self.toaster.msg("found pixel data (format %i)"
-                         % pixeldata.pixel_format)
+        self.toaster.msg("found pixel data (format %i)" % pixeldata.pixel_format)
         try:
             stream = self.get_toast_pixeldata_stream(texture_filename)
             if stream:
@@ -415,6 +444,7 @@ class SpellExportPixelData(NifSpell):
         finally:
             if stream:
                 stream.close()
+
 
 class SpellDumpPython(NifSpell):
     """Convert a nif into python code."""
@@ -433,8 +463,7 @@ class SpellDumpPython(NifSpell):
         """
         if isinstance(_value, (NifFormat.Ref, NifFormat.Ptr)):
             if _value.get_value() is not None:
-                self.print_(
-                    "%s = %s" % (name, self.blocks[_value.get_value()]))
+                self.print_("%s = %s" % (name, self.blocks[_value.get_value()]))
                 return True
             else:
                 return False
@@ -444,15 +473,13 @@ class SpellDumpPython(NifSpell):
                 self.print_("%s.update_size()" % name)
                 if _value._count2 is None:
                     for i, elem in enumerate(list.__iter__(_value)):
-                        if self.print_instance(
-                            "%s[%i]" % (name, i), elem):
+                        if self.print_instance("%s[%i]" % (name, i), elem):
 
                             result = True
                 else:
                     for i, elemlist in enumerate(list.__iter__(_value)):
                         for j, elem in enumerate(list.__iter__(elemlist)):
-                            if self.print_instance(
-                                "%s[%i][%i]" % (name, i, j), elem):
+                            if self.print_instance("%s[%i][%i]" % (name, i, j), elem):
 
                                 result = True
             return result
@@ -530,7 +557,9 @@ class SpellDumpPython(NifSpell):
             self.print_("%s = NifFormat.%s()" % (blockname, blocktype))
         self.print_(
             "n_data.roots = ["
-            + ", ".join(self.blocks[root] for root in self.data.roots) + "]")
+            + ", ".join(self.blocks[root] for root in self.data.roots)
+            + "]"
+        )
         self.print_()
         return True
 

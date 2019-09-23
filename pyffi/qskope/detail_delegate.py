@@ -41,11 +41,11 @@ from PyQt4 import QtCore, QtGui
 
 # each delegate type corresponds to a QtGui delegate type
 # (see _checkValidEditor for more details)
-from pyffi.object_models.editable import EditableComboBox     # -> QComboBox
-from pyffi.object_models.editable import EditableFloatSpinBox # -> QDoubleSpinBox
-from pyffi.object_models.editable import EditableSpinBox      # -> QSpinBox
-from pyffi.object_models.editable import EditableTextEdit     # -> QTextEdit
-from pyffi.object_models.editable import EditableLineEdit     # -> QLineEdit
+from pyffi.object_models.editable import EditableComboBox  # -> QComboBox
+from pyffi.object_models.editable import EditableFloatSpinBox  # -> QDoubleSpinBox
+from pyffi.object_models.editable import EditableSpinBox  # -> QSpinBox
+from pyffi.object_models.editable import EditableTextEdit  # -> QTextEdit
+from pyffi.object_models.editable import EditableLineEdit  # -> QLineEdit
 
 # implementation details:
 # http://doc.trolltech.com/4.3/model-view-delegate.html
@@ -97,9 +97,10 @@ class DetailDelegate(QtGui.QItemDelegate):
 
         # if invalid, raise ValueError
         if not isvalid:
-            raise ValueError("data %s has bad editor %s"
-                             % (data.__class__.__name__,
-                                editor.__class__.__name__))
+            raise ValueError(
+                "data %s has bad editor %s"
+                % (data.__class__.__name__, editor.__class__.__name__)
+            )
 
     def createEditor(self, parent, option, index):
         """Returns the widget used to change data."""
@@ -127,7 +128,7 @@ class DetailDelegate(QtGui.QItemDelegate):
             editor.setMinimum(node.get_editor_minimum())
             # work around a qt "bug": maximum must be C type "int"
             # so cannot be larger than 0x7fffffff
-            editor.setMaximum(min(node.get_editor_maximum(), 0x7fffffff))
+            editor.setMaximum(min(node.get_editor_maximum(), 0x7FFFFFFF))
         elif isinstance(node, EditableTextEdit):
             # a text editor
             editor = QtGui.QTextEdit(parent)
@@ -190,10 +191,10 @@ class DetailDelegate(QtGui.QItemDelegate):
             editorvalue = editor.text()
         else:
             # should not happen: no editor
-            print("WARNING: cannot set model data for type %s"
-                  % node.__class__.__name__)
+            print(
+                "WARNING: cannot set model data for type %s" % node.__class__.__name__
+            )
             return
         # set the model data
         # EditRole ensures that setData uses set_editor_value to set the data
         model.setData(index, editorvalue, QtCore.Qt.EditRole)
-

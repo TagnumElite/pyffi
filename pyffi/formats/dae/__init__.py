@@ -114,14 +114,16 @@ import re
 
 import pyffi.object_models.xsd
 
+
 class DaeFormat(pyffi.object_models.xsd.FileFormat):
     """This class implements the DAE format."""
-    xsdFileName = 'COLLADASchema.xsd'
+
+    xsdFileName = "COLLADASchema.xsd"
     # where to look for the xsd file and in what order:
     # DAEXSDPATH env var, or XsdFormat module directory
-    xsdFilePath = [os.getenv('DAEXSDPATH'), os.path.dirname(__file__)]
+    xsdFilePath = [os.getenv("DAEXSDPATH"), os.path.dirname(__file__)]
     # file name regular expression match
-    RE_FILENAME = re.compile(r'^.*\.dae$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.dae$", re.IGNORECASE)
     # used for comparing floats
     _EPSILON = 0.0001
 
@@ -185,4 +187,3 @@ class DaeFormat(pyffi.object_models.xsd.FileFormat):
 
     # implementation of dae-specific basic types
     # TODO
-

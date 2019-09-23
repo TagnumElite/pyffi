@@ -47,6 +47,7 @@ import xml.etree.cElementTree
 
 import pyffi.object_models
 
+
 class Tree(object):
     """Converts an xsd element tree into a tree of nodes that contain
     all information and methods for creating classes. Each node has a
@@ -81,8 +82,9 @@ class Tree(object):
             self.schema = self.parent.schema if parent else weakref.proxy(self)
 
             # create nodes for all children
-            self.children = [Tree.node_factory(child, self)
-                             for child in element.getchildren()]
+            self.children = [
+                Tree.node_factory(child, self) for child in element.getchildren()
+            ]
 
         # note: this corresponds roughly to the 'clsFor' method in pyxsd
         def class_walker(self, fileformat):
@@ -105,7 +107,7 @@ class Tree(object):
         @staticmethod
         def num_occurs(num):
             """Converts a string to an ``int`` or ``None`` (if unbounded)."""
-            if num == 'unbounded':
+            if num == "unbounded":
                 return None
             else:
                 return int(num)
@@ -174,8 +176,7 @@ class Tree(object):
             self.ref = element.get("ref")
             self.type_ = element.get("type")
             if (not self.name) and (not self.ref):
-                raise ValueError("Attribute %s has neither name nor ref."
-                                 % element)
+                raise ValueError("Attribute %s has neither name nor ref." % element)
 
         def attribute_walker(self, fileformat):
             # attributes for child nodes
@@ -183,18 +184,17 @@ class Tree(object):
             # now set attributes for this node
             if self.name:
                 # could have self._type or not, but should not have a self.ref
-                assert(not self.ref) # debug
+                assert not self.ref  # debug
                 self.pyname = fileformat.name_attribute(self.name)
                 node = self
             elif self.ref:
                 # no name and no type should be defined
-                assert(not self.name) # debug
-                assert(not self.type_) # debug
+                assert not self.name  # debug
+                assert not self.type_  # debug
                 self.pyname = fileformat.name_attribute(self.ref)
                 # resolve reference
                 for child in self.schema.children:
-                    if (isinstance(child, self.__class__)
-                        and child.name == self.ref):
+                    if isinstance(child, self.__class__) and child.name == self.ref:
                         node = child
                         break
                 else:
@@ -202,8 +202,9 @@ class Tree(object):
                     if self.ref == "xml:base":
                         self.pytype = fileformat.XsString
                     else:
-                        raise ValueError("Could not resolve reference to '%s'."
-                                         % self.ref)
+                        raise ValueError(
+                            "Could not resolve reference to '%s'." % self.ref
+                        )
                     # done: name and type are resolved
                     return
             else:
@@ -218,8 +219,11 @@ class Tree(object):
                 else:
                     self.logger.warn(
                         "No type for %s '%s': falling back to xs:anyType."
-                        % (self.__class__.__name__.lower(),
-                           (self.name if self.name else self.ref)))
+                        % (
+                            self.__class__.__name__.lower(),
+                            (self.name if self.name else self.ref),
+                        )
+                    )
                     self.pytype = fileformat.XsAnyType
             else:
                 # predefined type, or global type?
@@ -229,9 +233,13 @@ class Tree(object):
                 except AttributeError:
                     raise ValueError(
                         "Could not resolve type '%s' (%s) for %s '%s'."
-                        % (self.type_, pytypename,
-                           self.__class__.__name__.lower(),
-                           self.name if self.name else self.ref))
+                        % (
+                            self.type_,
+                            pytypename,
+                            self.__class__.__name__.lower(),
+                            self.name if self.name else self.ref,
+                        )
+                    )
 
         def instantiate(self, inst):
             setattr(inst, self.pyname, self.pytype())
@@ -274,7 +282,8 @@ class Tree(object):
             else:
                 raise ValueError(
                     "complexType has no name attribute and no element parent: "
-                    "cannot determine name.")
+                    "cannot determine name."
+                )
             # filter class name so it conforms naming conventions
             class_name = fileformat.name_class(class_name)
             # construct bases
@@ -326,10 +335,8 @@ class Tree(object):
 
         def __init__(self, element, parent):
             Tree.Attribute.__init__(self, element, parent)
-            self.min_occurs = self.num_occurs(element.get("minOccurs",
-                                                          self.min_occurs))
-            self.max_occurs = self.num_occurs(element.get("maxOccurs",
-                                                          self.max_occurs))
+            self.min_occurs = self.num_occurs(element.get("minOccurs", self.min_occurs))
+            self.max_occurs = self.num_occurs(element.get("maxOccurs", self.max_occurs))
 
         def instantiate(self, inst):
             if self.min_occurs == 1 and self.max_occurs == 1:
@@ -419,7 +426,7 @@ class Tree(object):
 
     class Selector(Node):
         pass
-        
+
     class Sequence(Node):
         pass
 
@@ -452,7 +459,8 @@ class Tree(object):
             else:
                 raise ValueError(
                     "simpleType has no name attribute and no element parent: "
-                    "cannot determine name.")
+                    "cannot determine name."
+                )
             # filter class name so it conforms naming conventions
             class_name = fileformat.name_class(class_name)
             # construct bases
@@ -483,11 +491,13 @@ class Tree(object):
         try:
             return getattr(cls, class_name)(element, parent)
         except AttributeError:
-            cls.logger.warn("Unknown element type: making dummy node class %s."
-                            % class_name)
+            cls.logger.warn(
+                "Unknown element type: making dummy node class %s." % class_name
+            )
             class_ = type(class_name, (cls.Node,), {})
             setattr(cls, class_name, class_)
             return class_(element, parent)
+
 
 class MetaFileFormat(pyffi.object_models.MetaFileFormat):
     """The MetaFileFormat metaclass transforms the XSD description of a
@@ -513,7 +523,7 @@ class MetaFileFormat(pyffi.object_models.MetaFileFormat):
         super(MetaFileFormat, cls).__init__(name, bases, dct)
 
         # open XSD file
-        xsdfilename = dct.get('xsdFileName')
+        xsdfilename = dct.get("xsdFileName")
         if xsdfilename:
             # open XSD file
             xsdfile = cls.openfile(xsdfilename, cls.xsdFilePath, encoding="utf-8")
@@ -525,8 +535,10 @@ class MetaFileFormat(pyffi.object_models.MetaFileFormat):
                 # create nodes for every element in the XSD tree
                 schema = Tree.node_factory(
                     # XXX cElementTree python bug when running nosetests
-                    #xml.etree.cElementTree.parse(xsdfile).getroot(), None)
-                    xml.etree.ElementTree.parse(xsdfile).getroot(), None)
+                    # xml.etree.cElementTree.parse(xsdfile).getroot(), None)
+                    xml.etree.ElementTree.parse(xsdfile).getroot(),
+                    None,
+                )
             finally:
                 xsdfile.close()
             # generate classes
@@ -534,8 +546,10 @@ class MetaFileFormat(pyffi.object_models.MetaFileFormat):
                 setattr(cls, class_.__name__, class_)
             # generate attributes
             schema.attribute_walker(cls)
-            cls.logger.debug("Parsing finished in %.3f seconds."
-                             % (time.time() - start))
+            cls.logger.debug(
+                "Parsing finished in %.3f seconds." % (time.time() - start)
+            )
+
 
 class Type(object):
     _node = None
@@ -546,20 +560,22 @@ class Type(object):
         # TODO initialize all attributes
         self._node.instantiate(self)
 
+
 class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
     """This class can be used as a base class for file formats. It implements
     a number of useful functions such as walking over directory trees and a
     default attribute naming function.
     """
-    xsdFileName = None #: Override.
-    xsdFilePath = None #: Override.
+
+    xsdFileName = None  #: Override.
+    xsdFilePath = None  #: Override.
     logger = logging.getLogger("pyffi.object_models.xsd")
 
     @classmethod
     def name_parts(cls, name):
         # introduces extra splits for some names
-        name = name.replace("NMTOKEN", "NM_TOKEN") # name token
-        name = name.replace("IDREF", "ID_REF") # identifier reference
+        name = name.replace("NMTOKEN", "NM_TOKEN")  # name token
+        name = name.replace("IDREF", "ID_REF")  # identifier reference
         # do the split
         return pyffi.object_models.FileFormat.name_parts(name)
 
@@ -568,10 +584,12 @@ class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
 
     class XsAnyType(object):
         """Abstract base type for all types."""
+
         pass
 
     class XsAnySimpleType(XsAnyType):
         """Abstract base type for all simple types."""
+
         pass
 
     class XsString(XsAnySimpleType):
@@ -654,12 +672,14 @@ class FileFormat(pyffi.object_models.FileFormat, metaclass=MetaFileFormat):
         """Name represents XML Names. See
         http://www.w3.org/TR/2004/REC-xmlschema-2-20041028/datatypes.html#Name
         """
+
         pass
 
     class XsNCName(XsName):
         """NCName represents XML "non-colonized" Names. See
         http://www.w3.org/TR/2004/REC-xmlschema-2-20041028/datatypes.html#NCName
         """
+
         pass
 
     class XsId(XsNCName):

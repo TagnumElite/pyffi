@@ -45,8 +45,10 @@ graphical user interface.
 #
 # ***** END LICENSE BLOCK *****
 
+
 class EditableBase(object):
     """The base class for all delegates."""
+
     def get_editor_value(self):
         """Return data as a value to initialize an editor with.
         Override this method.
@@ -66,6 +68,7 @@ class EditableBase(object):
         """
         raise NotImplementedError
 
+
 class EditableSpinBox(EditableBase):
     """Abstract base class for data that can be edited with a spin box that
     contains an integer. Override get_editor_minimum and get_editor_maximum to
@@ -74,6 +77,7 @@ class EditableSpinBox(EditableBase):
     Requirement: get_editor_value must return an ``int``, set_editor_value
     must take an ``int``.
     """
+
     def get_editor_value(self):
         return self.get_value()
 
@@ -84,7 +88,8 @@ class EditableSpinBox(EditableBase):
         return -0x80000000
 
     def get_editor_maximum(self):
-        return 0x7fffffff
+        return 0x7FFFFFFF
+
 
 class EditableFloatSpinBox(EditableSpinBox):
     """Abstract base class for data that can be edited with a spin box that
@@ -98,6 +103,7 @@ class EditableFloatSpinBox(EditableSpinBox):
     def get_editor_decimals(self):
         return 5
 
+
 class EditableLineEdit(EditableBase):
     """Abstract base class for data that can be edited with a single line
     editor.
@@ -105,7 +111,9 @@ class EditableLineEdit(EditableBase):
     Requirement: get_editor_value must return a ``str``, set_editor_value
     must take a ``str``.
     """
+
     pass
+
 
 class EditableTextEdit(EditableLineEdit):
     """Abstract base class for data that can be edited with a multiline editor.
@@ -113,7 +121,9 @@ class EditableTextEdit(EditableLineEdit):
     Requirement:  get_editor_value must return a ``str``, set_editor_value
     must take a ``str``.
     """
+
     pass
+
 
 class EditableComboBox(EditableBase):
     """Abstract base class for data that can be edited with combo boxes.
@@ -127,11 +137,13 @@ class EditableComboBox(EditableBase):
         """Tuple of strings, each string describing an item."""
         return ()
 
+
 class EditableBoolComboBox(EditableComboBox):
     """Class for data that can be edited with a bool combo box.
 
     Requirement: get_value must return a ``bool``, set_value must take a ``bool``.
     """
+
     def get_editor_keys(self):
         return ("False", "True")
 
@@ -145,4 +157,3 @@ class EditableBoolComboBox(EditableComboBox):
 
     def get_editor_value(self):
         return 1 if self.get_value() else 0
-

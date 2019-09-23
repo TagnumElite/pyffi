@@ -106,14 +106,15 @@ from pyffi.utils.graph import EdgeFilter
 
 class EspFormat(pyffi.object_models.xml.FileFormat):
     """This class implements the ESP format."""
-    xml_file_name = 'esp.xml'
+
+    xml_file_name = "esp.xml"
     # where to look for esp.xml and in what order:
     # ESPXMLPATH env var, or EspFormat module directory
-    xml_file_path = [os.getenv('ESPXMLPATH'), os.path.dirname(__file__)]
+    xml_file_path = [os.getenv("ESPXMLPATH"), os.path.dirname(__file__)]
     # filter for recognizing esp files by extension
-    # .ess are users save games encoded similarly to esp files 
+    # .ess are users save games encoded similarly to esp files
     # .esm are esp files with an bit set in the header.
-    RE_FILENAME = re.compile(r'^.*\.(esp|ess|esm)$', re.IGNORECASE)
+    RE_FILENAME = re.compile(r"^.*\.(esp|ess|esm)$", re.IGNORECASE)
     # used for comparing floats
     _EPSILON = 0.0001
 
@@ -128,6 +129,7 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
     float = pyffi.object_models.common.Float
     uint64 = pyffi.object_models.common.UInt64
     ZString = pyffi.object_models.common.ZString
+
     class RecordType(pyffi.object_models.common.FixedString):
         _len = 4
 
@@ -150,8 +152,7 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
         return (int(high) << 8) + int(low)
 
     @classmethod
-    def _read_records(cls, stream, data,
-                      parent=None, size=None, num_records=None):
+    def _read_records(cls, stream, data, parent=None, size=None, num_records=None):
         """Read records by data size or by number."""
         records = []
         while (size > 0) if size is not None else (num_records > 0):
@@ -168,13 +169,14 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
             records.append(record)
             record.read(stream, data)
             if size is not None:
-                size -= stream.tell() - pos #slower: record.get_size()
+                size -= stream.tell() - pos  # slower: record.get_size()
             else:
                 num_records -= 1
         return records
 
     class Data(pyffi.object_models.FileFormat.Data):
         """A class to contain the actual esp data."""
+
         def __init__(self):
             self.tes4 = EspFormat.TES4()
             self.records = []
@@ -189,7 +191,7 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
             pos = stream.tell()
             try:
                 # XXX check that file is ESP
-                if (stream.read(4) != b'TES4'):
+                if stream.read(4) != b"TES4":
                     raise ValueError("Not an ESP file.")
             finally:
                 stream.seek(pos)
@@ -210,7 +212,6 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
             finally:
                 stream.seek(pos)
 
-
         def read(self, stream):
             """Read a esp file.
 
@@ -225,14 +226,14 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
                 print("esp file has no HEDR; aborting")
                 return
             self.records = EspFormat._read_records(
-                stream, self, num_records=hedr.num_records)
+                stream, self, num_records=hedr.num_records
+            )
 
             # check if we are at the end of the file
             if stream.read(1):
-                #raise ValueError(
-                print(
-                    'end of file not reached: corrupt esp file?')
-            
+                # raise ValueError(
+                print("end of file not reached: corrupt esp file?")
+
         def write(self, stream):
             """Write a esp file.
 
@@ -261,11 +262,11 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
 
         def read(self, stream, data):
             # read all fields
-            pyffi.object_models.xml.struct_.StructBase.read(
-                self, stream, data)
+            pyffi.object_models.xml.struct_.StructBase.read(self, stream, data)
             # read all subrecords
             self.sub_records = EspFormat._read_records(
-                stream, data, parent=self, size=self.data_size)
+                stream, data, parent=self, size=self.data_size
+            )
 
         def write(self, stream, data):
             raise NotImplementedError
@@ -292,11 +293,11 @@ class EspFormat(pyffi.object_models.xml.FileFormat):
 
         def read(self, stream, data):
             # read all fields
-            pyffi.object_models.xml.struct_.StructBase.read(
-                self, stream, data)
+            pyffi.object_models.xml.struct_.StructBase.read(self, stream, data)
             # read all subrecords
             self.records = EspFormat._read_records(
-                stream, data, size=self.data_size - 20)
+                stream, data, size=self.data_size - 20
+            )
 
         def write(self, stream, data):
             raise NotImplementedError

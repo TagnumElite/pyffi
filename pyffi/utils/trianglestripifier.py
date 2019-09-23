@@ -48,9 +48,10 @@ output in all circumstances.
 # ***** END LICENSE BLOCK *****
 
 import itertools
-import random # choice
+import random  # choice
 
 from pyffi.utils.trianglemesh import Face, Mesh
+
 
 class TriangleStrip(object):
     """A heavily specialized oriented strip of faces.
@@ -61,21 +62,25 @@ class TriangleStrip(object):
     http://techgame.net/projects/Runeblade/browser/trunk/RBRapier/RBRapier/Tools/Geometry/Analysis/TriangleStripifier.py?rev=760
     """
 
-    def __init__(self, stripped_faces=None,
-                 faces=None, vertices=None, reversed_=False):
+    def __init__(self, stripped_faces=None, faces=None, vertices=None, reversed_=False):
         """Initialise the triangle strip."""
         self.faces = faces if faces is not None else []
         self.vertices = vertices if vertices is not None else []
         self.reversed_ = reversed_
 
         # set of indices of stripped faces
-        self.stripped_faces = (stripped_faces
-                               if stripped_faces is not None else set())
+        self.stripped_faces = stripped_faces if stripped_faces is not None else set()
 
     def __repr__(self):
-        return ("TriangleStrip(stripped_faces=%s, faces=%s, vertices=%s, reversed_=%s)"
-                % (repr(self.stripped_faces), repr(self.faces),
-                   repr(self.vertices), repr(self.reversed_)))
+        return (
+            "TriangleStrip(stripped_faces=%s, faces=%s, vertices=%s, reversed_=%s)"
+            % (
+                repr(self.stripped_faces),
+                repr(self.faces),
+                repr(self.vertices),
+                repr(self.reversed_),
+            )
+        )
 
     def get_unstripped_adjacent_face(self, face, vi):
         """Get adjacent face which is not yet stripped."""
@@ -304,6 +309,7 @@ class TriangleStrip(object):
             strip = list(self.vertices)
         return strip
 
+
 class Experiment(object):
     """A stripification experiment, essentially consisting of a set of
     adjacent strips.
@@ -357,7 +363,7 @@ class Experiment(object):
         # build adjacent strips
         num_faces = len(strip.faces)
         if num_faces >= 4:
-            face_index = num_faces >> 1 # quick / 2
+            face_index = num_faces >> 1  # quick / 2
             self.build_adjacent(strip, face_index)
             self.build_adjacent(strip, face_index + 1)
         elif num_faces == 3:
@@ -389,15 +395,15 @@ class Experiment(object):
                 other_vertex = strip.vertices[face_index + 2]
                 face_index = other_strip.build(other_vertex, other_face)
             self.strips.append(other_strip)
-            if face_index > (len(other_strip.faces) >> 1): # quick / 2
+            if face_index > (len(other_strip.faces) >> 1):  # quick / 2
                 self.build_adjacent(other_strip, face_index - 1)
             elif face_index < len(other_strip.faces) - 1:
                 self.build_adjacent(other_strip, face_index + 1)
             return True
         return False
 
-class ExperimentSelector(object):
 
+class ExperimentSelector(object):
     def __init__(self):
         self.best_score = -1.0
         self.best_experiment = None
@@ -406,8 +412,9 @@ class ExperimentSelector(object):
         """Updates best experiment with given experiment, if given
         experiment beats current experiment.
         """
-        score = (sum((len(strip.faces) for strip in experiment.strips), 0.0)
-                 / len(experiment.strips))
+        score = sum((len(strip.faces) for strip in experiment.strips), 0.0) / len(
+            experiment.strips
+        )
         if score > self.best_score:
             self.best_score = score
             self.best_experiment = experiment
@@ -418,6 +425,7 @@ class ExperimentSelector(object):
         """
         self.best_score = -1.0
         self.best_experiment = None
+
 
 class TriangleStripifier(object):
     """Implementation of a triangle stripifier.
@@ -465,7 +473,8 @@ class TriangleStripifier(object):
             # all other cases
             return [
                 population[int((i * (float(len(population)) - 1)) / (k - 1))]
-                for i in range(k)]
+                for i in range(k)
+            ]
 
     def find_all_strips(self):
         """Find all strips.
@@ -515,14 +524,14 @@ class TriangleStripifier(object):
             # note: using deterministic self.sample
             # instead of existing random.sample in python
             # because deterministic version is easier to test
-            for sample in self.sample(list(unstripped_faces),
-                                      min(self.num_samples,
-                                          len(unstripped_faces))):
+            for sample in self.sample(
+                list(unstripped_faces), min(self.num_samples, len(unstripped_faces))
+            ):
                 exp_face = self.mesh.faces[sample]
                 for exp_vertex in exp_face.verts:
                     experiments.append(
-                        Experiment(start_vertex=exp_vertex,
-                                   start_face=exp_face))
+                        Experiment(start_vertex=exp_vertex, start_face=exp_face)
+                    )
             if not experiments:
                 # done!
                 return all_strips
@@ -539,10 +548,12 @@ class TriangleStripifier(object):
                     self.mesh.discard_face(face)
             # calculate actual strips for experiment
             all_strips.extend(
-                (strip.get_strip()
-                 for strip in selector.best_experiment.strips))
+                (strip.get_strip() for strip in selector.best_experiment.strips)
+            )
             selector.clear()
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

@@ -80,8 +80,10 @@ class NifSpell(pyffi.spells.Spell):
             return True
 
         # check that at least one block type of the header is admissible
-        return any(self.toaster.is_admissible_branch_class(header_type)
-                   for header_type in self.header_types)
+        return any(
+            self.toaster.is_admissible_branch_class(header_type)
+            for header_type in self.header_types
+        )
 
     def inspectblocktype(self, block_type):
         """This function heuristically checks whether the given block type
@@ -120,7 +122,7 @@ class SpellVisitSkeletonRoots(NifSpell):
             if isinstance(branch, NifFormat.NiGeometry):
                 if branch.skin_instance:
                     skelroot = branch.skin_instance.skeleton_root
-                    if skelroot and not(id(skelroot) in self._skelroots):
+                    if skelroot and not (id(skelroot) in self._skelroots):
                         self._skelroots.add(id(skelroot))
         # only apply spell if there are skeleton roots
         if self._skelroots:
@@ -131,7 +133,7 @@ class SpellVisitSkeletonRoots(NifSpell):
     def branchinspect(self, branch):
         # only inspect the NiNode branch
         return isinstance(branch, NifFormat.NiNode)
-    
+
     def branchentry(self, branch):
         if id(branch) in self._skelroots:
             self.skelrootentry(branch)
